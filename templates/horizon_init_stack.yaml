@@ -1,0 +1,889 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CrowdStrike Horizon (CSPM) Root Template
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: CrowdStrike Falcon API Key
+        Parameters:
+          - FalconClientID
+          - FalconSecret
+          - CSCloud
+      - Label:
+          default: Configure Indicator of Attack Scanning
+        Parameters:
+          - EnableIOA
+          - StackSetAdminRole
+          - StackSetExecRole
+      - Label:
+          default: AWS S3 Bucket 
+        Parameters:
+          - S3BucketName
+          - S3BucketRegion
+          - S3KeyPrefix
+    ParameterLabels:
+      S3BucketName:
+        default: S3 Bucket Name
+      S3BucketRegion:
+        default: S3 Bucket Region
+      S3KeyPrefix:
+        default: S3 Key Prefix
+      FalconClientID:
+        default: Falcon API Client ID
+      FalconSecret:
+        default: Falcon API Secret
+      EnableIOA:
+        default: Enable IOA Scanning (Adds EventBridge forwarding Rules)
+      CSCloud:
+        default: CrowdStrike Cloud
+      StackSetExecRole:
+        default: StackSet Execution Role
+      StackSetAdminRole:
+        default: StackSet Administration Role
+
+Conditions:
+  CreateIOAResources: !Equals [ !Ref 'EnableIOA', true ]
+
+Parameters:
+  FalconClientID:
+    Description: Your Falcon OAuth2 Client ID.
+    NoEcho: 'true'
+    Type: String
+  FalconSecret:
+    Description: Your Falcon OAuth2 API Secret.
+    NoEcho: 'true'
+    Type: String
+  CSCloud:
+    Type: String
+    Default: us1
+    AllowedValues: [ "us1", "us2", "eu1" ]
+    Description: The Cloud your CID is hosted in
+  EnableIOA:
+    Type: String
+    Description: Set IOA Scanning
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'true'
+  S3BucketName:
+    AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$
+    ConstraintDescription: Bucket name can include numbers, lowercase
+      letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen
+      (-).
+    Description: S3 bucket name for the Lambda assets. This string can include
+      numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start
+      or end with a hyphen (-).
+    Type: String
+  S3KeyPrefix:
+    AllowedPattern: ^[0-9a-zA-Z-/]*$
+    ConstraintDescription: Key prefix can include numbers, lowercase letters,
+      uppercase letters, hyphens (-), and forward slash (/).
+    Description: S3 key prefix for the Lambda assets. Key prefix
+      can include numbers, lowercase letters, uppercase letters, hyphens (-), and
+      forward slash (/).
+    Type: String
+  S3BucketRegion:
+    Description: AWS Region where the S3 bucket is hosted. Keep the default Region unless you are customizing the template. Changing this Region updates code references to point to a new Quick Start location. When using your own bucket, specify the Region. See https://aws-quickstart.github.io/option1.html.
+    Type: String
+  StackSetAdminRole:
+    Description: Administration Role for CrowdStrike Root EB StackSet
+    Type: String
+    Default: 'CrowdStrikeStackSetAdministrationRole'
+  StackSetExecRole:
+    Description: Execution Role for CrowdStrike Root EB StackSet
+    Type: String
+    Default: 'CrowdStrikeStackSetExecutionRole'
+
+Mappings:
+  CrowdStrikeCSPMRoleTemplateURL:
+    us1:
+      CSAccountNumber: "292230061137"
+      StackName: "CrowdStrike-CSPM-Integration"
+      CSRoleName: "CrowdStrikeCSPMConnector"
+    us2:
+      CSAccountNumber: "292230061137"
+      StackName: "CrowdStrike-CSPM-Integration"
+      CSRoleName: "CrowdStrikeCSPMConnector"
+    eu:
+      CSAccountNumber: "292230061137"
+      StackName: "CrowdStrike-CSPM-Integration"
+      CSRoleName: "CrowdStrikeCSPMConnector"
+
+Resources:  
+# Create CSPM Role and StackSet
+  CrowdStrikeCSPMRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResource # Role has * to allow for future service monitoring without stack updates
+            - EIAMPolicyActionWildcard # Role has * to allow for future service monitoring without stack updates
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt TriggerRegisterAccountLambda.intermediate_role_arn
+            Condition:
+              StringEquals:
+                sts:ExternalId: !GetAtt TriggerRegisterAccountLambda.external_id
+            Action:
+              - sts:AssumeRole
+      RoleName: !GetAtt TriggerRegisterAccountLambda.iam_role_name
+      Policies:
+        - PolicyName: cspm_config
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Action:
+              - access-analyzer:GetAnalyzedResource
+              - access-analyzer:GetAnalyzer
+              - access-analyzer:GetArchiveRule
+              - access-analyzer:GetFinding
+              - access-analyzer:ListAnalyzedResources
+              - access-analyzer:ListAnalyzers
+              - access-analyzer:ListArchiveRules
+              - access-analyzer:ListFindings
+              - access-analyzer:ListTagsForResource
+              - acm:Describe*
+              - acm:List*
+              - acm-pca:GetPolicy
+              - acm-pca:ListCertificateAuthorities
+              - application-autoscaling:Describe*
+              - appmesh:Describe*
+              - appmesh:List*
+              - appsync:List*
+              - athena:GetWorkGroup
+              - athena:List*
+              - autoscaling:Describe*
+              - backup:GetBackupVaultAccessPolicy
+              - backup:List*
+              - batch:DescribeComputeEnvironments
+              - batch:DescribeJobDefinitions
+              - chime:List*
+              - cloud9:Describe*
+              - cloud9:ListEnvironments
+              - clouddirectory:ListDirectories
+              - cloudformation:DescribeStack*
+              - cloudformation:GetTemplate
+              - cloudformation:ListStack*
+              - cloudformation:GetStackPolicy
+              - cloudformation:Describe*
+              - cloudformation:List*
+              - cloudfront:Get*
+              - cloudfront:List*
+              - cloudhsm:ListHapgs
+              - cloudhsm:ListHsms
+              - cloudhsm:ListLunaClients
+              - cloudtrail:Describe*
+              - cloudtrail:Get*
+              - cloudtrail:List*
+              - cloudtrail:LookupEvents
+              - cloudwatch:Describe*
+              - cloudwatch:Get*
+              - cloudwatch:List*
+              - codebuild:GetResourcePolicy
+              - codebuild:ListProjects
+              - codebuild:ListReportGroups
+              - codecommit:BatchGetRepositories
+              - codecommit:GetBranch
+              - codecommit:GetObjectIdentifier
+              - codecommit:List*
+              - codedeploy:Batch*
+              - codedeploy:List*
+              - codepipeline:ListPipelines
+              - codestar:Describe*
+              - codestar:List*
+              - cognito-identity:ListIdentityPools
+              - cognito-idp:ListUserPools
+              - cognito-sync:Describe*
+              - cognito-sync:List*
+              - comprehend:List*
+              - config:Batch*
+              - config:Describe*
+              - config:Get*
+              - config:List*
+              - datapipeline:DescribeObjects
+              - datapipeline:DescribePipelines
+              - datapipeline:GetPipelineDefinition
+              - datapipeline:ListPipelines
+              - datapipeline:QueryObjects
+              - datapipeline:ValidatePipelineDefinition
+              - datasync:Describe*
+              - datasync:List*
+              - dax:Describe*
+              - dax:ListTags
+              - detective:Get*
+              - detective:List*
+              - directconnect:Describe*
+              - directconnect:List*
+              - dms:Describe*
+              - dms:ListTagsForResource
+              - ds:DescribeDirectories
+              - dynamodb:Describe*
+              - dynamodb:List*
+              - ec2:Describe*
+              - ec2:GetEbsEncryptionByDefault
+              - ec2:GetEbsDefaultKmsKeyId
+              - ecr:Describe*
+              - ecr:GetRegistryPolicy
+              - ecr:GetRegistryScanningConfiguration
+              - ecr:GetRepositoryPolicy
+              - ecr:List*
+              - ecs:Describe*
+              - ecs:List*
+              - eks:DescribeCluster
+              - eks:ListClusters
+              - eks:Describe*
+              - eks:List*
+              - elasticache:Describe*
+              - elasticache:List*
+              - elasticbeanstalk:Describe*
+              - elasticfilesystem:List*
+              - elasticfilesystem:Describe*
+              - elasticfilesystem:DescribeFileSystems
+              - elasticfilesystem:DescribeMountTargetSecurityGroups
+              - elasticfilesystem:DescribeMountTargets
+              - elasticloadbalancing:Describe*
+              - elasticmapreduce:Describe*
+              - elasticmapreduce:ListClusters
+              - elasticmapreduce:ListInstances
+              - elasticmapreduce:GetBlockPublicAccessConfiguration
+              - es:Describe*
+              - es:ListDomainNames
+              - events:Describe*
+              - events:List*
+              - firehose:Describe*
+              - firehose:List*
+              - fms:ListComplianceStatus
+              - fms:ListPolicies
+              - fsx:Describe*
+              - fsx:List*
+              - gamelift:ListBuilds
+              - gamelift:ListFleets
+              - glacier:DescribeVault
+              - glacier:GetVaultAccessPolicy
+              - glacier:ListVaults
+              - globalaccelerator:Describe*
+              - globalaccelerator:List*
+              - glue:GetResourcePolicy
+              - greengrass:List*
+              - guardduty:Describe*
+              - guardduty:Get*
+              - guardduty:List*
+              - iam:GenerateCredentialReport
+              - iam:GenerateServiceLastAccessedDetails
+              - iam:Get*
+              - iam:List*
+              - iam:SimulateCustomPolicy
+              - iam:SimulatePrincipalPolicy
+              - inspector:Describe*
+              - inspector:Get*
+              - inspector:List*
+              - inspector:Preview*
+              - iot:Describe*
+              - iot:GetPolicy
+              - iot:GetPolicyVersion
+              - iot:List*
+              - kinesis:Describe*
+              - kinesis:List*
+              - kinesisanalytics:ListApplications
+              - kinesisvideo:Describe*
+              - kinesisvideo:List*
+              - kms:Describe*
+              - kms:Get*
+              - kms:List*
+              - lambda:GetAccountSettings
+              - lambda:GetFunctionConfiguration
+              - lambda:GetLayerVersionPolicy
+              - lambda:GetPolicy
+              - lambda:GetFunction
+              - lambda:List*
+              - license-manager:List*
+              - lightsail:GetInstances
+              - lightsail:GetLoadBalancers
+              - logs:Describe*
+              - logs:FilterLogEvents
+              - logs:Get*
+              - logs:ListTagsLogGroup
+              - machinelearning:DescribeMLModels
+              - mediaconnect:Describe*
+              - mediaconnect:List*
+              - mediastore:GetContainerPolicy
+              - mediastore:ListContainers
+              - opsworks:DescribeStacks
+              - opsworks-cm:DescribeServers
+              - organizations:List*
+              - organizations:Describe*
+              - quicksight:Describe*
+              - quicksight:List*
+              - ram:List*
+              - rds:Describe*
+              - rds:List*
+              - rds:ListTagsForResource
+              - redshift:Describe*
+              - redshift:List*
+              - rekognition:Describe*
+              - rekognition:List*
+              - robomaker:Describe*
+              - robomaker:List*
+              - route53:Get*
+              - route53:List*
+              - route53domains:Get*
+              - route53domains:List*
+              - route53resolver:List*
+              - route53resolver:Get*
+              - s3:DescribeJob
+              - s3:GetAccelerateConfiguration
+              - s3:GetAccessPoint
+              - s3:GetAccessPointPolicy
+              - s3:GetAccessPointPolicyStatus
+              - s3:GetAccountPublicAccessBlock
+              - s3:GetAccelerateConfiguration
+              - s3:GetAnalyticsConfiguration
+              - s3:GetBucket*
+              - s3:GetEncryptionConfiguration
+              - s3:GetInventoryConfiguration
+              - s3:GetLifecycleConfiguration
+              - s3:GetMetricsConfiguration
+              - s3:GetObjectAcl
+              - s3:GetObjectLegalHold
+              - s3:GetObjectRetention
+              - s3:GetObjectTagging
+              - s3:GetObjectVersion
+              - s3:GetObjectVersionAcl
+              - s3:GetObjectVersionForReplication
+              - s3:GetObjectVersionTagging
+              - s3:GetReplicationConfiguration
+              - s3:ListAccessPoints
+              - s3:ListAllMyBuckets
+              - s3:ListBucketVersions
+              - s3:ListJobs
+              - sagemaker:Describe*
+              - sagemaker:List*
+              - schemas:GetResourcePolicy
+              - schemas:ListRegistries
+              - sdb:DomainMetadata
+              - sdb:ListDomains
+              - secretsmanager:GetResourcePolicy
+              - secretsmanager:ListSecrets
+              - secretsmanager:ListSecretVersionIds
+              - securityhub:Describe*
+              - securityhub:Get*
+              - securityhub:List*
+              - serverlessrepo:GetApplicationPolicy
+              - serverlessrepo:List*
+              - servicequotas:Get*
+              - servicequotas:List*
+              - ses:GetIdentityDkimAttributes
+              - ses:GetIdentityPolicies
+              - ses:GetIdentityVerificationAttributes
+              - ses:Describe*
+              - ses:ListIdentities
+              - ses:ListIdentityPolicies
+              - ses:ListVerifiedEmailAddresses
+              - ses:ListConfigurationSets
+              - ses:ListReceiptRuleSets
+              - ses:ListIdentities
+              - shield:Describe*
+              - shield:List*
+              - snowball:ListClusters
+              - snowball:ListJobs
+              - sns:Get*
+              - sns:ListPlatformApplications
+              - sns:ListSubscriptions
+              - sns:ListTagsForResource
+              - sns:ListTopics
+              - sqs:Get*
+              - sqs:List*
+              - ssm:Describe*
+              - ssm:GetAutomationExecution
+              - ssm:ListDocuments
+              - sso:DescribePermissionsPolicies
+              - ssm:List*
+              - ssm:GetAutomationExecution
+              - ssm:GetConnectionStatus
+              - ssm:GetDefaultPatchBaseline
+              - ssm:GetDeployablePatchSnapshotForInstance
+              - ssm:ListTagsForResource
+              - ssm:GetServiceSetting
+              - ssm:GetInventory
+              - ssm:GetCommandInvocation
+              - sso:DescribePermissionsPolicies
+              - sso:List*
+              - states:ListStateMachines
+              - storagegateway:DescribeBandwidthRateLimit
+              - storagegateway:DescribeCache
+              - storagegateway:DescribeCachediSCSIVolumes
+              - storagegateway:DescribeGatewayInformation
+              - storagegateway:DescribeMaintenanceStartTime
+              - storagegateway:DescribeNFSFileShares
+              - storagegateway:DescribeSnapshotSchedule
+              - storagegateway:DescribeStorediSCSIVolumes
+              - storagegateway:DescribeTapeArchives
+              - storagegateway:DescribeTapeRecoveryPoints
+              - storagegateway:DescribeTapes
+              - storagegateway:DescribeUploadBuffer
+              - storagegateway:DescribeVTLDevices
+              - storagegateway:DescribeWorkingStorage
+              - storagegateway:List*
+              - tag:GetResources
+              - tag:GetTagKeys
+              - transfer:Describe*
+              - transfer:List*
+              - translate:List*
+              - trustedadvisor:Describe*
+              - waf:Get*
+              - waf:List*
+              - waf-regional:Get*
+              - waf-regional:List*
+              - wafv2:Describe*
+              - wafv2:Get*
+              - wafv2:List*
+              - workspaces:Describe*
+              Resource: "*"
+              Effect: Allow
+            - Action:
+              - apigateway:GET
+              Resource:
+              - !Sub arn:${AWS::Partition}:apigateway:*::/apis
+              - !Sub arn:${AWS::Partition}:apigateway:*::/apis/*/stages
+              - !Sub arn:${AWS::Partition}:apigateway:*::/apis/*/stages/*
+              - !Sub arn:${AWS::Partition}:apigateway:*::/apis/*/routes
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis/*/authorizers
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis/*/authorizers/*
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis/*/documentation/versions
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis/*/resources
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis/*/resources/*
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis/*/resources/*/methods/*
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis/*/stages
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis/*/stages/*
+              - !Sub arn:${AWS::Partition}:apigateway:*::/vpclinks
+              Effect: Allow
+
+  CrowdStrikeStackSet:
+    Type: 'AWS::CloudFormation::StackSet'
+    Properties:
+      StackSetName: "CrowdStrike-Horizon-Stackset"
+      Capabilities:
+        - CAPABILITY_IAM
+        - CAPABILITY_NAMED_IAM
+        - CAPABILITY_AUTO_EXPAND
+      Parameters:
+        - ParameterKey: iamRoleName
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.iam_role_name
+        - ParameterKey: externalId
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.external_id
+        - ParameterKey: intermediateRoleArn
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.intermediate_role_arn
+        - ParameterKey: EnableIOA
+          ParameterValue: !Ref EnableIOA
+      PermissionModel: SERVICE_MANAGED
+      AutoDeployment: 
+        Enabled: false
+      TemplateURL: !Sub 
+        - https://${S3Bucket}.s3.${S3Region}.amazonaws.com/${Prefix}horizon_stackset.yaml
+        - S3Region: !Ref S3BucketRegion
+          S3Bucket: !Ref S3BucketName
+          Prefix: !Ref S3KeyPrefix
+
+# Optional: Create EventBridge Roles & StackSet
+  StackSetAdministrationRole:
+    Type: AWS::IAM::Role
+    Condition: CreateIOAResources
+    Properties:
+      RoleName: !Ref StackSetAdminRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Action: sts:AssumeRole
+          Principal:
+            Service: cloudformation.amazonaws.com
+          Effect: Allow
+          Sid: ''
+      Policies:
+        - PolicyName: crowdstrike-stackset-execution
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action: sts:AssumeRole
+                Resource: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${StackSetExecRole}
+                Effect: Allow
+  StackSetExecutionRole:
+    Type: AWS::IAM::Role
+    DependsOn: StackSetAdministrationRole
+    Condition: CreateIOAResources
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResource # Role has * to allow for future service monitoring without stack updates
+            - EIAMPolicyActionWildcard # Role has * to allow for future service monitoring without stack updates
+    Properties:
+      RoleName: !Ref StackSetExecRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Action: sts:AssumeRole
+          Principal:
+            AWS: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${StackSetAdminRole}
+          Effect: Allow
+          Sid: ''
+      Policies:
+        - PolicyName: crowdstrike-stackset-execution
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                - events:DeleteRule
+                - events:PutTargets
+                - events:DescribeRule
+                - iam:PassRole
+                - events:EnableRule
+                - events:PutRule
+                - events:RemoveTargets
+                - events:DisableRule
+                Resource:
+                - arn:${AWS::Partition}:events:*:*:rule/cs-*
+                - arn:${AWS::Partition}:events:*:*:rule/*/cs-*
+                - arn:${AWS::Partition}:iam::*:role/CrowdStrike*
+                Effect: Allow
+              - Action: cloudformation:*
+                Resource: '*'
+                Effect: Allow
+
+  CrowdStrikeEventBridgeRole:
+    Type: AWS::IAM::Role
+    Condition: CreateIOAResources
+    Properties:
+      RoleName: CrowdStrikeCSPMEventBridge
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Action: sts:AssumeRole
+          Principal:
+            Service: events.amazonaws.com
+          Effect: Allow
+          Sid: ''
+      Policies:
+        - PolicyName: eventbridge-put-events
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action: events:PutEvents
+                Resource: !Sub arn:${AWS::Partition}:events:*:*:event-bus/cs-*
+                Effect: Allow
+
+  CrowdStrikeEbStackSet:
+    Type: 'AWS::CloudFormation::StackSet'
+    Condition: CreateIOAResources
+    Properties:      
+      StackSetName: "CrowdStrike-Horizon-EB-Stackset"
+      Parameters:
+        - ParameterKey: CSAccountNumber
+          ParameterValue: !FindInMap [ CrowdStrikeCSPMRoleTemplateURL, !Ref CSCloud, CSAccountNumber ]
+        - ParameterKey: CSEventBusName
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.eventbus_name
+      PermissionModel: SERVICE_MANAGED
+      AutoDeployment: 
+        Enabled: false
+      TemplateURL: !Sub 
+        - 'https://${S3Bucket}.s3.${S3Region}.amazonaws.com/${Prefix}horizon_eb_stackset.yaml'
+        - S3Region: !Ref S3BucketRegion
+          S3Bucket: !Ref S3BucketName
+          Prefix: !Ref S3KeyPrefix
+
+  CrowdStrikeRootEbStackSet:
+    Type: 'AWS::CloudFormation::StackSet'
+    Condition: CreateIOAResources
+    Properties:
+      AdministrationRoleARN: !GetAtt StackSetAdministrationRole.Arn
+      ExecutionRoleName: !Ref StackSetExecutionRole
+      StackSetName: "CrowdStrike-Horizon-Root-EB-Stackset"
+      Parameters:
+        - ParameterKey: CSAccountNumber
+          ParameterValue: !FindInMap [ CrowdStrikeCSPMRoleTemplateURL, !Ref CSCloud, CSAccountNumber ]
+        - ParameterKey: CSEventBusName
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.eventbus_name
+      PermissionModel: SELF_MANAGED
+      TemplateURL: !Sub
+        - 'https://${S3Bucket}.s3.${S3Region}.amazonaws.com/${Prefix}horizon_eb_stackset.yaml'
+        - S3Region: !Ref S3BucketRegion
+          S3Bucket: !Ref S3BucketName
+          Prefix: !Ref S3KeyPrefix
+
+  CrowdStrikeSecrets:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: CrowdStrike Credentials
+      Name: !Join
+        - '-'
+        - - CrowdStrikeHorizonAPISecret
+          - !Ref 'AWS::StackName'
+      SecretString:
+        Fn::Join:
+          - ''
+          - - '{"FalconClientId":"'
+            - Ref: "FalconClientID"
+            - '","FalconSecret": "'
+            - Ref: FalconSecret
+            - '"}'
+
+  LambdaCrowdStrikeRegistrationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+            Condition: { }
+      Path: /
+      Policies:
+        - PolicyName: CrowdStrikeApiSecretPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'secretsmanager:GetSecretValue'
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:secretsmanager:*:*:secret:CrowdStrikeHorizonAPISecret-*'
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/AWSOrganizationsReadOnlyAccess'
+
+  RegisterAccountLambda:
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - CrowdStrikeSecrets
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W89
+            reason: Lambda custom resource only run during stack lifecycle events.
+          - id: W92
+            reason: Lambda custom resource only run during stack lifecycle events.
+    Properties:
+      Environment:
+        Variables:
+          SecretRegion: !Ref AWS::Region
+          SecretName: !Join
+            - '-'
+            - - CrowdStrikeHorizonAPISecret
+              - !Ref 'AWS::StackName'
+      Handler: index.lambda_handler
+      MemorySize: 128
+      Role: !GetAtt "LambdaCrowdStrikeRegistrationRole.Arn"
+      Runtime: python3.7
+      Timeout: 300
+      FunctionName: !Join
+        - '-'
+        - - CrowdStrike-Account-Registration
+          - !Ref 'AWS::StackName'
+      Code:
+        ZipFile: |
+          import json
+          import logging
+          import os
+          import sys
+          import subprocess
+          import boto3
+          import requests
+          import time
+          import base64
+          from botocore.exceptions import ClientError
+
+          # pip install falconpy package to /tmp/ and add to path
+          subprocess.call('pip install crowdstrike-falconpy -t /tmp/ --no-cache-dir'.split(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+          sys.path.insert(1, '/tmp/')
+          from falconpy import CSPMRegistration
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          # CONSTANTS
+          SUCCESS = "SUCCESS"
+          FAILED = "FAILED"
+
+          secret_store_name = os.environ['SecretName']
+          secret_store_region = os.environ['SecretRegion']
+
+          def get_secret(secret_name, secret_region):
+              # Create a Secrets Manager client
+              session = boto3.session.Session()
+              client = session.client(
+                  service_name='secretsmanager',
+                  region_name=secret_region
+              )
+              # In this sample we only handle the specific exceptions for the 'GetSecretValue' API.
+              # See https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+              # We rethrow the exception by default.
+              try:
+                  get_secret_value_response = client.get_secret_value(
+                      SecretId=secret_name
+                  )
+              except ClientError as e:
+                  if e.response['Error']['Code'] == 'DecryptionFailureException':
+                      # Secrets Manager can't decrypt the protected secret text using the provided KMS key.
+                      # Deal with the exception here, and/or rethrow at your discretion.
+                      raise e
+                  elif e.response['Error']['Code'] == 'InternalServiceErrorException':
+                      # An error occurred on the server side.
+                      # Deal with the exception here, and/or rethrow at your discretion.
+                      raise e
+                  elif e.response['Error']['Code'] == 'InvalidParameterException':
+                      # You provided an invalid value for a parameter.
+                      # Deal with the exception here, and/or rethrow at your discretion.
+                      raise e
+                  elif e.response['Error']['Code'] == 'InvalidRequestException':
+                      # You provided a parameter value that is not valid for the current state of the resource.
+                      # Deal with the exception here, and/or rethrow at your discretion.
+                      raise e
+                  elif e.response['Error']['Code'] == 'ResourceNotFoundException':
+                      # We can't find the resource that you asked for.
+                      # Deal with the exception here, and/or rethrow at your discretion.
+                      raise e
+              else:
+                  # Decrypts secret using the associated KMS key.
+                  # Depending on whether the secret is a string or binary, one of these fields will be populated.
+                  if 'SecretString' in get_secret_value_response:
+                      secret = get_secret_value_response['SecretString']
+                  else:
+                      secret = base64.b64decode(get_secret_value_response['SecretBinary'])
+                  return secret
+
+          def get_management_id():
+              """ Get the management Id from AWS Organization - Only on management"""              
+              ORG = boto3.client('organizations')
+              managementID = ''
+              try:
+                  orgIDstr = ORG.list_roots()['Roots'][0]['Arn'].rsplit('/')[1]
+                  managementID = ORG.list_roots()['Roots'][0]['Arn'].rsplit(':')[4]
+                  return orgIDstr, managementID
+              except Exception as e:
+                  logger.error('This stack runs only on the management of the AWS Organization')
+                  return False
+              
+          def cfnresponse_send(event, context, responseStatus, responseData, physicalResourceId=None, noEcho=False):
+              responseUrl = event['ResponseURL']
+              print(responseUrl)
+              responseBody = {}
+              responseBody['Status'] = responseStatus
+              responseBody['Reason'] = 'See the details in CloudWatch Log Stream: '
+              responseBody['PhysicalResourceId'] = physicalResourceId
+              responseBody['StackId'] = event['StackId']
+              responseBody['RequestId'] = event['RequestId']
+              responseBody['LogicalResourceId'] = event['LogicalResourceId']
+              responseBody['Data'] = responseData
+              json_responseBody = json.dumps(responseBody)
+              print("Response body:\n" + json_responseBody)
+              headers = {
+                  'content-type': '',
+                  'content-length': str(len(json_responseBody))
+              }
+              try:
+                  response = requests.put(responseUrl,
+                                          data=json_responseBody,
+                                          headers=headers)
+                  print("Status code: " + response.reason)
+              except Exception as e:
+                  print("send(..) failed executing requests.put(..): " + str(e))
+
+          def lambda_handler(event, context):
+              logger.info('Got event {}'.format(event))
+              logger.info('Context {}'.format(context))
+              aws_account_id = context.invoked_function_arn.split(":")[4]
+              aws_region = event['ResourceProperties']['aws_region']
+              CSCloud = event['ResourceProperties']['CSCloud']
+              OrgId, AccountId = get_management_id()
+              try:
+                  secret_str = get_secret(secret_store_name, secret_store_region)
+                  if secret_str:
+                      secrets_dict = json.loads(secret_str)
+                      FalconClientId = secrets_dict['FalconClientId']
+                      FalconSecret = secrets_dict['FalconSecret']
+                      falcon = CSPMRegistration(client_id=FalconClientId,
+                                                client_secret=FalconSecret,
+                                                base_url=CSCloud
+                                                )
+                      if event['RequestType'] in ['Create']:
+                          response_data = {}
+                          logger.info('Event = {}'.format(event))
+                          response = falcon.create_aws_account(account_id=aws_account_id,
+                                                              organization_id=OrgId,
+                                                              cloudtrail_region=aws_region,
+                                                              parameters={"account_type": "commercial"})
+                          if response['status_code'] == 400:
+                              error = response['body']['errors'][0]['message']
+                              logger.info('Account Registration Failed with reason....{}'.format(error))
+                              response_d = {
+                                  "reason": response['body']['errors'][0]['message']
+                              }
+                              cfnresponse_send(event, context, SUCCESS, response_d, "CustomResourcePhysicalID")
+                          elif response['status_code'] == 201:
+                              response_data = response['body']['resources'][0]
+                              role_name = response['body']['resources'][0]['iam_role_arn'].rsplit('/')[1]
+                              intermediate_role_arn = "arn:aws:iam::292230061137:role/CrowdStrikeCSPMConnector"
+                              response_d = {
+                                  "iam_role_name": role_name,
+                                  "intermediate_role_arn": intermediate_role_arn,
+                                  "external_id": response_data.get('external_id', ''),
+                                  "aws_cloudtrail_bucket_name": response_data.get('aws_cloudtrail_bucket_name', ''),
+                                  "eventbus_name": response_data.get('eventbus_name', ''),
+                                  "aws_eventbus_arn": response_data.get('aws_eventbus_arn', ''),
+                                  "account_type": response_data.get('account_type', '')
+                              }
+                              cfnresponse_send(event, context, SUCCESS, response_d, "CustomResourcePhysicalID")
+                          else:
+                              response_d = response['body']
+                              cfnresponse_send(event, context, FAILED, response_d, "CustomResourcePhysicalID")
+                      elif event['RequestType'] in ['Update']:
+                          response_d = {}
+                          logger.info('Event = ' + event['RequestType'])
+                          cfnresponse_send(event, context, SUCCESS, response_d, "CustomResourcePhysicalID")
+                      elif event['RequestType'] in ['Delete']:
+                          logger.info('Event = ' + event['RequestType'])
+                          response = falcon.delete_aws_account(organization_ids=OrgId)
+                          cfnresponse_send(event, context, 'SUCCESS', response['body'], "CustomResourcePhysicalID")
+              except Exception as err:  # noqa: E722
+                  # We can't communicate with the endpoint
+                  logger.info('Registration Failed {}'.format(err))
+                  cfnresponse_send(event, context, FAILED, err, "CustomResourcePhysicalID")
+
+  TriggerRegisterAccountLambda:
+    Type: 'Custom::TriggerLambda'
+    DependsOn:
+      - LambdaCrowdStrikeRegistrationRole
+      - CrowdStrikeSecrets
+    Properties:
+      aws_region: !Ref AWS::Region
+      FalconSecret: !Ref FalconSecret
+      FalconClientId: !Ref FalconClientID
+      CSCloud: !Ref CSCloud
+      ServiceToken: !GetAtt
+        - RegisterAccountLambda
+        - Arn
+
+Outputs:
+  RoleName:
+    Value: !GetAtt TriggerRegisterAccountLambda.iam_role_name
+    Export:
+      Name: iamRoleName
+  
+  ExternalId:
+    Value: !GetAtt TriggerRegisterAccountLambda.external_id
+    Export:
+      Name: externalId
+
+  EventbusName:
+    Value: !GetAtt TriggerRegisterAccountLambda.eventbus_name
+    Export:
+      Name: eventbusName

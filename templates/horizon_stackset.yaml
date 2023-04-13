@@ -1,0 +1,399 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CrowdStrike Horizon (CSPM) Root Template
+
+Parameters:
+  iamRoleName:
+    Type: String
+    Description: The CSPM Reader role name
+  externalId:
+    Type: String
+    Description: The CrowdStrike externalId for trust policy
+  intermediateRoleArn:
+    Type: String
+    Description: The CrowdStrike Role ARN for trust policy
+  EnableIOA:
+    Type: String
+    Description: Set IOA Scanning
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'true'
+
+Conditions:
+  CreateIOAResources: !Equals [ !Ref 'EnableIOA', true ]
+
+Resources:  
+  CrowdStrikeCSPMRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResource # Role has * to allow for future service monitoring without stack updates
+            - EIAMPolicyActionWildcard # Role has * to allow for future service monitoring without stack updates
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Ref intermediateRoleArn
+            Condition:
+              StringEquals:
+                sts:ExternalId: !Ref externalId
+            Action:
+              - sts:AssumeRole
+      RoleName: !Ref iamRoleName
+      Policies:
+        - PolicyName: cspm_config
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Action:
+              - access-analyzer:GetAnalyzedResource
+              - access-analyzer:GetAnalyzer
+              - access-analyzer:GetArchiveRule
+              - access-analyzer:GetFinding
+              - access-analyzer:ListAnalyzedResources
+              - access-analyzer:ListAnalyzers
+              - access-analyzer:ListArchiveRules
+              - access-analyzer:ListFindings
+              - access-analyzer:ListTagsForResource
+              - acm:Describe*
+              - acm:List*
+              - acm-pca:GetPolicy
+              - acm-pca:ListCertificateAuthorities
+              - application-autoscaling:Describe*
+              - appmesh:Describe*
+              - appmesh:List*
+              - appsync:List*
+              - athena:GetWorkGroup
+              - athena:List*
+              - autoscaling:Describe*
+              - backup:GetBackupVaultAccessPolicy
+              - backup:List*
+              - batch:DescribeComputeEnvironments
+              - batch:DescribeJobDefinitions
+              - chime:List*
+              - cloud9:Describe*
+              - cloud9:ListEnvironments
+              - clouddirectory:ListDirectories
+              - cloudformation:DescribeStack*
+              - cloudformation:GetTemplate
+              - cloudformation:ListStack*
+              - cloudformation:GetStackPolicy
+              - cloudformation:Describe*
+              - cloudformation:List*
+              - cloudfront:Get*
+              - cloudfront:List*
+              - cloudhsm:ListHapgs
+              - cloudhsm:ListHsms
+              - cloudhsm:ListLunaClients
+              - cloudtrail:Describe*
+              - cloudtrail:Get*
+              - cloudtrail:List*
+              - cloudtrail:LookupEvents
+              - cloudwatch:Describe*
+              - cloudwatch:Get*
+              - cloudwatch:List*
+              - codebuild:GetResourcePolicy
+              - codebuild:ListProjects
+              - codebuild:ListReportGroups
+              - codecommit:BatchGetRepositories
+              - codecommit:GetBranch
+              - codecommit:GetObjectIdentifier
+              - codecommit:List*
+              - codedeploy:Batch*
+              - codedeploy:List*
+              - codepipeline:ListPipelines
+              - codestar:Describe*
+              - codestar:List*
+              - cognito-identity:ListIdentityPools
+              - cognito-idp:ListUserPools
+              - cognito-sync:Describe*
+              - cognito-sync:List*
+              - comprehend:List*
+              - config:Batch*
+              - config:Describe*
+              - config:Get*
+              - config:List*
+              - datapipeline:DescribeObjects
+              - datapipeline:DescribePipelines
+              - datapipeline:GetPipelineDefinition
+              - datapipeline:ListPipelines
+              - datapipeline:QueryObjects
+              - datapipeline:ValidatePipelineDefinition
+              - datasync:Describe*
+              - datasync:List*
+              - dax:Describe*
+              - dax:ListTags
+              - detective:Get*
+              - detective:List*
+              - directconnect:Describe*
+              - directconnect:List*
+              - dms:Describe*
+              - dms:ListTagsForResource
+              - ds:DescribeDirectories
+              - dynamodb:Describe*
+              - dynamodb:List*
+              - ec2:Describe*
+              - ec2:GetEbsEncryptionByDefault
+              - ec2:GetEbsDefaultKmsKeyId
+              - ecr:Describe*
+              - ecr:GetRegistryPolicy
+              - ecr:GetRegistryScanningConfiguration
+              - ecr:GetRepositoryPolicy
+              - ecr:List*
+              - ecs:Describe*
+              - ecs:List*
+              - eks:DescribeCluster
+              - eks:ListClusters
+              - eks:Describe*
+              - eks:List*
+              - elasticache:Describe*
+              - elasticache:List*
+              - elasticbeanstalk:Describe*
+              - elasticfilesystem:List*
+              - elasticfilesystem:Describe*
+              - elasticfilesystem:DescribeFileSystems
+              - elasticfilesystem:DescribeMountTargetSecurityGroups
+              - elasticfilesystem:DescribeMountTargets
+              - elasticloadbalancing:Describe*
+              - elasticmapreduce:Describe*
+              - elasticmapreduce:ListClusters
+              - elasticmapreduce:ListInstances
+              - elasticmapreduce:GetBlockPublicAccessConfiguration
+              - es:Describe*
+              - es:ListDomainNames
+              - events:Describe*
+              - events:List*
+              - firehose:Describe*
+              - firehose:List*
+              - fms:ListComplianceStatus
+              - fms:ListPolicies
+              - fsx:Describe*
+              - fsx:List*
+              - gamelift:ListBuilds
+              - gamelift:ListFleets
+              - glacier:DescribeVault
+              - glacier:GetVaultAccessPolicy
+              - glacier:ListVaults
+              - globalaccelerator:Describe*
+              - globalaccelerator:List*
+              - glue:GetResourcePolicy
+              - greengrass:List*
+              - guardduty:Describe*
+              - guardduty:Get*
+              - guardduty:List*
+              - iam:GenerateCredentialReport
+              - iam:GenerateServiceLastAccessedDetails
+              - iam:Get*
+              - iam:List*
+              - iam:SimulateCustomPolicy
+              - iam:SimulatePrincipalPolicy
+              - inspector:Describe*
+              - inspector:Get*
+              - inspector:List*
+              - inspector:Preview*
+              - iot:Describe*
+              - iot:GetPolicy
+              - iot:GetPolicyVersion
+              - iot:List*
+              - kinesis:Describe*
+              - kinesis:List*
+              - kinesisanalytics:ListApplications
+              - kinesisvideo:Describe*
+              - kinesisvideo:List*
+              - kms:Describe*
+              - kms:Get*
+              - kms:List*
+              - lambda:GetAccountSettings
+              - lambda:GetFunctionConfiguration
+              - lambda:GetLayerVersionPolicy
+              - lambda:GetPolicy
+              - lambda:GetFunction
+              - lambda:List*
+              - license-manager:List*
+              - lightsail:GetInstances
+              - lightsail:GetLoadBalancers
+              - logs:Describe*
+              - logs:FilterLogEvents
+              - logs:Get*
+              - logs:ListTagsLogGroup
+              - machinelearning:DescribeMLModels
+              - mediaconnect:Describe*
+              - mediaconnect:List*
+              - mediastore:GetContainerPolicy
+              - mediastore:ListContainers
+              - opsworks:DescribeStacks
+              - opsworks-cm:DescribeServers
+              - organizations:List*
+              - organizations:Describe*
+              - quicksight:Describe*
+              - quicksight:List*
+              - ram:List*
+              - rds:Describe*
+              - rds:List*
+              - rds:ListTagsForResource
+              - redshift:Describe*
+              - redshift:List*
+              - rekognition:Describe*
+              - rekognition:List*
+              - robomaker:Describe*
+              - robomaker:List*
+              - route53:Get*
+              - route53:List*
+              - route53domains:Get*
+              - route53domains:List*
+              - route53resolver:List*
+              - route53resolver:Get*
+              - s3:DescribeJob
+              - s3:GetAccelerateConfiguration
+              - s3:GetAccessPoint
+              - s3:GetAccessPointPolicy
+              - s3:GetAccessPointPolicyStatus
+              - s3:GetAccountPublicAccessBlock
+              - s3:GetAccelerateConfiguration
+              - s3:GetAnalyticsConfiguration
+              - s3:GetBucket*
+              - s3:GetEncryptionConfiguration
+              - s3:GetInventoryConfiguration
+              - s3:GetLifecycleConfiguration
+              - s3:GetMetricsConfiguration
+              - s3:GetObjectAcl
+              - s3:GetObjectLegalHold
+              - s3:GetObjectRetention
+              - s3:GetObjectTagging
+              - s3:GetObjectVersion
+              - s3:GetObjectVersionAcl
+              - s3:GetObjectVersionForReplication
+              - s3:GetObjectVersionTagging
+              - s3:GetReplicationConfiguration
+              - s3:ListAccessPoints
+              - s3:ListAllMyBuckets
+              - s3:ListBucketVersions
+              - s3:ListJobs
+              - sagemaker:Describe*
+              - sagemaker:List*
+              - schemas:GetResourcePolicy
+              - schemas:ListRegistries
+              - sdb:DomainMetadata
+              - sdb:ListDomains
+              - secretsmanager:GetResourcePolicy
+              - secretsmanager:ListSecrets
+              - secretsmanager:ListSecretVersionIds
+              - securityhub:Describe*
+              - securityhub:Get*
+              - securityhub:List*
+              - serverlessrepo:GetApplicationPolicy
+              - serverlessrepo:List*
+              - servicequotas:Get*
+              - servicequotas:List*
+              - ses:GetIdentityDkimAttributes
+              - ses:GetIdentityPolicies
+              - ses:GetIdentityVerificationAttributes
+              - ses:Describe*
+              - ses:ListIdentities
+              - ses:ListIdentityPolicies
+              - ses:ListVerifiedEmailAddresses
+              - ses:ListConfigurationSets
+              - ses:ListReceiptRuleSets
+              - ses:ListIdentities
+              - shield:Describe*
+              - shield:List*
+              - snowball:ListClusters
+              - snowball:ListJobs
+              - sns:Get*
+              - sns:ListPlatformApplications
+              - sns:ListSubscriptions
+              - sns:ListTagsForResource
+              - sns:ListTopics
+              - sqs:Get*
+              - sqs:List*
+              - ssm:Describe*
+              - ssm:GetAutomationExecution
+              - ssm:ListDocuments
+              - sso:DescribePermissionsPolicies
+              - ssm:List*
+              - ssm:GetAutomationExecution
+              - ssm:GetConnectionStatus
+              - ssm:GetDefaultPatchBaseline
+              - ssm:GetDeployablePatchSnapshotForInstance
+              - ssm:ListTagsForResource
+              - ssm:GetServiceSetting
+              - ssm:GetInventory
+              - ssm:GetCommandInvocation
+              - sso:DescribePermissionsPolicies
+              - sso:List*
+              - states:ListStateMachines
+              - storagegateway:DescribeBandwidthRateLimit
+              - storagegateway:DescribeCache
+              - storagegateway:DescribeCachediSCSIVolumes
+              - storagegateway:DescribeGatewayInformation
+              - storagegateway:DescribeMaintenanceStartTime
+              - storagegateway:DescribeNFSFileShares
+              - storagegateway:DescribeSnapshotSchedule
+              - storagegateway:DescribeStorediSCSIVolumes
+              - storagegateway:DescribeTapeArchives
+              - storagegateway:DescribeTapeRecoveryPoints
+              - storagegateway:DescribeTapes
+              - storagegateway:DescribeUploadBuffer
+              - storagegateway:DescribeVTLDevices
+              - storagegateway:DescribeWorkingStorage
+              - storagegateway:List*
+              - tag:GetResources
+              - tag:GetTagKeys
+              - transfer:Describe*
+              - transfer:List*
+              - translate:List*
+              - trustedadvisor:Describe*
+              - waf:Get*
+              - waf:List*
+              - waf-regional:Get*
+              - waf-regional:List*
+              - wafv2:Describe*
+              - wafv2:Get*
+              - wafv2:List*
+              - workspaces:Describe*
+              Resource: "*"
+              Effect: Allow
+            - Action:
+              - apigateway:GET
+              Resource:
+              - !Sub arn:${AWS::Partition}:apigateway:*::/apis
+              - !Sub arn:${AWS::Partition}:apigateway:*::/apis/*/stages
+              - !Sub arn:${AWS::Partition}:apigateway:*::/apis/*/stages/*
+              - !Sub arn:${AWS::Partition}:apigateway:*::/apis/*/routes
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis/*/authorizers
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis/*/authorizers/*
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis/*/documentation/versions
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis/*/resources
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis/*/resources/*
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis/*/resources/*/methods/*
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis/*/stages
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis/*/stages/*
+              - !Sub arn:${AWS::Partition}:apigateway:*::/vpclinks
+              Effect: Allow
+  CrowdStrikeEventBridgeRole:
+    Type: AWS::IAM::Role
+    Condition: CreateIOAResources
+    Properties:
+      RoleName: CrowdStrikeCSPMEventBridge
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Action: sts:AssumeRole
+          Principal:
+            Service: events.amazonaws.com
+          Effect: Allow
+          Sid: ''
+      Policies:
+        - PolicyName: eventbridge-put-events,
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action: events:PutEvents
+                Resource: !Sub arn:${AWS::Partition}:events:*:*:event-bus/cs-*
+                Effect: Allow
