@@ -397,3 +397,4 @@ Resources:
               - Action: events:PutEvents
                 Resource: !Sub arn:${AWS::Partition}:events:*:*:event-bus/cs-*
                 Effect: Allow
+                
