@@ -51,3 +51,4 @@ Resources:
         - Arn: !Sub "arn:${AWS::Partition}:events:${AWS::Region}:${CSAccountNumber}:event-bus/${CSEventBusName}"
           RoleArn: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/CrowdStrikeCSPMEventBridge"
           Id: "CrowdStrikeCentralizeEvents"
+          

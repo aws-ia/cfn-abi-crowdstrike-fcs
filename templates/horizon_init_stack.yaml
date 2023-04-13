@@ -887,3 +887,4 @@ Outputs:
     Value: !GetAtt TriggerRegisterAccountLambda.eventbus_name
     Export:
       Name: eventbusName
+      
