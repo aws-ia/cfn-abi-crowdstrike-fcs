@@ -549,9 +549,9 @@ Resources:
                 - events:RemoveTargets
                 - events:DisableRule
                 Resource:
-                - arn:${AWS::Partition}:events:*:*:rule/cs-*
-                - arn:${AWS::Partition}:events:*:*:rule/*/cs-*
-                - arn:${AWS::Partition}:iam::*:role/CrowdStrike*
+                - !Sub arn:${AWS::Partition}:events:*:*:rule/cs-*
+                - !Sub arn:${AWS::Partition}:events:*:*:rule/*/cs-*
+                - !Sub arn:${AWS::Partition}:iam::*:role/CrowdStrike*
                 Effect: Allow
               - Action: cloudformation:*
                 Resource: '*'
