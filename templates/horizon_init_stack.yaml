@@ -124,6 +124,10 @@ Resources:
           ignore_checks:
             - EIAMPolicyWildcardResource # Role has * to allow for future service monitoring without stack updates
             - EIAMPolicyActionWildcard # Role has * to allow for future service monitoring without stack updates
+      checkov:
+        skip:
+          - id: CKV_AWS_109
+            comment: IAM Read-Only permissions need to operate without constraint so all resources can be scanned by CSPM
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -523,6 +527,12 @@ Resources:
           ignore_checks:
             - EIAMPolicyWildcardResource # Role has * to allow for future service monitoring without stack updates
             - EIAMPolicyActionWildcard # Role has * to allow for future service monitoring without stack updates
+      checkov:
+        skip:
+          - id: CKV_AWS_109
+            comment: IAM PassRole action is constrained by resource ARN.
+          - id: CKV_AWS_111
+            comment: IAM PassRole action is constrained by resource ARN.
     Properties:
       RoleName: !Ref StackSetExecRole
       AssumeRolePolicyDocument:
@@ -610,6 +620,11 @@ Resources:
 
   CrowdStrikeSecrets:
     Type: AWS::SecretsManager::Secret
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_149
+            comment: Solution should run without requiring permissions to create KMS CMKs
     Properties:
       Description: CrowdStrike Credentials
       Name: !Join
@@ -662,6 +677,16 @@ Resources:
             reason: Lambda custom resource only run during stack lifecycle events.
           - id: W92
             reason: Lambda custom resource only run during stack lifecycle events.
+      checkov:
+        skip:
+          - id: CKV_AWS_115
+            comment: Lambda does not need reserved concurrent executions.
+          - id: CKV_AWS_116
+            comment: DLQ not needed, as Lambda function only triggered by CloudFormation events.
+          - id: CKV_AWS_117
+            comment: Lambda does not need to communicate with VPC resources.
+          - id: CKV_AWS_173
+            comment: Environment variables are not sensitive.
     Properties:
       Environment:
         Variables:

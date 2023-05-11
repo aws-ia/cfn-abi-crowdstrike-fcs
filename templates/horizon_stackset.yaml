@@ -32,6 +32,10 @@ Resources:
           ignore_checks:
             - EIAMPolicyWildcardResource # Role has * to allow for future service monitoring without stack updates
             - EIAMPolicyActionWildcard # Role has * to allow for future service monitoring without stack updates
+      checkov:
+        skip:
+          - id: CKV_AWS_109
+            comment: IAM Read-Only permissions need to operate without constraint so all resources can be scanned by CSPM
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
