@@ -632,7 +632,7 @@ Resources:
                 Resource: '*'
                 Effect: Allow
               - Action: s3:*
-                Resource: 'arn:${AWS::Partition}:s3:::cfn-abi-crowdstrike-fcs-*'
+                Resource: !Sub 'arn:${AWS::Partition}:s3:::cfn-abi-crowdstrike-fcs-*'
                 Effect: Allow
 
   CrowdStrikeEventBridgeRole:
