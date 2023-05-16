@@ -26,6 +26,7 @@ Metadata:
           - S3BucketRegion
           - StagingS3KeyPrefix
           - SourceS3BucketNamePrefix
+          - pOrganizationId
 
     ParameterLabels:
       SourceS3BucketName:
@@ -52,6 +53,8 @@ Metadata:
         default: Create Optional Organization CloudTrail
       TrailName:
         default: Name of Optional Organization CloudTrail
+      pOrganizationId:
+        default: (Optional) AWS Organization ID
 
 Conditions:
   CreateIOAResources: !Equals [ !Ref 'EnableIOA', true ]
@@ -115,6 +118,12 @@ Parameters:
   TrailName:
     Type: String
     Default: "crowdstrike-horizon-trail"
+  pOrganizationId:
+    AllowedPattern: '^$|^o-[a-z0-9]{10,32}$'
+    ConstraintDescription: Must start with 'o-' followed by from 10 to 32 lowercase letters or digits. (e.g. o-abc1234567)
+    Default: ''
+    Description: (Optional) AWS Organizations ID. If empty, custom resource will be deployed to determine the AWS Organization ID.
+    Type: String
 
 Mappings:
   CrowdStrikeCSPMRoleTemplateURL:
@@ -739,6 +748,7 @@ Resources:
     Type: AWS::Lambda::Function
     DependsOn:
       - CrowdStrikeSecrets
+      - CopyZips
     Metadata:
       cfn_nag:
         rules_to_suppress:
@@ -764,7 +774,7 @@ Resources:
             - '-'
             - - CrowdStrikeHorizonAPISecret
               - !Ref 'AWS::StackName'
-      Handler: index.lambda_handler
+      Handler: lambda.lambda_handler
       MemorySize: 128
       Role: !GetAtt "LambdaCrowdStrikeRegistrationRole.Arn"
       Runtime: python3.7
@@ -839,6 +849,19 @@ Resources:
               ArnLike:
                 aws:PrincipalArn:
                   - !Sub arn:${AWS::Partition}:iam::*:role/${StackSetExecRole}
+                  - !Sub arn:${AWS::Partition}:iam::*:role/stacksets-exec-*
+
+          - Sid: DenyExternalPrincipals
+            Effect: Deny
+            Action: 's3:*'
+            Principal: '*'
+            Resource:
+              - !Sub arn:${AWS::Partition}:s3:::${StagingS3Bucket}
+              - !Sub arn:${AWS::Partition}:s3:::${StagingS3Bucket}/*
+            Condition:
+              StringNotEquals:
+                aws:PrincipalOrgID: !Ref pOrganizationId
+
           - Sid: SecureTransport
             Effect: Deny
             Action: 's3:*'
@@ -999,4 +1022,3 @@ Outputs:
     Value: !GetAtt TriggerRegisterAccountLambda.eventbus_name
     Export:
       Name: eventbusName
-      
