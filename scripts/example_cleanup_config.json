@@ -19,5 +19,8 @@
     {
         "Type" : "LOG_GROUP",
         "Filter" : "path/to/log-group-prefix-to-delete"
+    },
+    {
+        "Type" : "GUARDDUTY_DET"
     }
 ]
