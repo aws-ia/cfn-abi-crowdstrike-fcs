@@ -1,0 +1,1024 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CrowdStrike Horizon (CSPM) Root Template
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: CrowdStrike Falcon API Key
+        Parameters:
+          - FalconClientID
+          - FalconSecret
+          - CSCloud
+      - Label:
+          default: Configure Indicator of Attack Scanning
+        Parameters:
+          - EnableIOA
+          - StackSetAdminRole
+          - StackSetExecRole
+          - CreateOrgTrail
+          - TrailName
+      - Label:
+          default: AWS S3 Bucket 
+        Parameters:
+          - SourceS3BucketName
+          - S3BucketRegion
+          - StagingS3KeyPrefix
+          - SourceS3BucketNamePrefix
+          - pOrganizationId
+
+    ParameterLabels:
+      SourceS3BucketName:
+        default: Source S3 Bucket Name
+      S3BucketRegion:
+        default: S3 Bucket Region
+      StagingS3KeyPrefix:
+        default: Staging S3 Key Prefix
+      SourceS3BucketNamePrefix:
+        default: Source S3 Bucket Name Prefix
+      FalconClientID:
+        default: Falcon API Client ID
+      FalconSecret:
+        default: Falcon API Secret
+      EnableIOA:
+        default: Enable IOA Scanning (Adds EventBridge forwarding Rules)
+      CSCloud:
+        default: CrowdStrike Cloud
+      StackSetExecRole:
+        default: StackSet Execution Role
+      StackSetAdminRole:
+        default: StackSet Administration Role
+      CreateOrgTrail:
+        default: Create Optional Organization CloudTrail
+      TrailName:
+        default: Name of Optional Organization CloudTrail
+      pOrganizationId:
+        default: (Optional) AWS Organization ID
+
+Conditions:
+  CreateIOAResources: !Equals [ !Ref 'EnableIOA', true ]
+  CreateTrail: !Equals [ !Ref 'CreateOrgTrail', true ]
+
+Parameters:
+  FalconClientID:
+    Description: Your Falcon OAuth2 Client ID.
+    NoEcho: 'true'
+    Type: String
+  FalconSecret:
+    Description: Your Falcon OAuth2 API Secret.
+    NoEcho: 'true'
+    Type: String
+  CSCloud:
+    Type: String
+    Default: us1
+    AllowedValues: [ "us1", "us2", "eu1" ]
+    Description: The Cloud your CID is hosted in
+  EnableIOA:
+    Type: String
+    Description: Set IOA Scanning
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'true'
+  StackSetAdminRole:
+    Description: Administration Role for CrowdStrike Root EB StackSet
+    Type: String
+    Default: 'CrowdStrikeStackSetAdministrationRole'
+  StackSetExecRole:
+    Description: Execution Role for CrowdStrike Root EB StackSet
+    Type: String
+    Default: 'CrowdStrikeStackSetExecutionRole'
+  StagingS3KeyPrefix:
+    AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$
+    Type: String
+    Default: cfn-abi-crowdstrike-fcs
+  SourceS3BucketName:
+    AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$
+    Type: String
+    Default: aws-abi-pilot
+  SourceS3BucketNamePrefix:
+    AllowedValues: [cfn-abi-crowdstrike-fcs]
+    Default: cfn-abi-crowdstrike-fcs
+    Description:
+      Staging S3 bucket name prefix for the artifacts relevant to the solutions. (e.g., lambda zips, CloudFormation templates). The account
+      and region are added to the prefix <bucket-name-prefix>-<account-id>-<region>. Example = staging-123456789012-us-east-1.
+    Type: String
+  S3BucketRegion:
+    AllowedPattern: ^[a-z][a-z]-[a-z]*-[0-9]*$
+    Type: String
+    Default: us-east-1
+  CreateOrgTrail:
+    Type: String
+    Description: Create org-wide trail, bucket, and bucket policy to enable EventBridge event collection.  If you already have either an Organization CloudTrail or CloudTrails enabled in each account, please leave this parameter false. 
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'false'
+  TrailName:
+    Type: String
+    Default: "crowdstrike-horizon-trail"
+  pOrganizationId:
+    AllowedPattern: '^$|^o-[a-z0-9]{10,32}$'
+    ConstraintDescription: Must start with 'o-' followed by from 10 to 32 lowercase letters or digits. (e.g. o-abc1234567)
+    Default: ''
+    Description: (Optional) AWS Organizations ID. If empty, custom resource will be deployed to determine the AWS Organization ID.
+    Type: String
+
+Mappings:
+  CrowdStrikeCSPMRoleTemplateURL:
+    us1:
+      CSAccountNumber: "292230061137"
+      StackName: "CrowdStrike-CSPM-Integration"
+      CSRoleName: "CrowdStrikeCSPMConnector"
+    us2:
+      CSAccountNumber: "292230061137"
+      StackName: "CrowdStrike-CSPM-Integration"
+      CSRoleName: "CrowdStrikeCSPMConnector"
+    eu:
+      CSAccountNumber: "292230061137"
+      StackName: "CrowdStrike-CSPM-Integration"
+      CSRoleName: "CrowdStrikeCSPMConnector"
+
+Resources:  
+  # Create trail, bucket, and bucket policy to enable EB event collection
+  TrailBucket:
+    Condition: CreateTrail
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      AccessControl: Private
+  Trail:
+    Condition: CreateTrail
+    Type: AWS::CloudTrail::Trail
+    DependsOn: BucketPolicy
+    Properties:
+      S3BucketName: !Ref TrailBucket
+      IsLogging: true
+      TrailName: !Sub ${TrailName}
+      IncludeGlobalServiceEvents: true
+      IsMultiRegionTrail: true
+      IsOrganizationTrail: true
+      S3KeyPrefix: cloudtrail-logs
+      EventSelectors:
+        - IncludeManagementEvents: true
+  BucketPolicy:  
+    Condition: CreateTrail
+    Type: AWS::S3::BucketPolicy
+    Properties: 
+      Bucket: !Ref TrailBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: AWSCloudTrailAclCheck20150319
+          Effect: Allow
+          Principal:
+            Service: cloudtrail.amazonaws.com
+          Action: s3:GetBucketAcl
+          Resource: !Sub arn:aws:s3:::${TrailBucket}
+          Condition:
+            StringEquals:
+              AWS:SourceArn: !Sub arn:aws:cloudtrail:${AWS::Region}:${AWS::AccountId}:trail/${TrailName}
+        - Sid: AWSCloudTrailWrite20150319
+          Effect: Allow
+          Principal:
+            Service: cloudtrail.amazonaws.com
+          Action: s3:PutObject
+          Resource: !Sub arn:aws:s3:::${TrailBucket}/*
+          Condition:
+            StringEquals:
+              s3:x-amz-acl: bucket-owner-full-control
+              AWS:SourceArn: !Sub arn:aws:cloudtrail:${AWS::Region}:${AWS::AccountId}:trail/${TrailName}
+
+# Create CSPM Role and StackSet
+  CrowdStrikeCSPMRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResource # Role has * to allow for future service monitoring without stack updates
+            - EIAMPolicyActionWildcard # Role has * to allow for future service monitoring without stack updates
+      checkov:
+        skip:
+          - id: CKV_AWS_109
+            comment: IAM Read-Only permissions need to operate without constraint so all resources can be scanned by CSPM
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt TriggerRegisterAccountLambda.intermediate_role_arn
+            Condition:
+              StringEquals:
+                sts:ExternalId: !GetAtt TriggerRegisterAccountLambda.external_id
+            Action:
+              - sts:AssumeRole
+      RoleName: !GetAtt TriggerRegisterAccountLambda.iam_role_name
+      Policies:
+        - PolicyName: cspm_config
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Action:
+              - access-analyzer:GetAnalyzedResource
+              - access-analyzer:GetAnalyzer
+              - access-analyzer:GetArchiveRule
+              - access-analyzer:GetFinding
+              - access-analyzer:ListAnalyzedResources
+              - access-analyzer:ListAnalyzers
+              - access-analyzer:ListArchiveRules
+              - access-analyzer:ListFindings
+              - access-analyzer:ListTagsForResource
+              - acm:Describe*
+              - acm:List*
+              - acm-pca:GetPolicy
+              - acm-pca:ListCertificateAuthorities
+              - application-autoscaling:Describe*
+              - appmesh:Describe*
+              - appmesh:List*
+              - appsync:List*
+              - athena:GetWorkGroup
+              - athena:List*
+              - autoscaling:Describe*
+              - backup:GetBackupVaultAccessPolicy
+              - backup:List*
+              - batch:DescribeComputeEnvironments
+              - batch:DescribeJobDefinitions
+              - chime:List*
+              - cloud9:Describe*
+              - cloud9:ListEnvironments
+              - clouddirectory:ListDirectories
+              - cloudformation:DescribeStack*
+              - cloudformation:GetTemplate
+              - cloudformation:ListStack*
+              - cloudformation:GetStackPolicy
+              - cloudformation:Describe*
+              - cloudformation:List*
+              - cloudfront:Get*
+              - cloudfront:List*
+              - cloudhsm:ListHapgs
+              - cloudhsm:ListHsms
+              - cloudhsm:ListLunaClients
+              - cloudtrail:Describe*
+              - cloudtrail:Get*
+              - cloudtrail:List*
+              - cloudtrail:LookupEvents
+              - cloudwatch:Describe*
+              - cloudwatch:Get*
+              - cloudwatch:List*
+              - codebuild:GetResourcePolicy
+              - codebuild:ListProjects
+              - codebuild:ListReportGroups
+              - codecommit:BatchGetRepositories
+              - codecommit:GetBranch
+              - codecommit:GetObjectIdentifier
+              - codecommit:List*
+              - codedeploy:Batch*
+              - codedeploy:List*
+              - codepipeline:ListPipelines
+              - codestar:Describe*
+              - codestar:List*
+              - cognito-identity:ListIdentityPools
+              - cognito-idp:ListUserPools
+              - cognito-sync:Describe*
+              - cognito-sync:List*
+              - comprehend:List*
+              - config:Batch*
+              - config:Describe*
+              - config:Get*
+              - config:List*
+              - datapipeline:DescribeObjects
+              - datapipeline:DescribePipelines
+              - datapipeline:GetPipelineDefinition
+              - datapipeline:ListPipelines
+              - datapipeline:QueryObjects
+              - datapipeline:ValidatePipelineDefinition
+              - datasync:Describe*
+              - datasync:List*
+              - dax:Describe*
+              - dax:ListTags
+              - detective:Get*
+              - detective:List*
+              - directconnect:Describe*
+              - directconnect:List*
+              - dms:Describe*
+              - dms:ListTagsForResource
+              - ds:DescribeDirectories
+              - dynamodb:Describe*
+              - dynamodb:List*
+              - ec2:Describe*
+              - ec2:GetEbsEncryptionByDefault
+              - ec2:GetEbsDefaultKmsKeyId
+              - ecr:Describe*
+              - ecr:GetRegistryPolicy
+              - ecr:GetRegistryScanningConfiguration
+              - ecr:GetRepositoryPolicy
+              - ecr:List*
+              - ecs:Describe*
+              - ecs:List*
+              - eks:DescribeCluster
+              - eks:ListClusters
+              - eks:Describe*
+              - eks:List*
+              - elasticache:Describe*
+              - elasticache:List*
+              - elasticbeanstalk:Describe*
+              - elasticfilesystem:List*
+              - elasticfilesystem:Describe*
+              - elasticfilesystem:DescribeFileSystems
+              - elasticfilesystem:DescribeMountTargetSecurityGroups
+              - elasticfilesystem:DescribeMountTargets
+              - elasticloadbalancing:Describe*
+              - elasticmapreduce:Describe*
+              - elasticmapreduce:ListClusters
+              - elasticmapreduce:ListInstances
+              - elasticmapreduce:GetBlockPublicAccessConfiguration
+              - es:Describe*
+              - es:ListDomainNames
+              - events:Describe*
+              - events:List*
+              - firehose:Describe*
+              - firehose:List*
+              - fms:ListComplianceStatus
+              - fms:ListPolicies
+              - fsx:Describe*
+              - fsx:List*
+              - gamelift:ListBuilds
+              - gamelift:ListFleets
+              - glacier:DescribeVault
+              - glacier:GetVaultAccessPolicy
+              - glacier:ListVaults
+              - globalaccelerator:Describe*
+              - globalaccelerator:List*
+              - glue:GetResourcePolicy
+              - greengrass:List*
+              - guardduty:Describe*
+              - guardduty:Get*
+              - guardduty:List*
+              - iam:GenerateCredentialReport
+              - iam:GenerateServiceLastAccessedDetails
+              - iam:Get*
+              - iam:List*
+              - iam:SimulateCustomPolicy
+              - iam:SimulatePrincipalPolicy
+              - inspector:Describe*
+              - inspector:Get*
+              - inspector:List*
+              - inspector:Preview*
+              - iot:Describe*
+              - iot:GetPolicy
+              - iot:GetPolicyVersion
+              - iot:List*
+              - kinesis:Describe*
+              - kinesis:List*
+              - kinesisanalytics:ListApplications
+              - kinesisvideo:Describe*
+              - kinesisvideo:List*
+              - kms:Describe*
+              - kms:Get*
+              - kms:List*
+              - lambda:GetAccountSettings
+              - lambda:GetFunctionConfiguration
+              - lambda:GetLayerVersionPolicy
+              - lambda:GetPolicy
+              - lambda:GetFunction
+              - lambda:List*
+              - license-manager:List*
+              - lightsail:GetInstances
+              - lightsail:GetLoadBalancers
+              - logs:Describe*
+              - logs:FilterLogEvents
+              - logs:Get*
+              - logs:ListTagsLogGroup
+              - machinelearning:DescribeMLModels
+              - mediaconnect:Describe*
+              - mediaconnect:List*
+              - mediastore:GetContainerPolicy
+              - mediastore:ListContainers
+              - opsworks:DescribeStacks
+              - opsworks-cm:DescribeServers
+              - organizations:List*
+              - organizations:Describe*
+              - quicksight:Describe*
+              - quicksight:List*
+              - ram:List*
+              - rds:Describe*
+              - rds:List*
+              - rds:ListTagsForResource
+              - redshift:Describe*
+              - redshift:List*
+              - rekognition:Describe*
+              - rekognition:List*
+              - robomaker:Describe*
+              - robomaker:List*
+              - route53:Get*
+              - route53:List*
+              - route53domains:Get*
+              - route53domains:List*
+              - route53resolver:List*
+              - route53resolver:Get*
+              - s3:DescribeJob
+              - s3:GetAccelerateConfiguration
+              - s3:GetAccessPoint
+              - s3:GetAccessPointPolicy
+              - s3:GetAccessPointPolicyStatus
+              - s3:GetAccountPublicAccessBlock
+              - s3:GetAccelerateConfiguration
+              - s3:GetAnalyticsConfiguration
+              - s3:GetBucket*
+              - s3:GetEncryptionConfiguration
+              - s3:GetInventoryConfiguration
+              - s3:GetLifecycleConfiguration
+              - s3:GetMetricsConfiguration
+              - s3:GetObjectAcl
+              - s3:GetObjectLegalHold
+              - s3:GetObjectRetention
+              - s3:GetObjectTagging
+              - s3:GetObjectVersion
+              - s3:GetObjectVersionAcl
+              - s3:GetObjectVersionForReplication
+              - s3:GetObjectVersionTagging
+              - s3:GetReplicationConfiguration
+              - s3:ListAccessPoints
+              - s3:ListAllMyBuckets
+              - s3:ListBucketVersions
+              - s3:ListJobs
+              - sagemaker:Describe*
+              - sagemaker:List*
+              - schemas:GetResourcePolicy
+              - schemas:ListRegistries
+              - sdb:DomainMetadata
+              - sdb:ListDomains
+              - secretsmanager:GetResourcePolicy
+              - secretsmanager:ListSecrets
+              - secretsmanager:ListSecretVersionIds
+              - securityhub:Describe*
+              - securityhub:Get*
+              - securityhub:List*
+              - serverlessrepo:GetApplicationPolicy
+              - serverlessrepo:List*
+              - servicequotas:Get*
+              - servicequotas:List*
+              - ses:GetIdentityDkimAttributes
+              - ses:GetIdentityPolicies
+              - ses:GetIdentityVerificationAttributes
+              - ses:Describe*
+              - ses:ListIdentities
+              - ses:ListIdentityPolicies
+              - ses:ListVerifiedEmailAddresses
+              - ses:ListConfigurationSets
+              - ses:ListReceiptRuleSets
+              - ses:ListIdentities
+              - shield:Describe*
+              - shield:List*
+              - snowball:ListClusters
+              - snowball:ListJobs
+              - sns:Get*
+              - sns:ListPlatformApplications
+              - sns:ListSubscriptions
+              - sns:ListTagsForResource
+              - sns:ListTopics
+              - sqs:Get*
+              - sqs:List*
+              - ssm:Describe*
+              - ssm:GetAutomationExecution
+              - ssm:ListDocuments
+              - sso:DescribePermissionsPolicies
+              - ssm:List*
+              - ssm:GetAutomationExecution
+              - ssm:GetConnectionStatus
+              - ssm:GetDefaultPatchBaseline
+              - ssm:GetDeployablePatchSnapshotForInstance
+              - ssm:ListTagsForResource
+              - ssm:GetServiceSetting
+              - ssm:GetInventory
+              - ssm:GetCommandInvocation
+              - sso:DescribePermissionsPolicies
+              - sso:List*
+              - states:ListStateMachines
+              - storagegateway:DescribeBandwidthRateLimit
+              - storagegateway:DescribeCache
+              - storagegateway:DescribeCachediSCSIVolumes
+              - storagegateway:DescribeGatewayInformation
+              - storagegateway:DescribeMaintenanceStartTime
+              - storagegateway:DescribeNFSFileShares
+              - storagegateway:DescribeSnapshotSchedule
+              - storagegateway:DescribeStorediSCSIVolumes
+              - storagegateway:DescribeTapeArchives
+              - storagegateway:DescribeTapeRecoveryPoints
+              - storagegateway:DescribeTapes
+              - storagegateway:DescribeUploadBuffer
+              - storagegateway:DescribeVTLDevices
+              - storagegateway:DescribeWorkingStorage
+              - storagegateway:List*
+              - tag:GetResources
+              - tag:GetTagKeys
+              - transfer:Describe*
+              - transfer:List*
+              - translate:List*
+              - trustedadvisor:Describe*
+              - waf:Get*
+              - waf:List*
+              - waf-regional:Get*
+              - waf-regional:List*
+              - wafv2:Describe*
+              - wafv2:Get*
+              - wafv2:List*
+              - workspaces:Describe*
+              Resource: "*"
+              Effect: Allow
+            - Action:
+              - apigateway:GET
+              Resource:
+              - !Sub arn:${AWS::Partition}:apigateway:*::/apis
+              - !Sub arn:${AWS::Partition}:apigateway:*::/apis/*/stages
+              - !Sub arn:${AWS::Partition}:apigateway:*::/apis/*/stages/*
+              - !Sub arn:${AWS::Partition}:apigateway:*::/apis/*/routes
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis/*/authorizers
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis/*/authorizers/*
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis/*/documentation/versions
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis/*/resources
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis/*/resources/*
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis/*/resources/*/methods/*
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis/*/stages
+              - !Sub arn:${AWS::Partition}:apigateway:*::/restapis/*/stages/*
+              - !Sub arn:${AWS::Partition}:apigateway:*::/vpclinks
+              Effect: Allow
+
+  CrowdStrikeStackSet:
+    Type: 'AWS::CloudFormation::StackSet'
+    Properties:
+      StackSetName: "CrowdStrike-Horizon-Stackset"
+      Capabilities:
+        - CAPABILITY_IAM
+        - CAPABILITY_NAMED_IAM
+        - CAPABILITY_AUTO_EXPAND
+      Parameters:
+        - ParameterKey: iamRoleName
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.iam_role_name
+        - ParameterKey: externalId
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.external_id
+        - ParameterKey: intermediateRoleArn
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.intermediate_role_arn
+        - ParameterKey: EnableIOA
+          ParameterValue: !Ref EnableIOA
+      PermissionModel: SERVICE_MANAGED
+      AutoDeployment: 
+        Enabled: false
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${StagingS3KeyPrefix}/templates/horizon_stackset.yaml
+
+# Optional: Create EventBridge Roles & StackSet
+  StackSetAdministrationRole:
+    Type: AWS::IAM::Role
+    Condition: CreateIOAResources
+    Properties:
+      RoleName: !Ref StackSetAdminRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Action: sts:AssumeRole
+          Principal:
+            Service: cloudformation.amazonaws.com
+          Effect: Allow
+          Sid: ''
+      Policies:
+        - PolicyName: crowdstrike-stackset-execution
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action: sts:AssumeRole
+                Resource: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${StackSetExecRole}
+                Effect: Allow
+  StackSetExecutionRole:
+    Type: AWS::IAM::Role
+    DependsOn: StackSetAdministrationRole
+    Condition: CreateIOAResources
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResource # Role has * to allow for future service monitoring without stack updates
+            - EIAMPolicyActionWildcard # Role has * to allow for future service monitoring without stack updates
+      checkov:
+        skip:
+          - id: CKV_AWS_109
+            comment: IAM PassRole action is constrained by resource ARN.
+          - id: CKV_AWS_111
+            comment: IAM PassRole action is constrained by resource ARN.
+    Properties:
+      RoleName: !Ref StackSetExecRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Action: sts:AssumeRole
+          Principal:
+            AWS: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${StackSetAdminRole}
+          Effect: Allow
+          Sid: ''
+      Policies:
+        - PolicyName: crowdstrike-stackset-execution
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                - events:DeleteRule
+                - events:PutTargets
+                - events:DescribeRule
+                - iam:PassRole
+                - events:EnableRule
+                - events:PutRule
+                - events:RemoveTargets
+                - events:DisableRule
+                Resource:
+                - !Sub arn:${AWS::Partition}:events:*:*:rule/cs-*
+                - !Sub arn:${AWS::Partition}:events:*:*:rule/*/cs-*
+                - !Sub arn:${AWS::Partition}:iam::*:role/CrowdStrike*
+                Effect: Allow
+              - Action: cloudformation:*
+                Resource: '*'
+                Effect: Allow
+              - Action: s3:*
+                Resource: !Sub 'arn:${AWS::Partition}:s3:::cfn-abi-crowdstrike-fcs-*'
+                Effect: Allow
+
+  CrowdStrikeEventBridgeRole:
+    Type: AWS::IAM::Role
+    Condition: CreateIOAResources
+    Properties:
+      RoleName: CrowdStrikeCSPMEventBridge
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Action: sts:AssumeRole
+          Principal:
+            Service: events.amazonaws.com
+          Effect: Allow
+          Sid: ''
+      Policies:
+        - PolicyName: eventbridge-put-events
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action: events:PutEvents
+                Resource: !Sub arn:${AWS::Partition}:events:*:*:event-bus/cs-*
+                Effect: Allow
+
+  CrowdStrikeEbStackSet:
+    Type: 'AWS::CloudFormation::StackSet'
+    Condition: CreateIOAResources
+    Properties:      
+      StackSetName: "CrowdStrike-Horizon-EB-Stackset"
+      Parameters:
+        - ParameterKey: CSAccountNumber
+          ParameterValue: !FindInMap [ CrowdStrikeCSPMRoleTemplateURL, !Ref CSCloud, CSAccountNumber ]
+        - ParameterKey: CSEventBusName
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.eventbus_name
+      PermissionModel: SERVICE_MANAGED
+      AutoDeployment: 
+        Enabled: false
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${StagingS3KeyPrefix}/templates/horizon_eb_stackset.yaml
+
+  CrowdStrikeRootEbStackSet:
+    Type: 'AWS::CloudFormation::StackSet'
+    Condition: CreateIOAResources
+    Properties:
+      AdministrationRoleARN: !GetAtt StackSetAdministrationRole.Arn
+      ExecutionRoleName: !Ref StackSetExecutionRole
+      StackSetName: "CrowdStrike-Horizon-Root-EB-Stackset"
+      Parameters:
+        - ParameterKey: CSAccountNumber
+          ParameterValue: !FindInMap [ CrowdStrikeCSPMRoleTemplateURL, !Ref CSCloud, CSAccountNumber ]
+        - ParameterKey: CSEventBusName
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.eventbus_name
+      PermissionModel: SELF_MANAGED
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${StagingS3KeyPrefix}/templates/horizon_eb_stackset.yaml
+
+  CrowdStrikeSecrets:
+    Type: AWS::SecretsManager::Secret
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_149
+            comment: Solution should run without requiring permissions to create KMS CMKs
+    Properties:
+      Description: CrowdStrike Credentials
+      Name: !Join
+        - '-'
+        - - CrowdStrikeHorizonAPISecret
+          - !Ref 'AWS::StackName'
+      SecretString:
+        Fn::Join:
+          - ''
+          - - '{"FalconClientId":"'
+            - Ref: "FalconClientID"
+            - '","FalconSecret": "'
+            - Ref: FalconSecret
+            - '"}'
+
+  LambdaCrowdStrikeRegistrationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+            Condition: { }
+      Path: /
+      Policies:
+        - PolicyName: CrowdStrikeApiSecretPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'secretsmanager:GetSecretValue'
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:secretsmanager:*:*:secret:CrowdStrikeHorizonAPISecret-*'
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/AWSOrganizationsReadOnlyAccess'
+
+  RegisterAccountLambda:
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - CrowdStrikeSecrets
+      - CopyZips
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W89
+            reason: Lambda custom resource only run during stack lifecycle events.
+          - id: W92
+            reason: Lambda custom resource only run during stack lifecycle events.
+      checkov:
+        skip:
+          - id: CKV_AWS_115
+            comment: Lambda does not need reserved concurrent executions.
+          - id: CKV_AWS_116
+            comment: DLQ not needed, as Lambda function only triggered by CloudFormation events.
+          - id: CKV_AWS_117
+            comment: Lambda does not need to communicate with VPC resources.
+          - id: CKV_AWS_173
+            comment: Environment variables are not sensitive.
+    Properties:
+      Environment:
+        Variables:
+          SecretRegion: !Ref AWS::Region
+          SecretName: !Join
+            - '-'
+            - - CrowdStrikeHorizonAPISecret
+              - !Ref 'AWS::StackName'
+      Handler: lambda.lambda_handler
+      MemorySize: 128
+      Role: !GetAtt "LambdaCrowdStrikeRegistrationRole.Arn"
+      Runtime: python3.7
+      Timeout: 300
+      FunctionName: !Ref 'AWS::StackName'
+      Code:
+        S3Bucket: !Ref StagingS3Bucket
+        S3Key: !Sub ${StagingS3KeyPrefix}/lambda_functions/packages/register-organization/lambda.zip
+
+  TriggerRegisterAccountLambda:
+    Type: 'Custom::TriggerLambda'
+    DependsOn:
+      - LambdaCrowdStrikeRegistrationRole
+      - CrowdStrikeSecrets
+    Properties:
+      aws_region: !Ref AWS::Region
+      FalconSecret: !Ref FalconSecret
+      FalconClientId: !Ref FalconClientID
+      CSCloud: !Ref CSCloud
+      ServiceToken: !GetAtt
+        - RegisterAccountLambda
+        - Arn
+
+  StagingS3Bucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W35
+            reason: S3 access logs intentionally not enabled
+      checkov:
+        skip:
+          - id: CKV_AWS_18
+            comment: S3 access logs intentionally not enabled
+    Properties:
+      BucketName: !Sub ${SourceS3BucketNamePrefix}-${AWS::AccountId}-${AWS::Region}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerPreferred
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: True
+        BlockPublicPolicy: True
+        IgnorePublicAcls: True
+        RestrictPublicBuckets: True
+      VersioningConfiguration:
+        Status: Enabled
+
+  StagingS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: F16
+            reason: GetObject is restricted to AWS accounts within the AWS Organization
+    Properties:
+      Bucket: !Ref StagingS3Bucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowDeploymentRoleGetObject
+            Effect: Allow
+            Action: s3:GetObject
+            Principal: '*'
+            Resource: !Sub arn:${AWS::Partition}:s3:::${StagingS3Bucket}/*
+            Condition:
+              ArnLike:
+                aws:PrincipalArn:
+                  - !Sub arn:${AWS::Partition}:iam::*:role/${StackSetExecRole}
+                  - !Sub arn:${AWS::Partition}:iam::*:role/stacksets-exec-*
+
+          - Sid: DenyExternalPrincipals
+            Effect: Deny
+            Action: 's3:*'
+            Principal: '*'
+            Resource:
+              - !Sub arn:${AWS::Partition}:s3:::${StagingS3Bucket}
+              - !Sub arn:${AWS::Partition}:s3:::${StagingS3Bucket}/*
+            Condition:
+              StringNotEquals:
+                aws:PrincipalOrgID: !Ref pOrganizationId
+
+          - Sid: SecureTransport
+            Effect: Deny
+            Action: 's3:*'
+            Principal: '*'
+            Resource:
+              - !Sub arn:${AWS::Partition}:s3:::${StagingS3Bucket}
+              - !Sub arn:${AWS::Partition}:s3:::${StagingS3Bucket}/*
+            Condition:
+              Bool:
+                aws:SecureTransport: False
+
+  CopyZips:
+    Type: Custom::CopyZips
+    Properties:
+      ServiceToken: !GetAtt 'CopyZipsFunction.Arn'
+      DestBucket: !Ref 'StagingS3Bucket'
+      SourceBucket: !Ref 'SourceS3BucketName'
+      Prefix: !Sub ${StagingS3KeyPrefix}/
+      Objects:
+        - lambda_functions/packages/register-organization/lambda.zip
+        - templates/horizon_init_stack.yaml
+        - templates/horizon_stackset.yaml
+        - templates/horizon_eb_stackset.yaml
+
+  CopyZipsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Path: /
+      Policies:
+        - PolicyName: lambda-copier
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectTagging
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:s3:::${SourceS3BucketName}/'
+                  - !Sub 'arn:${AWS::Partition}:s3:::${SourceS3BucketName}/${StagingS3KeyPrefix}/*'
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:PutObjectTagging
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:s3:::${StagingS3Bucket}/'
+                  - !Sub 'arn:${AWS::Partition}:s3:::${StagingS3Bucket}/${StagingS3KeyPrefix}/*'
+              - Effect: Allow
+                Action:
+                  - s3:ListAllMyBuckets
+                Resource: '*'
+
+  CopyZipsFunction:
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W58
+            reason: Lambda role provides access to CloudWatch Logs
+          - id: W89
+            reason: Lambda does not need to communicate with VPC resources.
+          - id: W92
+            reason: Lambda does not need reserved concurrent executions.
+      checkov:
+        skip:
+          - id: CKV_AWS_115
+            comment: Lambda does not need reserved concurrent executions.
+          - id: CKV_AWS_116
+            comment: DLQ not needed, as Lambda function only triggered by CloudFormation events.
+          - id: CKV_AWS_117
+            comment: Lambda does not need to communicate with VPC resources.
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Copies objects from a source S3 bucket to a destination
+      Handler: index.handler
+      Runtime: python3.9
+      MemorySize: 128
+      Role: !GetAtt 'CopyZipsRole.Arn'
+      Timeout: 240
+      Code:
+        ZipFile: |
+          import json
+          import logging
+          import threading
+          import boto3
+          import cfnresponse
+          def copy_objects(source_bucket, dest_bucket, prefix, objects):
+              s3 = boto3.client('s3')
+              for o in objects:
+                  key = prefix + o
+                  copy_source = {
+                      'Bucket': source_bucket,
+                      'Key': key
+                  }
+                  print(('copy_source: %s' % copy_source))
+                  print(('dest_bucket = %s'%dest_bucket))
+                  print(('key = %s' %key))
+                  s3.copy_object(CopySource=copy_source, Bucket=dest_bucket,
+                      Key=key)
+          def bucket_exists():
+              s3 = boto3.client('s3')
+              buckets = s3.list_buckets()
+              for bucket in buckets['Buckets']:
+                  return True
+          def delete_objects(bucket, prefix, objects):
+              s3 = boto3.client('s3')
+              if bucket_exists():
+                  objects = {'Objects': [{'Key': prefix + o} for o in objects]}
+                  s3.delete_objects(Bucket=bucket, Delete=objects)
+          def timeout(event, context):
+              logging.error('Execution is about to time out, sending failure response to CloudFormation')
+              cfnresponse.send(event, context, cfnresponse.FAILED, {}, None)
+          def handler(event, context):
+              # make sure we send a failure to CloudFormation if the function
+              # is going to timeout
+              timer = threading.Timer((context.get_remaining_time_in_millis()
+                      / 1000.00) - 0.5, timeout, args=[event, context])
+              timer.start()
+              print(('Received event: %s' % json.dumps(event)))
+              status = cfnresponse.SUCCESS
+              try:
+                  source_bucket = event['ResourceProperties']['SourceBucket']
+                  dest_bucket = event['ResourceProperties']['DestBucket']
+                  prefix = event['ResourceProperties']['Prefix']
+                  objects = event['ResourceProperties']['Objects']
+                  if event['RequestType'] == 'Delete':
+                      delete_objects(dest_bucket, prefix, objects)
+                  else:
+                      copy_objects(source_bucket, dest_bucket, prefix, objects)
+              except Exception as e:
+                  logging.error('Exception: %s' % e, exc_info=True)
+                  status = cfnresponse.FAILED
+              finally:
+                  timer.cancel()
+                  cfnresponse.send(event, context, status, {}, None)
+
+Outputs:
+  RoleName:
+    Value: !GetAtt TriggerRegisterAccountLambda.iam_role_name
+    Export:
+      Name: iamRoleName
+  
+  ExternalId:
+    Value: !GetAtt TriggerRegisterAccountLambda.external_id
+    Export:
+      Name: externalId
+
+  EventbusName:
+    Value: !GetAtt TriggerRegisterAccountLambda.eventbus_name
+    Export:
+      Name: eventbusName
