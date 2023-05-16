@@ -1,33 +1,19 @@
 project:
-  name: update-me-to-project-repo-name
-  owner: quickstart@amazon.com
-  package_lambda: false
+  name: cfn-abi-crowdstrike-fcs
+  owner: support@crowdstrike.com # to be updated
+  shorten_stack_name: true
+  s3_regional_buckets: true
   regions:
-  - ap-northeast-1
-  - ap-northeast-2
-  - ap-southeast-1
-  - ap-southeast-2
-  - eu-central-1
-  - eu-west-1
-  - sa-east-1
   - us-east-1
-  - us-west-1
-  - us-west-2
+
 tests:
-  sample:
+  horizon-test:
     parameters:
-      Param1: 'Inputs to Stack'
-      # Examples: of other taskcat dynamic input parameters for more into see http://taskcat.io
-      #
-      #      AvailabilityZones: $[taskcat_genaz_3]
-      #      ByteValue: 1
-      #      PasswordA: $[taskcat_genpass_8A]
-      #      PasswordB: $[taskcat_genpass_32S]
-      #      RandomNumber: $[taskcat_random-numbers]
-      #      RandomString: $[taskcat_random-string]
-      #      StackName: TestStack
-      #      UUID: $[taskcat_genuuid]
-      #
+      FalconClientID: $[taskcat_ssm_/crowdstrike/falcon_client_id]
+      FalconSecret: $[taskcat_ssm_/crowdstrike/falcon_secret]
+      SourceS3BucketName: $[taskcat_autobucket]
+      S3BucketRegion: $[taskcat_current_region]
+      pOrganizationId: $[taskcat_ssm_/crowdstrike/organization-id]
     regions:
     - us-east-1
-    template: templates/sample-workload.template.yaml
+    template: templates/horizon_init_stack.yaml
