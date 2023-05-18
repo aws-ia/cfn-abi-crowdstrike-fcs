@@ -850,6 +850,7 @@ Resources:
                 aws:PrincipalArn:
                   - !Sub arn:${AWS::Partition}:iam::*:role/${StackSetExecRole}
                   - !Sub arn:${AWS::Partition}:iam::*:role/stacksets-exec-*
+
           - Sid: DenyExternalPrincipals
             Effect: Deny
             Action: 's3:*'
@@ -860,6 +861,7 @@ Resources:
             Condition:
               StringNotEquals:
                 aws:PrincipalOrgID: !Ref pOrganizationId
+                
           - Sid: SecureTransport
             Effect: Deny
             Action: 's3:*'
