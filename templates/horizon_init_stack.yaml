@@ -861,7 +861,7 @@ Resources:
             Condition:
               StringNotEquals:
                 aws:PrincipalOrgID: !Ref pOrganizationId
-                
+
           - Sid: SecureTransport
             Effect: Deny
             Action: 's3:*'
