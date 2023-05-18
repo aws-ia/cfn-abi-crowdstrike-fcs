@@ -1,0 +1,3 @@
+[submodule "submodules/cfn-abi-aws-cloudtrail"]
+	path = submodules/cfn-abi-aws-cloudtrail
+	url = https://github.com/aws-ia/cfn-abi-aws-cloudtrail.git
