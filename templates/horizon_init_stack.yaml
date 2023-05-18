@@ -132,15 +132,54 @@ Mappings:
       CSRoleName: "CrowdStrikeCSPMConnector"
 
 Resources:  
-
-  CloudTrailStack:
-    Type: 'AWS::CloudFormation::Stack'
+  # Create trail, bucket, and bucket policy to enable EB event collection
+  TrailBucket:
     Condition: CreateTrail
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
     Properties:
-      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.${AWS::URLSuffix}/${StagingS3KeyPrefix}/submodules/cfn-abi-aws-cloudtrail/templates/sra-cloudtrail-enable-in-org-ssm.yaml
-      Parameters:
-        pSRAS3BucketRegion: !Ref S3BucketRegion
-        pEnableDataEventsOnly: false
+      AccessControl: Private
+  Trail:
+    Condition: CreateTrail
+    Type: AWS::CloudTrail::Trail
+    DependsOn: BucketPolicy
+    Properties:
+      S3BucketName: !Ref TrailBucket
+      IsLogging: true
+      TrailName: !Sub ${TrailName}
+      IncludeGlobalServiceEvents: true
+      IsMultiRegionTrail: true
+      IsOrganizationTrail: true
+      S3KeyPrefix: cloudtrail-logs
+      EventSelectors:
+        - IncludeManagementEvents: true
+  BucketPolicy:  
+    Condition: CreateTrail
+    Type: AWS::S3::BucketPolicy
+    Properties: 
+      Bucket: !Ref TrailBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: AWSCloudTrailAclCheck20150319
+          Effect: Allow
+          Principal:
+            Service: cloudtrail.amazonaws.com
+          Action: s3:GetBucketAcl
+          Resource: !Sub arn:aws:s3:::${TrailBucket}
+          Condition:
+            StringEquals:
+              AWS:SourceArn: !Sub arn:aws:cloudtrail:${AWS::Region}:${AWS::AccountId}:trail/${TrailName}
+        - Sid: AWSCloudTrailWrite20150319
+          Effect: Allow
+          Principal:
+            Service: cloudtrail.amazonaws.com
+          Action: s3:PutObject
+          Resource: !Sub arn:aws:s3:::${TrailBucket}/*
+          Condition:
+            StringEquals:
+              s3:x-amz-acl: bucket-owner-full-control
+              AWS:SourceArn: !Sub arn:aws:cloudtrail:${AWS::Region}:${AWS::AccountId}:trail/${TrailName}
 
 # Create CSPM Role and StackSet
   CrowdStrikeCSPMRole:
