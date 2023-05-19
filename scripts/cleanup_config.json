@@ -1,0 +1,10 @@
+[
+    {
+        "Type" : "S3_BUCKET",
+        "Filter" : "tcat-"
+    },
+    {
+        "Type" : "S3_BUCKET",
+        "Filter" : "cfn-abi-crowdstrike-fcs-"
+    }
+]
