@@ -24,7 +24,7 @@ tests:
       SourceS3BucketName: $[taskcat_autobucket]
       S3BucketRegion: $[taskcat_current_region]
       pOrganizationId: $[taskcat_ssm_/crowdstrike/organization-id]
-      CreateOrgTrail: true
+      CreateOrgTrail: "true"
     regions:
     - us-east-1
     template: templates/horizon_init_stack.yaml
