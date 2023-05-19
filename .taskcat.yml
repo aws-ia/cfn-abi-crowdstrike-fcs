@@ -2,7 +2,7 @@ project:
   name: cfn-abi-crowdstrike-fcs
   owner: support@crowdstrike.com # to be updated
   shorten_stack_name: true
-  s3_regional_buckets: true
+  s3_regional_buckets: false
   regions:
   - us-east-1
 
