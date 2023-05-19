@@ -21,8 +21,21 @@ unset AWS_DEFAULT_REGION
 
 echo $AWS_DEFAULT_REGION
 # Run taskcat e2e test
-taskcat test run
+taskcat test run -t  horizon-test
 
+for region in ${regions[@]}
+do
+    echo "Cleanup running in region: $region"
+    export AWS_DEFAULT_REGION=$region
+    python3 scripts/cleanup_config.py -C scripts/cleanup_config.json
+done
+
+echo $AWS_DEFAULT_REGION
+unset AWS_DEFAULT_REGION
+
+echo $AWS_DEFAULT_REGION
+# Run taskcat e2e test
+taskcat test run -t  horizon-test-ct
 ## Executing ash tool
 
 #find ${PROJECT_PATH} -name lambda.zip -exec rm -rf {} \;
