@@ -6,9 +6,10 @@ description: Post deployment options
 
 ## Verifying the solution functionality
 
-## Parnter capability 1
-
-## Parnter capability 2
-
+## Verify Account Activation in CrowdStrike Falcon Console
+* Sign in to your CrowdStrike Falcon Console
+* Navigate to Cloud-Security/Registration https://falcon.crowdstrike.com/cloud-security/registration
+* Verify each AWS Account ID shows "Active" in the Configuration (IOM) and Behavior (IOA) columns.
+* This step may take several minutes, click refresh to retireve the latest account status.
 
 **Next:** Choose [Test the Deployment](/test-deployment/index.html) to get started.
