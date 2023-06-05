@@ -22,7 +22,7 @@ SUCCESS = "SUCCESS"
 FAILED = "FAILED"
 
 VERSION = "1.0.0"
-name = "crowdstrike-cloud-hide-host"
+name = "crowdstrike-cloud-abi"
 useragent = ("%s/%s" % (name, VERSION))
 
 secret_store_name = os.environ['SecretName']
