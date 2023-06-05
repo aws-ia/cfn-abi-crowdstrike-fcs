@@ -10,9 +10,9 @@ description: Deployment steps
 
 1. Download the cloudformation template from source: https://<abi-template-location>
 2. Launch CloudFormation template in your AWS Control Tower home region.
-    * Stack name: `template-<partner-name>-enable-integrations`
+    * Stack name: `template-crowdstrike-enable-integrations`
     * List Parameters with [call out default values and update below example as needed]
-        * **EnableIntegrationsStackName**: `template-<partner-name>-enable-integrations`
+        * **EnableIntegrationsStackName**: `template-crowdstrike-enable-integrations`
         * **EnableIntegrationsStackRegion**: `us-east-1`
         * **EnableIntegrationsStackSetAdminRoleName**: `AWSCloudFormationStackSetAdministrationRole`
         * **EnableIntegrationsStackSetExecutionRoleName**: `AWSCloudFormationStackSetExecutionRole`

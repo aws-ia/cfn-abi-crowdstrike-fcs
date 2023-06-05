@@ -6,13 +6,15 @@ description: Additional Resources
 
 ## Partner documentation
 
-* Reference-1
-* Reference-2
+* In CrowdStrike Falcon Console, navigate to Documentation/Falcon Horizon Overview
 
 ## AWS Services
 
-* Reference-1
-* Reference-2
+* [CloudFormation StackSets](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/what-is-cfnstacksets.html)
+* [Lambda](https://docs.aws.amazon.com/lambda/latest/dg/welcome.html)
+* [IAM Roles](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html)
+* [EventBridge](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-what-is.html)
+* [Secrets Manager](https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html)
 
 ## Frequently asked questions (FAQs)
 
