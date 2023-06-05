@@ -21,6 +21,10 @@ logger.setLevel(logging.INFO)
 SUCCESS = "SUCCESS"
 FAILED = "FAILED"
 
+VERSION = "1.0.0"
+name = "crowdstrike-cloud-hide-host"
+useragent = ("%s/%s" % (name, VERSION))
+
 secret_store_name = os.environ['SecretName']
 secret_store_region = os.environ['SecretRegion']
 
@@ -120,7 +124,8 @@ def lambda_handler(event, context):
             FalconSecret = secrets_dict['FalconSecret']
             falcon = CSPMRegistration(client_id=FalconClientId,
                                     client_secret=FalconSecret,
-                                    base_url=CSCloud
+                                    base_url=CSCloud,
+                                    user_agent=useragent
                                     )
             if event['RequestType'] in ['Create']:
                 response_data = {}
@@ -128,7 +133,9 @@ def lambda_handler(event, context):
                 response = falcon.create_aws_account(account_id=aws_account_id,
                                                     organization_id=OrgId,
                                                     cloudtrail_region=aws_region,
-                                                    parameters={"account_type": "commercial"})
+                                                    user_agent=useragent,
+                                                    parameters={"account_type": "commercial"}
+                                                    )
                 if response['status_code'] == 400:
                     error = response['body']['errors'][0]['message']
                     logger.info('Account Registration Failed with reason....{}'.format(error))
@@ -159,7 +166,9 @@ def lambda_handler(event, context):
                 cfnresponse_send(event, context, SUCCESS, response_d, "CustomResourcePhysicalID")
             elif event['RequestType'] in ['Delete']:
                 logger.info('Event = ' + event['RequestType'])
-                response = falcon.delete_aws_account(organization_ids=OrgId)
+                response = falcon.delete_aws_account(organization_ids=OrgId,
+                                                    user_agent=useragent
+                                                    )
                 cfnresponse_send(event, context, 'SUCCESS', response['body'], "CustomResourcePhysicalID")
     except Exception as err:  # noqa: E722
         # We can't communicate with the endpoint
