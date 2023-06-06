@@ -6,5 +6,42 @@
     {
         "Type" : "S3_BUCKET",
         "Filter" : "cfn-abi-crowdstrike-fcs-"
+    },
+    {
+        "Type": "STACK",
+        "Filter" : "tCaT-enable-cloudtrail-ssm-"
+    },
+    {
+        "Type" : "STACK",
+        "Filter": "tCaT-stage-ctrail-content-local-"
+    },
+    {
+        "Type" : "STACK",
+        "Filter": "org-level-trail-dataevent-only"
+    },
+    {
+        "Type" : "STACK",
+        "Filter": "org-level-trail-with-mgmt-events"
+    },
+    {
+        "Type" : "S3_BUCKET",
+        "Filter": "sra-cloudtrail-staging-"
+    },
+    {
+        "Type" : "S3_BUCKET",
+        "Filter": "sra-org-trail-logs-",
+        "Account": "log_account"
+    },
+    {
+        "Type": "S3_BUCKET",
+        "Filter": "cfn-abi-aws-cloudtrail-"
+    },
+    {
+        "Type" : "SSM_PARAMETER",
+        "Filter" : "/sra/ctrail/"
+    },
+    {
+        "Type" : "LOG_GROUP",
+        "Filter" : "sra/sra-org-trail"
     }
 ]
