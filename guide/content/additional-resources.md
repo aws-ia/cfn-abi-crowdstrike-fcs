@@ -1,20 +1,20 @@
 ---
 weight: 11
-title: Additional Resources
-description: Additional Resources
+title: Additional resources
+description: Additional resources.
 ---
 
 ## Partner documentation
 
-* In CrowdStrike Falcon Console, navigate to Documentation/Falcon Horizon Overview
+* In the CrowdStrike Falcon console, navigate to **Documentation > Falcon Horizon Overview**.
 
-## AWS Services
+## AWS services
 
-* [CloudFormation StackSets](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/what-is-cfnstacksets.html)
-* [Lambda](https://docs.aws.amazon.com/lambda/latest/dg/welcome.html)
-* [IAM Roles](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html)
-* [EventBridge](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-what-is.html)
-* [Secrets Manager](https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html)
+* [Working with AWS CloudFormation StackSets](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/what-is-cfnstacksets.html)
+* [What is AWS Lambda?](https://docs.aws.amazon.com/lambda/latest/dg/welcome.html)
+* [IAM roles](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html)
+* [What is Amazon EventBridge?](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-what-is.html)
+* [What is AWS Secrets Manager?](https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html)
 
 ## Frequently asked questions (FAQs)
 

@@ -1,8 +1,8 @@
 ---
 weight: 99
-title: Cleanup Instructions
-description: Instructions to cleanup the resources created by the ABI package
+title: Cleanup instructions
+description: Instructions to clean up the resources created by the ABI package
 ---
 ## Cleanup Instructions
 
-![Under Construction](/images/under_construction.jpeg)
+![Under construction](/images/under_construction.jpeg)
