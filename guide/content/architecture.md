@@ -16,13 +16,13 @@ As shown in the diagram, the solution sets up the following:
     * EventBridge rules in each Region with CrowdStrike event bus as the target.
 
 * In the management account:
-    * AWS CloudFormation StackSets to create EventBridge rules in each Region and to create IAM roles and EventBridge rules in member accounts.
+    * IAM role that allows Horizon to perform read-only activities.
     * IAM role that allows EventBridge to perform PutEvents actions against CrowdStrike's event bus.
     * IAM role for running the AWS Lambda function.
-    * IAM role that allows Horizon to perform read-only activities.
     * In the primary Region, AWS Secrets Manager secret for storing CrowdStrike API keys and a Lambda function to perform account registration with CrowdStrike.
     * EventBridge rules in both primary and additional Regions.
     * A custom AWS CloudFormation resource to trigger the Lambda function.
+    * AWS CloudFormation StackSets to create EventBridge rules in each Region and to create IAM roles and EventBridge rules in member accounts.
 
 * In the child AWS accounts (log archive and security tooling accounts):
     * EventBridge rules in each Region with CrowdStrike event bus as the target.
