@@ -9,7 +9,7 @@ This [AWS Built-In](https://aws.amazon.com/builtin) (ABI) solution deploys Crowd
 
 Deploying this ABI solution doesn't guarantee an organization’s compliance with any laws, certifications, policies, or other regulations.
 
-Avoid breaches and make sure your cloud security configuration meets industry security recommendations with the CSPM platform, Falcon Horizon. Falcon Horizon monitors your AWS, Azure, and GCP cloud services to detect critical security issues, common configuration errors, and patterns of suspicious behavior. Use Horizon to triage findings and find recommended remediations to close the gaps and keep your cloud data secure.
+Avoid breaches and make sure your cloud security configuration meets industry security recommendations with the CSPM platform, Falcon Horizon. Falcon Horizon monitors your cloud services to detect critical security issues, common configuration errors, and patterns of suspicious behavior. Use Horizon to triage findings and find recommended remediations to close the gaps and keep your cloud data secure.
 
 Get started using Horizon by registering your cloud accounts. When registering, Horizon is granted limited read-only access to your cloud account. When registering your ABI solution, all accounts in that organization are registered automatically.
 

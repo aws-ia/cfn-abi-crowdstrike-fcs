@@ -5,8 +5,8 @@ description: Terminolgies used in this guide.
 ---
 
 * **ABI :**  AWS Built-In (ABI).
-* **ABI modules :** The GitHub repositories based on AWS Security Reference Architecture (AWS SRA). Provides templates for enabling AWS foundational services such as AWS CloudTrail, Amazon GuardDuty, AWS Security Hub, etc.
-* **ABI projects :** The GitHub repositories built by partners in collaboration with AWS. While building these projects, partners use ABI modules to enable AWS services as needed before creating partner-specific assets. The project contains (1) IaC templates to automate enablement of both AWS and partner services, and (2) wrappers for most common formats such as CfCT manifest, SC baselines, and more, so customers can pick and choose from the available services. This solution focuses primarily on including the CfCT manifest file in the package.
+* **ABI modules :** The GitHub repositories based on AWS Security Reference Architecture (AWS SRA). Modules provide templates for enabling AWS foundational services such as AWS CloudTrail, Amazon GuardDuty, AWS Security Hub, etc.
+* **ABI projects :** The GitHub repositories built by partners in collaboration with AWS. While building these projects, partners use ABI modules to enable AWS services as needed before creating partner-specific assets. The project contains (1) Infrastructure as Code (IaC) templates to automate enablement of both AWS and partner services, and (2) wrappers for most common formats such as CfCT manifest, SC baselines, and more, so customers can pick and choose from the available services. This solution focuses primarily on including the CfCT manifest file in the package.
 * **Assessment:** An individual instance when Horizon compares your cloud settings to the Horizon policies.
 * **Assessment schedules:** You can select how frequently your cloud environment is assessed for misconfigurations. You can also exclude AWS services and Regions from assessment.
 * **Behavioral:** Patterns of suspicious behavior in your cloud environment.

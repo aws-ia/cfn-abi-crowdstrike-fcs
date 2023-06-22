@@ -5,13 +5,13 @@ description: Deployment steps.
 ---
 
 
-## Launch the CloudFormation Template in the AWS Management Console account
+## Launch the CloudFormation template in the AWS management account
 
 
 1. Download the Cloudformation template from the following location: https://<abi-template-location>
 2. Launch the CloudFormation template in your AWS Control Tower home Region.
     * Stack name: `template-crowdstrike-enable-integrations`
-    * List parameters with [call out default values and update below example as needed]
+    * List parameters with default values and update examples as needed:
         * **EnableIntegrationsStackName**: `template-crowdstrike-enable-integrations`
         * **EnableIntegrationsStackRegion**: `us-east-1`
         * **EnableIntegrationsStackSetAdminRoleName**: `AWSCloudFormationStackSetAdministrationRole`
@@ -34,7 +34,7 @@ Wait for the CloudFormation status to change to `CREATE_COMPLETE` state.
 
 #### Prerequisites
 
-1. Create an IAM role with the required permissions in the AWS Management Console account to allow the CfCT solution to launch resources.
+Create an IAM role with the required permissions in the AWS management account to allow the CfCT solution to launch resources.
 
 #### How it works
 

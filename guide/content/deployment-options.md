@@ -12,4 +12,4 @@ The following deployment options are supported by this ABI package:
 * Launch using [Customizations for AWS Control Tower (CfCT)](/launch-using-cfct/index.html).
 
 
-**Next:** Choose [Pre-deployment steps](/pre-deployment-steps/index.html) to get started.
+**Next:** Choose [Predeployment steps](/pre-deployment-steps/index.html) to get started.

@@ -6,8 +6,8 @@ description: Predeployment steps.
 
 Before deploying this ABI package, complete the following steps:
 
-* Subscribe to the partner product from AWS Marketplace using <AWS Marketplace Listing>>
-* Create the CrowdStrike API client in the Falcon UI with the CSPM registration API scope.
-* Become familiar with the [additional resources](https://link) later in this guide.
+1. Subscribe to the [CrowdStrike Falcon Cloud Security](https://aws.amazon.com/marketplace/pp/prodview-l6ti2ml2i2g6y?ref_=esp&feature_=FeaturedProducts) AWS Marketplace listing.
+2. Create the CrowdStrike API client in the Falcon UI with the CSPM registration API scope.
+3. Become familiar with the [additional resources](https://link) later in this guide.
 
 **Next:** Choose **[Deployment steps](/deployment-steps/index.html)** to get started.
