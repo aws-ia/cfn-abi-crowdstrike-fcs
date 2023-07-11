@@ -17,4 +17,4 @@ Get started using Horizon by registering your cloud accounts. When registering, 
 
 [CrowdStrike Falcon Cloud Security](https://aws.amazon.com/marketplace/pp/prodview-l6ti2ml2i2g6y?ref_=esp&feature_=FeaturedProducts)
 
-**Next:** Choose [Terminologies](/terminologies/index.html) to get started.
+**Next:** Choose [Terminologies](/terminologies/index.html).

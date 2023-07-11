@@ -23,4 +23,4 @@ To test Horizon functionality, you can generate findings by intentionally violat
 3. If the policy is Configuration, wait for the next assessment scan for the finding to appear. Two hours is the default interval, but you can change this setting by navigating to **Cloud Security > Cloud Security Posture > Settings**.
 
 
-**Next:** Choose [Additonal resources](/additional-resources/index.html) to get started.
+**Next:** Choose [Additonal resources](/additional-resources/index.html).

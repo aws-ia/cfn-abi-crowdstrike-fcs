@@ -1,7 +1,7 @@
 ---
 weight: 100
 title: FAQs
-description: Frequently asked questions
+description: Frequently asked questions.
 ---
 
 ## How frequently will CrowdStrike Horizon scan my environment for Configuration (IOM) assessment?

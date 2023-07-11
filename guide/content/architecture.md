@@ -4,7 +4,7 @@ title: Architecture
 description: Solution architecture.
 ---
 
-Deploying this ABI package with default parameters builds the following architecture.
+Deploying this ABI solution with default parameters builds the following architecture.
 
 ![Architecture diagram](/images/abi-crowdstrike-architecture-diagram.png)
 
@@ -29,4 +29,4 @@ As shown in the diagram, the solution sets up the following:
     * IAM role that allows Horizon to perform read-only activities.
     * IAM role that allows EventBridge to perform PutEvents actions against CrowdStrike's event bus.
 
-**Next:** Choose [Deployment options](/deployment-options/index.html) to get started.
+**Next:** Choose [Deployment options](/deployment-options/index.html).

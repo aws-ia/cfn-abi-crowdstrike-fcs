@@ -14,4 +14,4 @@ description: Cost of the solution and licenses required.
 
 <ABI license>
 
-**Next:** Choose [Architecture](/architecture/index.html) to get started.
+**Next:** Choose [Architecture](/architecture/index.html).

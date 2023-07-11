@@ -4,11 +4,10 @@ title: Deployment steps
 description: Deployment steps.
 ---
 
+## Launch the CloudFormation template in the AWS Organizations management account
 
-## Launch the CloudFormation template in the AWS management account
 
-
-1. Download the Cloudformation template from the following location: https://<abi-template-location>
+1. Download the [Cloudformation template](https://raw.githubusercontent.com/aws-ia/cfn-abi-crowdstrike-fcs/main/templates/horizon_init_stack.yaml?token=GHSAT0AAAAAAB7Y2HOOS42IEBM5LBHOQOWWZFIJEBA).
 2. Launch the CloudFormation template in your AWS Control Tower home Region.
     * Stack name: `template-crowdstrike-enable-integrations`
     * List parameters with default values and update examples as needed:
@@ -30,7 +29,7 @@ Wait for the CloudFormation status to change to `CREATE_COMPLETE` state.
 ## Launch using Customizations for Control Tower
 
 
-[Customizations for AWS Control Tower](https://aws.amazon.com/solutions/implementations/customizations-for-aws-control-tower/) (CfCT) combines AWS Control Tower and other AWS services to help you set up an AWS environment. You can deploy the templates provided with the ABI packages using CfCT.
+[Customizations for AWS Control Tower](https://aws.amazon.com/solutions/implementations/customizations-for-aws-control-tower/) (CfCT) combines AWS Control Tower and other AWS services to help you set up an AWS environment. You can deploy the templates provided with the ABI solution using CfCT.
 
 #### Prerequisites
 
@@ -58,4 +57,4 @@ resources:
 ```
 
 
-**Next:** Choose [Postdeployment options](/post-deployment-steps/index.html) to get started.
+**Next:** Choose [Postdeployment options](/post-deployment-steps/index.html).
