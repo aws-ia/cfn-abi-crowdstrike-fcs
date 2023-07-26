@@ -162,25 +162,17 @@ Resources:
 
 # Create CSPM Stack and StackSet
   CrowdStrikeCSPMStack:
-    Type: AWS::CloudFormation::Stack
+    Type: 'AWS::CloudFormation::Stack'
     Properties:
       Parameters:
-        - ParameterKey: RoleName
-          ParameterValue: !GetAtt TriggerRegisterAccountLambda.iam_role_name
-        - ParameterKey: ExternalID
-          ParameterValue: !GetAtt TriggerRegisterAccountLambda.external_id
-        - ParameterKey: CSRoleName
-          ParameterValue: !GetAtt TriggerRegisterAccountLambda.cs_role_name
-        - ParameterKey: CSAccountNumber
-          ParameterValue: !GetAtt TriggerRegisterAccountLambda.cs_account_id
-        - ParameterKey: EnableIOA
-          ParameterValue: !Ref EnableIOA
-        - ParameterKey: EnableSensorManagement
-          ParameterValue: !Ref EnableSensorManagement
-        - ParameterKey: ClientID
-          ParameterValue: !Ref FalconClientID
-        - ParameterKey: ClientSecret
-          ParameterValue: !Ref FalconSecret
+        RoleName: !GetAtt TriggerRegisterAccountLambda.iam_role_name
+        ExternalID: !GetAtt TriggerRegisterAccountLambda.external_id
+        CSRoleName: !GetAtt TriggerRegisterAccountLambda.cs_role_name
+        CSAccountNumber: !GetAtt TriggerRegisterAccountLambda.cs_account_id
+        EnableIOA: !Ref EnableIOA
+        EnableSensorManagement: !Ref EnableSensorManagement
+        ClientID: !Ref FalconClientID
+        ClientSecret: !Ref FalconSecret
       TemplateURL: https://cs-prod-cloudconnect-templates.s3.amazonaws.com/aws_cspm_cloudformation_v2.json
 
   CrowdStrikeStackSet:
