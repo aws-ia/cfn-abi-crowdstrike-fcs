@@ -176,12 +176,12 @@ Resources:
         - ParameterKey: EnableIOA
           ParameterValue: !Ref EnableIOA
         - ParameterKey: EnableSensorManagement
-          ParamterValue: !Ref EnableSensorManagement
+          ParameterValue: !Ref EnableSensorManagement
         - ParameterKey: ClientID
-          ParamterValue: !Ref FalconClientID
+          ParameterValue: !Ref FalconClientID
         - ParameterKey: ClientSecret
-          ParamterValue: !Ref FalconSecret
-      TemplateURL: !Sub https://cs-prod-cloudconnect-templates.s3.amazonaws.com/aws_cspm_cloudformation_v2.json
+          ParameterValue: !Ref FalconSecret
+      TemplateURL: https://cs-prod-cloudconnect-templates.s3.amazonaws.com/aws_cspm_cloudformation_v2.json
 
   CrowdStrikeStackSet:
     Type: 'AWS::CloudFormation::StackSet'
@@ -203,11 +203,11 @@ Resources:
         - ParameterKey: EnableIOA
           ParameterValue: !Ref EnableIOA
         - ParameterKey: EnableSensorManagement
-          ParamterValue: !Ref EnableSensorManagement
+          ParameterValue: !Ref EnableSensorManagement
         - ParameterKey: ClientID
-          ParamterValue: !Ref FalconClientID
+          ParameterValue: !Ref FalconClientID
         - ParameterKey: ClientSecret
-          ParamterValue: !Ref FalconSecret
+          ParameterValue: !Ref FalconSecret
       PermissionModel: SERVICE_MANAGED
       AutoDeployment: 
         Enabled: true
@@ -217,7 +217,7 @@ Resources:
             AccountFilterType: NONE
             OrganizationalUnitIds: !Ref ProvisionOU
           Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
-      TemplateURL: !Sub https://cs-prod-cloudconnect-templates.s3.amazonaws.com/aws_cspm_cloudformation_v2.json
+      TemplateURL: https://cs-prod-cloudconnect-templates.s3.amazonaws.com/aws_cspm_cloudformation_v2.json
 
 # Optional: Create EventBridge Roles & StackSet
   StackSetAdministrationRole:
@@ -312,7 +312,7 @@ Resources:
             AccountFilterType: NONE
             OrganizationalUnitIds: !Ref ProvisionOU
           Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
-      TemplateURL: !Sub https://cs-prod-cloudconnect-templates.s3.amazonaws.com/aws_cspm_cloudformation_eb_v2.json
+      TemplateURL: https://cs-prod-cloudconnect-templates.s3.amazonaws.com/aws_cspm_cloudformation_eb_v2.json
 
   CrowdStrikeRootEbStackSet:
     Type: 'AWS::CloudFormation::StackSet'
@@ -335,7 +335,7 @@ Resources:
             AccountFilterType: NONE
             OrganizationalUnitIds: !Ref ProvisionOU
           Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
-      TemplateURL: !Sub https://cs-prod-cloudconnect-templates.s3.amazonaws.com/aws_cspm_cloudformation_eb_v2.json
+      TemplateURL: https://cs-prod-cloudconnect-templates.s3.amazonaws.com/aws_cspm_cloudformation_eb_v2.json
 
   CrowdStrikeSecrets:
     Type: AWS::SecretsManager::Secret
