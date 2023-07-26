@@ -132,21 +132,6 @@ Parameters:
       - 'false'
     Default: 'true'
 
-Mappings:
-  CrowdStrikeCSPMRoleTemplateURL:
-    us1:
-      CSAccountNumber: "292230061137"
-      StackName: "CrowdStrike-CSPM-Integration"
-      CSRoleName: "CrowdStrikeCSPMConnector"
-    us2:
-      CSAccountNumber: "292230061137"
-      StackName: "CrowdStrike-CSPM-Integration"
-      CSRoleName: "CrowdStrikeCSPMConnector"
-    eu:
-      CSAccountNumber: "292230061137"
-      StackName: "CrowdStrike-CSPM-Integration"
-      CSRoleName: "CrowdStrikeCSPMConnector"
-
 Resources:  
   CloudTrailStack:
     Type: 'AWS::CloudFormation::Stack'
@@ -291,7 +276,7 @@ Resources:
       StackSetName: "CrowdStrike-Horizon-EB-Stackset"
       Parameters:
         - ParameterKey: CSAccountNumber
-          ParameterValue: !FindInMap [ CrowdStrikeCSPMRoleTemplateURL, !Ref CSCloud, CSAccountNumber ]
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.cs_account_id
         - ParameterKey: CSEventBusName
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.eventbus_name
       PermissionModel: SERVICE_MANAGED
@@ -308,7 +293,7 @@ Resources:
       StackSetName: "CrowdStrike-Horizon-Root-EB-Stackset"
       Parameters:
         - ParameterKey: CSAccountNumber
-          ParameterValue: !FindInMap [ CrowdStrikeCSPMRoleTemplateURL, !Ref CSCloud, CSAccountNumber ]
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.cs_account_id
         - ParameterKey: CSEventBusName
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.eventbus_name
       PermissionModel: SELF_MANAGED
