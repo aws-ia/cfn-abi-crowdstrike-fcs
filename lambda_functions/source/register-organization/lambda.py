@@ -144,17 +144,15 @@ def lambda_handler(event, context):
                     }
                     cfnresponse_send(event, context, SUCCESS, response_d, "CustomResourcePhysicalID")
                 elif response['status_code'] == 201:
-                    response_data = response['body']['resources'][0]
-                    role_name = response['body']['resources'][0]['iam_role_arn'].rsplit('/')[1]
-                    intermediate_role_arn = "arn:aws:iam::292230061137:role/CrowdStrikeCSPMConnector"
+                    cs_account = response['body']['resources'][0]['intermediate_role_arn'].rsplit('::')[1]
                     response_d = {
-                        "iam_role_name": role_name,
-                        "intermediate_role_arn": intermediate_role_arn,
-                        "external_id": response_data.get('external_id', ''),
-                        "aws_cloudtrail_bucket_name": response_data.get('aws_cloudtrail_bucket_name', ''),
-                        "eventbus_name": response_data.get('eventbus_name', ''),
-                        "aws_eventbus_arn": response_data.get('aws_eventbus_arn', ''),
-                        "account_type": response_data.get('account_type', '')
+                        "cs_account_id": cs_account.rsplit(':')[0],
+                        "iam_role_name": response['body']['resources'][0]['iam_role_arn'].rsplit('/')[1],
+                        "intermediate_role_arn": response['body']['resources'][0]['intermediate_role_arn'],
+                        "cs_role_name": response['body']['resources'][0]['intermediate_role_arn'].rsplit('/')[1],
+                        "external_id": response['body']['resources'][0]['external_id'],
+                        "eventbus_arn": response['body']['resources'][0]['aws_eventbus_arn'],
+                        "eventbus_name": response['body']['resources'][0]['eventbus_name']
                     }
                     cfnresponse_send(event, context, SUCCESS, response_d, "CustomResourcePhysicalID")
                 else:
