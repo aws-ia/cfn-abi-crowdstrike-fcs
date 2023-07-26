@@ -18,6 +18,11 @@ Metadata:
           - StackSetAdminRole
           - StackSetExecRole
           - CreateOrgTrail
+          - ExcludeRegions
+      - Label:
+          default: Provision OUs
+        Parameters:
+          - ProvisionOU
       - Label:
           default: AWS S3 Bucket 
         Parameters:
@@ -58,10 +63,15 @@ Metadata:
         default: (Optional) AWS Organization ID
       EnableSensorManagement:
         default: Enable Sensor Management
+      ExcludeRegions:
+        default: Exclude Prohibited Regions
+      ProvisionOU:
+        default: The Organization Root ID or Organizational Unit (OU) IDs to Provision
 
 Conditions:
   CreateIOAResources: !Equals [ !Ref 'EnableIOA', true ]
   CreateTrail: !Equals [ !Ref 'CreateOrgTrail', true ]
+  ExcludeRegionsEmpty:  !Equals [!Ref 'ExcludeRegions', '']
 
 Parameters:
   FalconClientID:
@@ -131,6 +141,14 @@ Parameters:
       - 'true'
       - 'false'
     Default: 'true'
+  ProvisionOU:
+    Type: CommaDelimitedList
+    Description: Comma Delimited List of OU(s) to provision resources.  If you are provisioning the entire Organization, please enter the Root OU (r-****)
+    Default: ''
+  ExcludeRegions:
+    Description: Exclude regions from EventBridge Rules for IOA.  Use this when SCPs cause stacksets to fail.
+    Type: String
+    Default: ''
 
 Resources:  
   CloudTrailStack:
@@ -192,7 +210,13 @@ Resources:
           ParamterValue: !Ref FalconSecret
       PermissionModel: SERVICE_MANAGED
       AutoDeployment: 
-        Enabled: false
+        Enabled: true
+        RetainStacksOnAccountRemoval: true
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            OrganizationalUnitIds: !Ref ProvisionOU
+          Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
       TemplateURL: !Sub https://cs-prod-cloudconnect-templates.s3.amazonaws.com/aws_cspm_cloudformation_v2.json
 
 # Optional: Create EventBridge Roles & StackSet
@@ -281,7 +305,13 @@ Resources:
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.eventbus_name
       PermissionModel: SERVICE_MANAGED
       AutoDeployment: 
-        Enabled: false
+        Enabled: true
+        RetainStacksOnAccountRemoval: true
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            OrganizationalUnitIds: !Ref ProvisionOU
+          Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
       TemplateURL: !Sub https://cs-prod-cloudconnect-templates.s3.amazonaws.com/aws_cspm_cloudformation_eb_v2.json
 
   CrowdStrikeRootEbStackSet:
@@ -297,6 +327,14 @@ Resources:
         - ParameterKey: CSEventBusName
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.eventbus_name
       PermissionModel: SELF_MANAGED
+      AutoDeployment: 
+        Enabled: true
+        RetainStacksOnAccountRemoval: true
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            OrganizationalUnitIds: !Ref ProvisionOU
+          Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
       TemplateURL: !Sub https://cs-prod-cloudconnect-templates.s3.amazonaws.com/aws_cspm_cloudformation_eb_v2.json
 
   CrowdStrikeSecrets:
@@ -346,6 +384,7 @@ Resources:
       ManagedPolicyArns:
         - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
         - !Sub 'arn:${AWS::Partition}:iam::aws:policy/AWSOrganizationsReadOnlyAccess'
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ReadOnlyAccess'
 
   RegisterAccountLambda:
     Type: AWS::Lambda::Function
@@ -372,11 +411,14 @@ Resources:
     Properties:
       Environment:
         Variables:
-          SecretRegion: !Ref AWS::Region
-          SecretName: !Join
+          secret_region: !Ref AWS::Region
+          secret_name: !Join
             - '-'
             - - CrowdStrikeHorizonAPISecret
               - !Ref 'AWS::StackName'
+          exclude_regions: !If [ ExcludeRegionsEmpty, 'none', !Ref ExcludeRegions ]
+          aws_region: !Ref AWS::Region
+          cs_cloud: !Ref CSCloud
       Handler: lambda.lambda_handler
       MemorySize: 128
       Role: !GetAtt "LambdaCrowdStrikeRegistrationRole.Arn"
@@ -393,10 +435,6 @@ Resources:
       - LambdaCrowdStrikeRegistrationRole
       - CrowdStrikeSecrets
     Properties:
-      aws_region: !Ref AWS::Region
-      FalconSecret: !Ref FalconSecret
-      FalconClientId: !Ref FalconClientID
-      CSCloud: !Ref CSCloud
       ServiceToken: !GetAtt
         - RegisterAccountLambda
         - Arn
