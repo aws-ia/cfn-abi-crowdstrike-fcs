@@ -136,6 +136,7 @@ def lambda_handler(event, context):
                                                     organization_id=OrgId,
                                                     cloudtrail_region=AWS_REGION,
                                                     user_agent=useragent,
+                                                    is_master=True,
                                                     parameters={"account_type": "commercial"}
                                                     )
                 if response['status_code'] == 400:
