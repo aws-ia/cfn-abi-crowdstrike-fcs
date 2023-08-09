@@ -4,36 +4,29 @@ title: Architecture
 description: Solution architecture.
 ---
 
-Deploying this ABI package with default parameters builds the following architecture.
+Deploying this ABI solution with default parameters builds the following architecture.
 
-![Architecture diagram](/images/architecture.png)
+![Architecture diagram](/images/abi-crowdstrike-architecture-diagram.png)
 
-As shown in the diagram, the Quick Start sets up the following:
+As shown in the diagram, the solution sets up the following:
 
-* In all current and AWS accounts in your AWS organization:    
-    * IAM Role for Horizon to perform Read-Only activities.
-    * IAM Role too allow EventBridge to PutEvents against CrowdStrike's EventBus.
-    * EventBridge Rules in each region with CrowdStrike EventBus as target.
+* In all current Horizon accounts in your AWS organization:
+    * IAM role that allows Horizon to perform read-only activities.
+    * IAM role that allows Amazon EventBridge to perform PutEvents actions against CrowdStrike's event bus.
+    * EventBridge rules in each Region with CrowdStrike event bus as the target.
 
 * In the management account:
-    * Secrets Manager Secret to store CrowdStrike API Keys.
-    * IAM Role for Horizon to perform Read-Only activities.
-    * IAM Role for EventBridge to PutEvents against CrowdStrike's EventBus.
-    * IAM Role for Lambda Execution.
-    * Lambda function to perform account registration with CrowdStrike.
-    * Custom CloudFormation Resource to trigger Lambda Function.
-    * CloudFormation StackSet to create EventBridge Rules in each region.
-    * CloudFormation StackSet to create IAM Roles in member accounts.
-    * CloudFormation StackSet to create EventBridge Rules in member accounts.
+    * IAM role that allows Horizon to perform read-only activities.
+    * IAM role that allows EventBridge to perform PutEvents actions against CrowdStrike's event bus.
+    * IAM role for running the AWS Lambda function.
+    * In the primary Region, AWS Secrets Manager secret for storing CrowdStrike API keys and a Lambda function to perform account registration with CrowdStrike.
+    * EventBridge rules in both primary and additional Regions.
+    * A custom AWS CloudFormation resource to trigger the Lambda function.
+    * AWS CloudFormation StackSets to create EventBridge rules in each Region and to create IAM roles and EventBridge rules in member accounts.
 
-* In the log archive account:
-    * IAM Role for Horizon to perform Read-Only activities.
-    * IAM Role to allow EventBridge to PutEvents against CrowdStrike's EventBus.
-    * EventBridge Rules in each region with CrowdStrike EventBus as target.
+* In the child AWS accounts (log archive and security tooling accounts):
+    * EventBridge rules in each Region with CrowdStrike event bus as the target.
+    * IAM role that allows Horizon to perform read-only activities.
+    * IAM role that allows EventBridge to perform PutEvents actions against CrowdStrike's event bus.
 
-* In the security tooling account:
-    * IAM Role for Horizon to perform Read-Only activities.
-    * IAM Role to allow EventBridge to PutEvents against CrowdStrike's EventBus.
-    * EventBridge Rules in each region with CrowdStrike EventBus as target.
-
-**Next:** Choose [Deployment Options](/deployment-options/index.html) to get started.
+**Next:** Choose [Deployment options](/deployment-options/index.html).

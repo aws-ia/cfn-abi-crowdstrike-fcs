@@ -1,22 +1,15 @@
 ---
 weight: 6
-title: Deployment Options
-description: 
+title: Deployment options
+description: Deployment options.
 ---
 
-This ABI package provides one deployment option:
+#### Deployment options supported by this ABI solution
 
-* [Deploy [[Partner Name-Product Name]] for AWS Organizations](quick-link)
+The following deployment options are supported by this ABI solution:
 
-This option builds <>.
-
-
-#### Deployment options supported by this ABI package
-
-Following are the deployment options supported by this ABI package:
-
-* Launch the [CloudFormation Template in the Management Account](/launch-using-cloudformation/index.html).
-* Launch using [Customizations for Control Tower (CfCT)](/launch-using-cfct/index.html).
+* Launch the [CloudFormation template in the AWS Management Console](/launch-using-cloudformation/index.html).
+* Launch using [Customizations for AWS Control Tower (CfCT)](/launch-using-cfct/index.html).
 
 
-**Next:** Choose [Pre Deployment Steps](/pre-deployment-steps/index.html) to get started.
+**Next:** Choose [Predeployment steps](/pre-deployment-steps/index.html).
