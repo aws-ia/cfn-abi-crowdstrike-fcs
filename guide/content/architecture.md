@@ -6,7 +6,9 @@ description: Solution architecture.
 
 Deploying this ABI solution with default parameters builds the following architecture.
 
-![Architecture diagram](/images/abi-crowdstrike-architecture-diagram.png)
+![CSPM Architecture diagram](/images/cspm_architecture.png)
+
+![Sensor Management Architecture diagram](/images/sensor_architecture.png)
 
 As shown in the diagram, the solution sets up the following:
 
