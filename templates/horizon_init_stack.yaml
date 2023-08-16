@@ -516,8 +516,6 @@ Resources:
       Objects:
         - lambda_functions/packages/register-organization/lambda.zip
         - templates/horizon_init_stack.yaml
-        - templates/horizon_stackset.yaml
-        - templates/horizon_eb_stackset.yaml
 
   CopyZipsRole:
     Type: AWS::IAM::Role
