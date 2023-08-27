@@ -157,7 +157,7 @@ def lambda_handler(event, context):
                         "eventbus_arn": response['body']['resources'][0]['aws_eventbus_arn'],
                         "eventbus_name": response['body']['resources'][0]['eventbus_name']
                     }
-                    response['my_regions'] = regions
+                    response_d['my_regions'] = regions
                     cfnresponse_send(event, context, SUCCESS, response_d, "CustomResourcePhysicalID")
                 else:
                     response_d = response['body']
