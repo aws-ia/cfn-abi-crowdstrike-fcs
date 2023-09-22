@@ -131,8 +131,7 @@ Parameters:
   pOrganizationId:
     AllowedPattern: '^o-[a-z0-9]{10,32}$'
     ConstraintDescription: Must start with 'o-' followed by from 10 to 32 lowercase letters or digits. (e.g. o-abc1234567)
-    Default: ''
-    Description: (Optional) AWS Organizations ID. If empty, custom resource will be deployed to determine the AWS Organization ID.
+    Description: AWS Organizations ID. If empty, custom resource will be deployed to determine the AWS Organization ID.
     Type: String
   EnableSensorManagement:
     Type: String
