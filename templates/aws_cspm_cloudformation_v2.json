@@ -195,9 +195,7 @@
                     "Action": [
                       "events:PutEvents"
                     ],
-                    "Resource": {
-                      "Fn::Sub": "arn:aws:events:*:*:event-bus/cs-*"
-                    },
+                    "Resource": "arn:aws:events:*:*:event-bus/cs-*",
                     "Effect": "Allow"
                   }
                 ]
@@ -353,7 +351,7 @@
             },
             "S3Key": "aws/horizon-sensor-installation-orchestrator.zip"
           },
-          "Description": "",
+          "Description": "Lambda function to manage Falcon Sensor Installation",
           "Environment": {
             "Variables": {
               "CS_ADDRESS": "",
