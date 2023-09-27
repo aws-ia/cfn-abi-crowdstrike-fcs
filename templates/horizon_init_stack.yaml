@@ -208,7 +208,7 @@ Resources:
             AccountFilterType: NONE
             OrganizationalUnitIds: !Ref ProvisionOU
           Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
-      TemplateURL: https://cs-prod-cloudconnect-templates.s3.amazonaws.com/aws_cspm_cloudformation_v2.json
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${StagingS3KeyPrefix}/templates/aws_cspm_cloudformation_v2.json
 
 # Optional: Create EventBridge Roles & StackSet
   StackSetAdministrationRole:
@@ -303,7 +303,7 @@ Resources:
             AccountFilterType: NONE
             OrganizationalUnitIds: !Ref ProvisionOU
           Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
-      TemplateURL: https://cs-prod-cloudconnect-templates.s3.amazonaws.com/aws_cspm_cloudformation_eb_v2.json
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${StagingS3KeyPrefix}/templates/aws_cspm_cloudformation_eb_v2.json
 
   CrowdStrikeRootEbStackSet:
     Type: 'AWS::CloudFormation::StackSet'
@@ -327,7 +327,7 @@ Resources:
             Accounts:
               - !Ref AWS::AccountId
           Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
-      TemplateURL: https://cs-prod-cloudconnect-templates.s3.amazonaws.com/aws_cspm_cloudformation_eb_v2.json
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${StagingS3KeyPrefix}/templates/aws_cspm_cloudformation_eb_v2.json
 
   CrowdStrikeSecrets:
     Type: AWS::SecretsManager::Secret
