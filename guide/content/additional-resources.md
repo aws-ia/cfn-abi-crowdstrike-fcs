@@ -6,7 +6,7 @@ description: Additional resources.
 
 ## Partner documentation
 
-* In the CrowdStrike Falcon console, navigate to **Documentation > Falcon Horizon Overview**.
+* In the CrowdStrike Falcon console, navigate to **Documentation > Falcon CSPM Overview**.
 
 ## AWS services
 
@@ -15,6 +15,7 @@ description: Additional resources.
 * [IAM roles](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html)
 * [What is Amazon EventBridge?](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-what-is.html)
 * [What is AWS Secrets Manager?](https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html)
+* [Systems Manager] (https://docs.aws.amazon.com/systems-manager/latest/userguide/what-is-systems-manager.html)
 
 ## Frequently asked questions (FAQs)
 

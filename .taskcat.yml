@@ -14,9 +14,10 @@ tests:
       SourceS3BucketName: $[taskcat_autobucket]
       S3BucketRegion: $[taskcat_current_region]
       pOrganizationId: $[taskcat_ssm_/crowdstrike/organization-id]
+      ProvisionOU: $[taskcat_ssm_/crowdstrike/provision-ou]
     regions:
     - us-east-1
-    template: templates/horizon_init_stack.yaml
+    template: templates/crowdstrike_init_stack.yaml
   horizon-test-ct:
     parameters:
       FalconClientID: $[taskcat_ssm_/crowdstrike/falcon_client_id]
@@ -24,7 +25,8 @@ tests:
       SourceS3BucketName: $[taskcat_autobucket]
       S3BucketRegion: $[taskcat_current_region]
       pOrganizationId: $[taskcat_ssm_/crowdstrike/organization-id]
+      ProvisionOU: $[taskcat_ssm_/crowdstrike/provision-ou]
       CreateOrgTrail: "true"
     regions:
     - us-east-1
-    template: templates/horizon_init_stack.yaml
+    template: templates/crowdstrike_init_stack.yaml
