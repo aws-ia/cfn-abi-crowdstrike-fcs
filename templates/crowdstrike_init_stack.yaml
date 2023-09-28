@@ -172,7 +172,7 @@ Resources:
         EnableSensorManagement: !Ref EnableSensorManagement
         ClientID: !Ref FalconClientID
         ClientSecret: !Ref FalconSecret
-      TemplateURL: https://cs-prod-cloudconnect-templates.s3.amazonaws.com/aws_cspm_cloudformation_v2.json
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${StagingS3KeyPrefix}/templates/aws_cspm_cloudformation_v2.json
 
   CrowdStrikeStackSet:
     Type: 'AWS::CloudFormation::StackSet'
@@ -207,7 +207,8 @@ Resources:
         - DeploymentTargets:
             AccountFilterType: NONE
             OrganizationalUnitIds: !Ref ProvisionOU
-          Regions: !Ref AWS::Region
+          Regions: 
+            - !Ref AWS::Region
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${StagingS3KeyPrefix}/templates/aws_cspm_cloudformation_v2.json
 
 # Optional: Create EventBridge Roles & StackSet
