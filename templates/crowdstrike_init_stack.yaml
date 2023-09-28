@@ -319,9 +319,6 @@ Resources:
         - ParameterKey: CSEventBusName
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.eventbus_name
       PermissionModel: SELF_MANAGED
-      AutoDeployment:
-        Enabled: true
-        RetainStacksOnAccountRemoval: true
       StackInstancesGroup:
         - DeploymentTargets:
             AccountFilterType: NONE
