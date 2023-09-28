@@ -515,7 +515,7 @@ Resources:
       Prefix: !Sub ${StagingS3KeyPrefix}/
       Objects:
         - lambda_functions/packages/register-organization/lambda.zip
-        - templates/horizon_init_stack.yaml
+        - templates/crowdstrike_init_stack.yaml
 
   CopyZipsRole:
     Type: AWS::IAM::Role

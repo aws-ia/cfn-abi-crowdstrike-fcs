@@ -19,7 +19,7 @@ To test the functionality of CrowdStrike Falcon CSPM, you may generate findings 
 2. Make the relevant change in your AWS account.
 
 ## Step 3
-1. Navigate to **Cloud Security > Cloud Security Posture > Assessment**, and review your Horizon assessment findings.
+1. Navigate to **Cloud Security > Cloud Security Posture > Assessment**, and review your assessment findings.
 2. If the policy is Behavioral, wait a few minutes for the finding to appear.
 3. If the policy is Configuration, wait for the next assessment scan for the finding to appear. Two hours is the default interval, but you can change this setting by navigating to **Cloud Security > Cloud Security Posture > Settings**.
 

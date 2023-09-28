@@ -7,7 +7,7 @@ description: Deployment steps.
 ## Launch the CloudFormation template in the AWS Organizations management account
 
 
-1. Download the [Cloudformation template](https://raw.githubusercontent.com/aws-ia/cfn-abi-crowdstrike-fcs/main/templates/horizon_init_stack.yaml?token=GHSAT0AAAAAAB7Y2HOOS42IEBM5LBHOQOWWZFIJEBA).
+1. Download the [Cloudformation template](https://raw.githubusercontent.com/aws-ia/cfn-abi-crowdstrike-fcs/main/templates/crowdstrike_init_stack.yaml?token=GHSAT0AAAAAAB7Y2HOOS42IEBM5LBHOQOWWZFIJEBA).
 2. Launch the CloudFormation template in your AWS Control Tower home Region.
     * Stack name: `template-crowdstrike-enable-integrations`
     * List parameters with default values and update examples as needed:
