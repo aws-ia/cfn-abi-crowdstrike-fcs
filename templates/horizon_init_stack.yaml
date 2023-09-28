@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
-Description: CrowdStrike Horizon (CSPM) Root Template
+Description: CrowdStrike Cloud Security (CSPM) Root Template
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -177,7 +177,7 @@ Resources:
   CrowdStrikeStackSet:
     Type: 'AWS::CloudFormation::StackSet'
     Properties:
-      StackSetName: "CrowdStrike-Horizon-Stackset"
+      StackSetName: "CrowdStrike-Cloud-Security-Stackset"
       Capabilities:
         - CAPABILITY_IAM
         - CAPABILITY_NAMED_IAM
@@ -207,7 +207,7 @@ Resources:
         - DeploymentTargets:
             AccountFilterType: NONE
             OrganizationalUnitIds: !Ref ProvisionOU
-          Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
+          Regions: !Ref AWS::Region
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${StagingS3KeyPrefix}/templates/aws_cspm_cloudformation_v2.json
 
 # Optional: Create EventBridge Roles & StackSet
@@ -288,7 +288,7 @@ Resources:
     Type: 'AWS::CloudFormation::StackSet'
     Condition: CreateIOAResources
     Properties:
-      StackSetName: "CrowdStrike-Horizon-EB-Stackset"
+      StackSetName: "CrowdStrike-Cloud-Security-EB-Stackset"
       Parameters:
         - ParameterKey: CSAccountNumber
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.cs_account_id
@@ -311,7 +311,7 @@ Resources:
     Properties:
       AdministrationRoleARN: !GetAtt StackSetAdministrationRole.Arn
       ExecutionRoleName: !Ref StackSetExecutionRole
-      StackSetName: "CrowdStrike-Horizon-Root-EB-Stackset"
+      StackSetName: "CrowdStrike-Cloud-Security-Root-EB-Stackset"
       Parameters:
         - ParameterKey: CSAccountNumber
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.cs_account_id
@@ -340,7 +340,7 @@ Resources:
       Description: CrowdStrike Credentials
       Name: !Join
         - '-'
-        - - CrowdStrikeHorizonAPISecret
+        - - CrowdStrikeCloudAPISecret
           - !Ref 'AWS::StackName'
       SecretString:
         Fn::Join:
@@ -372,7 +372,7 @@ Resources:
                 Action:
                   - 'secretsmanager:GetSecretValue'
                 Resource:
-                  - !Sub 'arn:${AWS::Partition}:secretsmanager:*:*:secret:CrowdStrikeHorizonAPISecret-*'
+                  - !Sub 'arn:${AWS::Partition}:secretsmanager:*:*:secret:CrowdStrikeCloudAPISecret-*'
       ManagedPolicyArns:
         - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
         - !Sub 'arn:${AWS::Partition}:iam::aws:policy/AWSOrganizationsReadOnlyAccess'
@@ -406,7 +406,7 @@ Resources:
           secret_region: !Ref AWS::Region
           secret_name: !Join
             - '-'
-            - - CrowdStrikeHorizonAPISecret
+            - - CrowdStrikeCloudAPISecret
               - !Ref 'AWS::StackName'
           exclude_regions: !If [ ExcludeRegionsEmpty, 'none', !Ref ExcludeRegions ]
           aws_region: !Ref AWS::Region
