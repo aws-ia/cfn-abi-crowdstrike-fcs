@@ -30,11 +30,15 @@ Metadata:
           - S3BucketRegion
           - StagingS3KeyPrefix
           - SourceS3BucketNamePrefix
-          - pOrganizationId
       - Label:
           default: Sensor Management
         Parameters:
           - EnableSensorManagement
+      - Label:
+          default: AWS Organization ID - Lambda Function Properties
+        Parameters:
+          - OrgIdLambdaRoleName
+          - OrgIdLambdaFunctionName
 
     ParameterLabels:
       SourceS3BucketName:
@@ -59,14 +63,16 @@ Metadata:
         default: StackSet Administration Role
       CreateOrgTrail:
         default: Create Optional Organization CloudTrail
-      pOrganizationId:
-        default: (Optional) AWS Organization ID
       EnableSensorManagement:
         default: Enable Sensor Management
       ExcludeRegions:
         default: Exclude Prohibited Regions
       ProvisionOU:
         default: The Organization Root ID or Organizational Unit (OU) IDs to Provision
+      OrgIdLambdaFunctionName:
+        default: AWS Organization ID - Lambda Function Name
+      OrgIdLambdaRoleName:
+        default: AWS Organization ID - Lambda Role Name
 
 Conditions:
   CreateIOAResources: !Equals [ !Ref 'EnableIOA', true ]
@@ -128,11 +134,6 @@ Parameters:
       - 'true'
       - 'false'
     Default: 'false'
-  pOrganizationId:
-    AllowedPattern: '^o-[a-z0-9]{10,32}$'
-    ConstraintDescription: Must start with 'o-' followed by from 10 to 32 lowercase letters or digits. (e.g. o-abc1234567)
-    Description: AWS Organizations ID. If empty, custom resource will be deployed to determine the AWS Organization ID.
-    Type: String
   EnableSensorManagement:
     Type: String
     Description: Enable Automatic Sensor Deployment via AWS SSM and/or Ansible.
@@ -143,12 +144,23 @@ Parameters:
   ProvisionOU:
     Type: CommaDelimitedList
     Description: Comma Delimited List of OU(s) to provision resources.  If you are provisioning the entire Organization, please enter the Root OU (r-****)
-    Default: ''
+    AllowedPattern: '^r-[0-9a-z]{4,32}$|^(ou-[0-9a-z]{4,32}-[a-z0-9]{8,32},)*(ou-[0-9a-z]{4,32}-[a-z0-9]{8,32})$'
   ExcludeRegions:
     Description: Exclude regions from EventBridge Rules for IOA.  Use this when SCPs cause stacksets to fail.
     Type: String
     Default: ''
-
+  OrgIdLambdaFunctionName:
+    AllowedPattern: '^[\w-]{1,64}$'
+    ConstraintDescription: Max 64 alphanumeric characters. Also special characters supported [_, -]
+    Default: crowdtrike-org-id
+    Description: Lambda function name for getting the AWS Organization ID
+    Type: String
+  OrgIdLambdaRoleName:
+    AllowedPattern: '^[\w+=,.@-]{1,64}$'
+    ConstraintDescription: Max 64 alphanumeric characters. Also special characters supported [+, =, ., @, -].
+    Default: sra-sh-org-id-lambda
+    Description: Lambda execution role for getting the AWS Organization ID
+    Type: String
 Resources:
   CloudTrailStack:
     Type: 'AWS::CloudFormation::Stack'
@@ -491,7 +503,7 @@ Resources:
               - !Sub arn:${AWS::Partition}:s3:::${StagingS3Bucket}/*
             Condition:
               StringNotEquals:
-                aws:PrincipalOrgID: !Ref pOrganizationId
+                aws:PrincipalOrgID: !GetAtt OrgIdLambdaCustomResource.OrganizationId
 
           - Sid: SecureTransport
             Effect: Deny
@@ -513,6 +525,7 @@ Resources:
       Prefix: !Sub ${StagingS3KeyPrefix}/
       Objects:
         - lambda_functions/packages/register-organization/lambda.zip
+        - lambda_functions/packages/cw-helper/lambda.zip
         - templates/crowdstrike_init_stack.yaml
 
   CopyZipsRole:
@@ -635,6 +648,98 @@ Resources:
               finally:
                   timer.cancel()
                   cfnresponse.send(event, context, status, {}, None)
+
+  OrgIdLambdaCustomResource:
+    Type: Custom::LambdaCustomResource
+    Version: '1.0'
+    Properties:
+      ServiceToken: !GetAtt OrgIdLambdaFunction.Arn
+
+  OrgIdLambdaFunction:
+    DependsOn: CopyZips
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W58
+            reason: Lambda role provides access to CloudWatch Logs
+          - id: W89
+            reason: Lambda does not need to communicate with VPC resources.
+          - id: W92
+            reason: Lambda does not need reserved concurrent executions.
+      checkov:
+        skip:
+          - id: CKV_AWS_115
+            comment: Lambda does not need reserved concurrent executions.
+          - id: CKV_AWS_116
+            comment: DLQ not needed, as Lambda function only triggered by CloudFormation events.
+          - id: CKV_AWS_117
+            comment: Lambda does not need to communicate with VPC resources.
+          - id: CKV_AWS_173
+            comment: Environment variables are not sensitive.
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref OrgIdLambdaFunctionName
+      Description: Get AWS Organization ID
+      Handler: organizations.lambda_handler
+      Role: !GetAtt OrgIdLambdaRole.Arn
+      Runtime: python3.9
+      Timeout: 60
+      Environment:
+        Variables:
+          LOG_LEVEL: "INFO"
+      Code:
+        S3Bucket: !Ref StagingS3Bucket
+        S3Key: !Sub ${StagingS3KeyPrefix}/lambda_functions/packages/cw-helper/lambda.zip
+
+  OrgIdLambdaLogGroup:
+    DeletionPolicy: Retain
+    Type: AWS::Logs::LogGroup
+    UpdateReplacePolicy: Retain
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${OrgIdLambdaFunctionName}
+      RetentionInDays: 3653
+
+  OrgIdLambdaRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W11
+            reason: Allow * in resource when required
+          - id: W28
+            reason: The role name is defined to identify automation resources
+    Properties:
+      RoleName: !Ref OrgIdLambdaRoleName
+      Description: !Sub Role for '${OrgIdLambdaRoleName}' Lambda function
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      Policies:
+        - PolicyName: org-id
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: OrganizationRead
+                Effect: Allow
+                Action: organizations:DescribeOrganization
+                Resource: '*'
+        - PolicyName: CloudWatchLogGroup
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: CloudWatchLogs
+                Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${OrgIdLambdaFunctionName}:log-stream:*
+
 
 Outputs:
   RoleName:
