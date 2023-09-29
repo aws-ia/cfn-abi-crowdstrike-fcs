@@ -46,6 +46,6 @@
     },
     {
         "Type": "LOG_GROUP",
-        "Filter" : "crowdstrike-org-id"
+        "Filter" : "/aws/lambda/crowdstrike-org-id"
     }
 ]

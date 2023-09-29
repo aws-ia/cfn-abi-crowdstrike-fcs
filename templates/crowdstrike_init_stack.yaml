@@ -152,7 +152,7 @@ Parameters:
   OrgIdLambdaFunctionName:
     AllowedPattern: '^[\w-]{1,64}$'
     ConstraintDescription: Max 64 alphanumeric characters. Also special characters supported [_, -]
-    Default: crowdtrike-org-id
+    Default: crowdstrike-org-id
     Description: Lambda function name for getting the AWS Organization ID
     Type: String
   OrgIdLambdaRoleName:
