@@ -7,26 +7,26 @@ project:
   - us-east-1
 
 tests:
-  horizon-test:
+  cw-test:
     parameters:
       FalconClientID: $[taskcat_ssm_/crowdstrike/falcon_client_id]
       FalconSecret: $[taskcat_ssm_/crowdstrike/falcon_secret]
       SourceS3BucketName: $[taskcat_autobucket]
       S3BucketRegion: $[taskcat_current_region]
-      pOrganizationId: $[taskcat_ssm_/crowdstrike/organization-id]
       ProvisionOU: $[taskcat_ssm_/crowdstrike/provision-ou]
+      ExcludeRegions: $[taskcat_ssm_/crowdstrike/exclude_regions]
     regions:
     - us-east-1
     template: templates/crowdstrike_init_stack.yaml
-  horizon-test-ct:
+  cw-test-ct:
     parameters:
       FalconClientID: $[taskcat_ssm_/crowdstrike/falcon_client_id]
       FalconSecret: $[taskcat_ssm_/crowdstrike/falcon_secret]
       SourceS3BucketName: $[taskcat_autobucket]
       S3BucketRegion: $[taskcat_current_region]
-      pOrganizationId: $[taskcat_ssm_/crowdstrike/organization-id]
       ProvisionOU: $[taskcat_ssm_/crowdstrike/provision-ou]
       CreateOrgTrail: "true"
+      ExcludeRegions: $[taskcat_ssm_/crowdstrike/exclude_regions]
     regions:
     - us-east-1
     template: templates/crowdstrike_init_stack.yaml
