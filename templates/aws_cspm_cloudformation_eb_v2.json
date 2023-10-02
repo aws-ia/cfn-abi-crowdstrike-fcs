@@ -1,6 +1,6 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "Setup script to enable CrowdStrike Falcon CSPM.",
+    "Description": "Setup script to enable CrowdStrike Falcon CSPM. (abi-1kirFQBF75MfEQ3RbMQHRb-5NlayJp9WpX1krs2Aq7Koa-ln87w0mw)",
     "Parameters": {
       "CSAccountNumber": {
         "Description": "Crowdstrike account number",
