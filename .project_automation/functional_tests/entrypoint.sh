@@ -21,7 +21,7 @@ unset AWS_DEFAULT_REGION
 
 echo $AWS_DEFAULT_REGION
 # Run taskcat e2e test
-taskcat test run -t  horizon-test
+taskcat test run -t  cw-test
 
 for region in ${regions[@]}
 do
@@ -35,7 +35,7 @@ unset AWS_DEFAULT_REGION
 
 echo $AWS_DEFAULT_REGION
 # Run taskcat e2e test
-taskcat test run -t  horizon-test-ct
+taskcat test run -t  cw-test-ct
 ## Executing ash tool
 
 #find ${PROJECT_PATH} -name lambda.zip -exec rm -rf {} \;
