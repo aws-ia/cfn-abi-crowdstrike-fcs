@@ -43,5 +43,9 @@
     {
         "Type" : "LOG_GROUP",
         "Filter" : "sra/sra-org-trail"
+    },
+    {
+        "Type": "LOG_GROUP",
+        "Filter" : "/aws/lambda/crowdstrike-org-id"
     }
 ]
