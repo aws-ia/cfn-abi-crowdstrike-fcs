@@ -10,14 +10,25 @@ description: Deployment steps.
 1. Download the [CloudFormation template](https://raw.githubusercontent.com/aws-ia/cfn-abi-crowdstrike-fcs/main/templates/crowdstrike_init_stack.yaml).
 2. Launch the CloudFormation template in your [AWS Control Tower home Region](https://docs.aws.amazon.com/controltower/latest/userguide/region-how.html).
     * Stack name: `template-crowdstrike-enable-integrations`
-    * List parameters with default values and update the below values as needed:
-        * **Falcon API Client ID**: key in `Your Falcon OAuth2 Client ID`
-        * **Falcon API Secret**: key in `Your Falcon OAuth2 Client Secret`
+    * Update values of below parameters as needed:
+        * **Falcon API Client ID**: Type in `Your Falcon OAuth2 Client ID`
+        * **Falcon API Secret**: Type in `Your Falcon OAuth2 Client Secret`
+        * **CrowdStrike Cloud**: Choose from the available options as needed for your environment. The default is `us1`.
+        * **Enable IOA Scanning**: Choose `true` or `false`. The default is `true`
+        * **Create Optional Organization CloudTrail**: Choose `true` or `false`. The default is `false`
         * **Provision OUs**: _Comma Delimited List of OU(s) to provision resources. If you are provisioning the entire Organization, please enter the Root OU (r-****)_
         * **Exclude Prohibited Regions**: `[<region-1>, <region-2>,....]`  _(Exclude regions from EventBridge Rules for IOA. Use this when SCPs cause stacksets to fail.)_
-        * **Create Optional Organization CloudTrail**: Choose `true` or `false`
+        * **Enable Sensor Management**: Choose `true` or `false`. The default is `false`
+
+    * Leave the remaining parameters as default (listed below).
         * **Source S3 Bucket Name**: `aws-abi`
         * **S3 Bucket Region**: `us-east-1` 
+        * **Staging S3 Key Prefix**: `cfn-abi-crowdstrike-fcs`
+        * **Source S3 Bucket Name Prefix**: `cfn-abi-crowdstrike-fcs`
+        * **StackSet Execution Role**: `AWSCloudFormationStackSetExecutionRole`
+        * **StackSet Administration Role**: `AWSCloudFormationStackSetAdministrationRole`
+        * **Organization ID Lambda Function Name**: `abi-crowdstrike-fcs-organization-id`
+        * **Organization ID Lambda Role Name**: `abi-crowdstrike-fcs-organization-id-role`
 
 3. Select both of the following capabilities and choose **Submit** to launch the stack.
 
