@@ -115,7 +115,7 @@ Parameters:
   SourceS3BucketName:
     AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$
     Type: String
-    Default: aws-abi-pilot
+    Default: aws-abi
   SourceS3BucketNamePrefix:
     AllowedValues: [cfn-abi-crowdstrike-fcs]
     Default: cfn-abi-crowdstrike-fcs

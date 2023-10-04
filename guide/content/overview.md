@@ -5,7 +5,7 @@ description:
 ---
 
 
-This [AWS Built-In](https://aws.amazon.com/builtin) (ABI) solution deploys CrowdStrike Falcon CSPM integrations for AWS Organizations on the AWS Cloud. It’s for <persona-1> and <persona-2> who want to provide Cloud Security Posture Management (CSPM) across multiple AWS accounts.
+This [AWS Built-In](https://aws.amazon.com/builtin) (ABI) solution deploys CrowdStrike Falcon CSPM integrations for AWS Organizations on the AWS Cloud. It’s for IT administrators and security professionals who want to provide Cloud Security Posture Management (CSPM) across multiple AWS accounts.
 
 Deploying this ABI solution doesn't guarantee an organization’s compliance with any laws, certifications, policies, or other regulations.
 

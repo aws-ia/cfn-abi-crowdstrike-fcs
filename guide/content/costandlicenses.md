@@ -4,14 +4,19 @@ title: Cost and licenses
 description: Cost of the solution and licenses required.
 ---
 
-[CrowdStrike bundles and pricing](https://www.crowdstrike.com/products/?ct-q2-2023-bn-products-nav)
+### CrowdStrike Falcon cost and licenses
 
-<AWS service cost>
+* [CrowdStrike bundles and pricing](https://www.crowdstrike.com/products/?ct-q2-2023-bn-products-nav)
+* [CrowdStrike terms and conditions](https://s3.amazonaws.com/EULA/314ae52f-b319-4413-9052-fe03bfbd6b21-Crowdstrike-EULA.pdf)
 
-<Any other costs>
 
-[CrowdStrike terms and conditions](https://s3.amazonaws.com/EULA/314ae52f-b319-4413-9052-fe03bfbd6b21-Crowdstrike-EULA.pdf)
+### AWS service cost
+In addition to the CrowdStrike Falcon cost, consider costs associated with the AWS services you choose and the scale of your operations. AWS services such as CloudTrail, Lambda, Amazon S3, and AWS Key Management Service (AWS KMS) may have associated costs.
 
-<ABI license>
+### ABI cost and licenses
+
+Using ABI doesn't incur additional charges. You are charged only for the resources that ABI consumes. If other ABI licenses are required for your specific use case, obtain those separately.
+
+[ABI License](https://github.com/aws-ia/cfn-abi-crowdstrike-fcs/blob/main/LICENSE)
 
 **Next:** Choose [Architecture](/architecture/index.html).
