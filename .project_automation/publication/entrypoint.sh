@@ -20,6 +20,8 @@ print_header() {
   printf "\n\n%s\n" "$*"
 }
 
+sed -i 's/href=.*$/href="#">/' ${PROJECT_PATH}/guide/layouts/partials/logo.html
+
 print_header 'Building site...'
 cd ${PROJECT_PATH}/guide
 hugo --verbose --debug

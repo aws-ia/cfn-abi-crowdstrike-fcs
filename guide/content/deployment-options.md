@@ -8,8 +8,8 @@ description: Deployment options.
 
 The following deployment options are supported by this ABI solution:
 
-* Launch the [CloudFormation template in the AWS Management Console](/deployment-steps/#launch-cfn).
-* Launch using [Customizations for AWS Control Tower (CfCT)](/deployment-steps/#launch-cfct).
+* Launch the [CloudFormation template in the AWS Management Console](/deployment-steps/index.html#launch-cfn).
+* Launch using [Customizations for AWS Control Tower (CfCT)](/deployment-steps/index.html#launch-cfct).
 
 
 **Next:** Choose [Predeployment steps](/pre-deployment-steps/index.html).
