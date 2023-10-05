@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
-Description: CrowdStrike Cloud Security (CSPM) Root Template
+Description: "CrowdStrike Cloud Security (CSPM) Root Template. (abi-1kirFQBF75MfEQ3RbMQHRb-5NlayJp9WpX1krs2Aq7Koa-ln87vzuy)"
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -115,7 +115,7 @@ Parameters:
   SourceS3BucketName:
     AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$
     Type: String
-    Default: aws-abi-pilot
+    Default: aws-abi
   SourceS3BucketNamePrefix:
     AllowedValues: [cfn-abi-crowdstrike-fcs]
     Default: cfn-abi-crowdstrike-fcs

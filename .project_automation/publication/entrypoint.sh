@@ -14,11 +14,13 @@ REPO_NAME=$(git config --get remote.origin.url | cut -d '/' -f5 | cut -d '.' -f1
 VERSION=$(cat VERSION)
 
 BASE_URL="this would be the path to s3 bucket/${REPO_NAME}/"
-S3_URI="s3://aws-abi-pilot/guide/${REPO_NAME}/"
+S3_URI="s3://aws-abi/guide/${REPO_NAME}/"
 
 print_header() {
   printf "\n\n%s\n" "$*"
 }
+
+sed -i 's/href=.*$/href="#">/' ${PROJECT_PATH}/guide/layouts/partials/logo.html
 
 print_header 'Building site...'
 cd ${PROJECT_PATH}/guide
@@ -36,7 +38,7 @@ printf "\nPublished at ${BASE_URL}\n"
 
 cd ${PROJECT_PATH}
 
-taskcat upload --bucket-name aws-abi-pilot --object-acl public-read
+taskcat upload --bucket-name aws-abi --object-acl public-read
 
 # if [ -n "${BASE_PATH}" ]
 # then
