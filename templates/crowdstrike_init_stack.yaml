@@ -11,6 +11,7 @@ Metadata:
           - FalconClientID
           - FalconSecret
           - CSCloud
+          - SecretsManagerSecretName
       - Label:
           default: Configure Indicator of Attack Scanning
         Parameters:
@@ -23,6 +24,15 @@ Metadata:
           default: Provision OUs
         Parameters:
           - ProvisionOU
+      - Label:
+          default: Deploy Falcon Sensors with SSM Distributor
+        Parameters:
+          - EnableSSMDistributor
+          - AutomationAssumeRole
+          - ApplyOnlyAtCronInterval
+          - ScheduleExpression
+          - MaxErrors
+          - MaxConcurrency
       - Label:
           default: AWS S3 Bucket
         Parameters:
@@ -73,11 +83,26 @@ Metadata:
         default: AWS Organization ID - Lambda Function Name
       OrgIdLambdaRoleName:
         default: AWS Organization ID - Lambda Role Name
+      EnableSSMDistributor:
+        default: Enable Falcon SSM Distributor
+      AutomationAssumeRole:
+        default: SSM Execution Role
+      ApplyOnlyAtCronInterval:
+        default: Apply Only At Cron Interval
+      ScheduleExpression:
+        default: Cron Schedule Expression
+      MaxErrors:
+        default: Max Errors Allowed
+      MaxConcurrency:
+        default: Max Concurrency Allowed
+      SecretsManagerSecretName:
+        default: Secrets Manager Secret Name
 
 Conditions:
   CreateIOAResources: !Equals [ !Ref 'EnableIOA', true ]
   CreateTrail: !Equals [ !Ref 'CreateOrgTrail', true ]
   ExcludeRegionsEmpty:  !Equals [!Ref 'ExcludeRegions', '']
+  CreateSSMAssociations: !Equals [ !Ref 'EnableSSMDistributor', true ]
 
 Parameters:
   FalconClientID:
@@ -164,6 +189,33 @@ Parameters:
   SecretsManagerSecretName:
     Description: Secrets Manager Secret Name that contains the Falcon ClientId, ClientSecret, and Cloud for the CrowdStrike APIs.
     Type: String
+  EnableSSMDistributor:
+    Type: String
+    Description: Deploy Associations in each account to automatically install Falcon Sensors against SSM-Managed Instances.
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'true'
+  AssociationAssumeRole:
+    Type: String
+    Default: 'crowdstrike-distributor-deploy-role'
+    Description: 'Execution Role for CrowdStrike SSM Distributor Package'
+  ApplyOnlyAtCronInterval:
+    Description: By default, when you create a new association, the system runs it immediately after it is created and then according to the schedule you specified. Specify true if you don't want an association to run immediately after you create it. .
+    Type: String
+    Default: 'false'
+  ScheduleExpression:
+    Description: A cron expression that specifies a schedule when the association runs. The schedule runs in Coordinated Universal Time (UTC).
+    Type: String
+    Default: 'cron(0 0 */1 * * ? *)'
+  MaxErrors:
+    Description: The number of errors that are allowed before the system stops sending requests to run the association on additional targets. You can specify either an absolute number of errors, for example 10, or a percentage of the target set, for example 10%.
+    Type: String
+    Default: '10%'
+  MaxConcurrency:
+    Description: The maximum number of targets allowed to run the association at the same time. You can specify a number, for example 10, or a percentage of the target set, for example 10%. The default value is 100%, which means all targets run the association at the same time.
+    Type: String
+    Default: '20%'
 
 Resources:
   CloudTrailStack:
@@ -174,6 +226,43 @@ Resources:
       Parameters:
         pSRAS3BucketRegion: !Ref S3BucketRegion
         pEnableDataEventsOnly: false
+
+# Create SSM Distributor Associations
+  AssociationStackSet:
+    Type: 'AWS::CloudFormation::StackSet'
+    Properties:
+      StackSetName: CrowdStrike-Cloud-SSM-Associations-Stackset
+      Description: Create SSM State Manager Association to automatically manage Falcon Sensor installation across SSM Managed Instances
+      PermissionModel: SERVICE_MANAGED
+      ManagedExecution:
+        Active: true
+      Parameters:
+        - ParameterKey: SecretsManagerSecretName
+          ParameterValue: !Ref SecretsManagerSecretName
+        - ParameterKey: SecretStorageMethod
+          ParameterValue: 'SecretsManager'
+        - ParameterKey: Action
+          ParameterValue: 'install'
+        - ParameterKey: ScheduleExpression
+          ParameterValue: !Ref ScheduleExpression
+        - ParameterKey: MaxErrors
+          ParameterValue: !Ref MaxErrors
+        - ParameterKey: MaxConcurrency
+          ParameterValue: !Ref MaxConcurrency
+        - ParameterKey: AutomationAssumeRole
+          ParameterValue: !Ref AssociationAssumeRole
+        - ParameterKey: ApplyOnlyAtCronInterval
+          ParameterValue: !Ref ApplyOnlyAtCronInterval
+      AutoDeployment:
+        Enabled: true
+        RetainStacksOnAccountRemoval: true
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            OrganizationalUnitIds: 
+              - !Ref ProvisionOU
+          Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${StagingS3KeyPrefix}/templates/ssm-association-stackset.yml
 
 # Create CSPM Stack and StackSet
   CrowdStrikeCSPMStack:
