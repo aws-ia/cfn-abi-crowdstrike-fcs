@@ -4,8 +4,8 @@ title: Test the deployment
 description: Test the deployment
 ---
 
-## Test CSPM 
-To test the functionality of CrowdStrike Falcon CSPM, you may generate findings by intentionally violating a policy of your choice.
+## Test Cloud Security 
+To test the functionality of CrowdStrike Falcon Cloud Security, you may generate findings by intentionally violating a policy of your choice.
 **Note:** CrowdStrike does not recommend running these steps against any accounts and/or workloads with sensitive data.
 
 #### Step 1: Review policies.

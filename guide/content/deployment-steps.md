@@ -11,6 +11,7 @@ description: Deployment steps.
 2. Launch the CloudFormation template in your [AWS Control Tower home Region](https://docs.aws.amazon.com/controltower/latest/userguide/region-how.html).
     * Stack name: `template-crowdstrike-enable-integrations`
     * Update values of below parameters as needed:
+        * **SecretsManagerSecretName**: Type in the Secrets Manager Secret Name that will store the Falcon API Credentials.
         * **Falcon API Client ID**: Type in `Your Falcon OAuth2 Client ID`
         * **Falcon API Secret**: Type in `Your Falcon OAuth2 Client Secret`
         * **CrowdStrike Cloud**: Choose from the available options as needed for your environment. The default is `us1`.
@@ -19,6 +20,12 @@ description: Deployment steps.
         * **Provision OUs**: _Comma Delimited List of OU(s) to provision resources. If you are provisioning the entire Organization, please enter the Root OU (r-****)_
         * **Exclude Prohibited Regions**: `[<region-1>, <region-2>,....]`  _(Exclude regions from EventBridge Rules for IOA. Use this when SCPs cause stacksets to fail.)_
         * **Enable Sensor Management**: Choose `true` or `false`. The default is `false`
+        * **EnableSSMDistributor**: Choose `true` or `false`. The default is `true`
+        * **AutomationAssumeRole**: Define the name of the SSM Automation Execution Role. The default is `crowdstrike-distributor-deploy-role`
+        * **ApplyOnlyAtCronInterval**: Choose `true` or `false`. The default is `false`
+        * **ScheduleExpression**: Define the schedule or rate by which the SSM Automation runs. The default is `cron(0 0 */1 * * ? *)` (runs every hour)
+        * **MaxErrors**: The number or percent of errors that are allowed before the system stops sending requests to run the association on additional targets. The default is `10%`
+        * **MaxConcurrency**: The maximum number or percent of targets allowed to run the association at the same time. The default is `20%`
 
     * Leave the remaining parameters as default (listed below).
         * **Source S3 Bucket Name**: `aws-abi`

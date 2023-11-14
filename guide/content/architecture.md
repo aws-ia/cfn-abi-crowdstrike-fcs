@@ -8,6 +8,8 @@ Deploying this ABI solution with default parameters builds the following archite
 
 ![CSPM Architecture diagram](/images/cspm_architecture.png)
 
+![SSM Distributor Architecture diagram](/images/distributor_architecture.png)
+
 ![Sensor Management Architecture diagram](/images/sensor_architecture.png)
 
 As shown in the diagram, the solution sets up the following:
@@ -34,5 +36,8 @@ As shown in the diagram, the solution sets up the following:
     * EventBridge rules in each Region with CrowdStrike event bus as the target.
     * IAM role that allows CrowdStrike to perform read-only activities.
     * IAM role that allows EventBridge to perform PutEvents actions against CrowdStrike's event bus.
+    * Secrets Manager Secret to manage CrowdStrike API Credentials.
+    * IAM role that allows SSM Associations to retrive API Credentials from Secrets Manager.
+    * SSM Associations to deploy Falcon Sensor via SSM Distributor Package against SSM-Managed instances.
 
 **Next:** Choose [Deployment options](/deployment-options/index.html).
