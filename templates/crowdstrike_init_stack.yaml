@@ -161,6 +161,10 @@ Parameters:
     Default: sra-sh-org-id-lambda
     Description: Lambda execution role for getting the AWS Organization ID
     Type: String
+  SecretsManagerSecretName:
+    Description: Secrets Manager Secret Name that contains the Falcon ClientId, ClientSecret, and Cloud for the CrowdStrike APIs.
+    Type: String
+
 Resources:
   CloudTrailStack:
     Type: 'AWS::CloudFormation::Stack'
@@ -350,7 +354,7 @@ Resources:
       Description: CrowdStrike Credentials
       Name: !Join
         - '-'
-        - - CrowdStrikeCloudAPISecret
+        - - !Ref SecretsManagerSecretName
           - !Ref 'AWS::StackName'
       SecretString:
         Fn::Join:
@@ -382,7 +386,7 @@ Resources:
                 Action:
                   - 'secretsmanager:GetSecretValue'
                 Resource:
-                  - !Sub 'arn:${AWS::Partition}:secretsmanager:*:*:secret:CrowdStrikeCloudAPISecret-*'
+                  - !Sub 'arn:${AWS::Partition}:secretsmanager:*:*:secret:${SecretsManagerSecretName}-*'
       ManagedPolicyArns:
         - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
         - !Sub 'arn:${AWS::Partition}:iam::aws:policy/AWSOrganizationsReadOnlyAccess'
@@ -416,7 +420,7 @@ Resources:
           secret_region: !Ref AWS::Region
           secret_name: !Join
             - '-'
-            - - CrowdStrikeCloudAPISecret
+            - - !Ref SecretsManagerSecretName
               - !Ref 'AWS::StackName'
           exclude_regions: !If [ ExcludeRegionsEmpty, 'none', !Ref ExcludeRegions ]
           aws_region: !Ref AWS::Region
