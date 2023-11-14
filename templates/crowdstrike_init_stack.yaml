@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
-Description: "CrowdStrike Cloud Security (CSPM) Root Template. (abp-1kirFQBF75MfEQ3RbMQHRb-5NlayJp9WpX1krs2Aq7Koa-ln87vzuy)"
+Description: "CrowdStrike Cloud Security Root Template. (abp-1kirFQBF75MfEQ3RbMQHRb-5NlayJp9WpX1krs2Aq7Koa-ln87vzuy)"
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -189,6 +189,7 @@ Parameters:
   SecretsManagerSecretName:
     Description: Secrets Manager Secret Name that contains the Falcon ClientId, ClientSecret, and Cloud for the CrowdStrike APIs.
     Type: String
+    Default: 'crowdstrike-falcon-api'
   EnableSSMDistributor:
     Type: String
     Description: Deploy Associations in each account to automatically install Falcon Sensors against SSM-Managed Instances.
