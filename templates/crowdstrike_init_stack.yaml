@@ -196,7 +196,7 @@ Parameters:
       - 'true'
       - 'false'
     Default: 'true'
-  AssociationAssumeRole:
+  AutomationAssumeRole:
     Type: String
     Default: 'crowdstrike-distributor-deploy-role'
     Description: 'Execution Role for CrowdStrike SSM Distributor Package'
@@ -217,6 +217,15 @@ Parameters:
     Type: String
     Default: '20%'
 
+Mappings: 
+  CloudMap: 
+    us1: 
+      BaseURL: "https://api.crowdstrike.com"
+    us2: 
+      BaseURL: "https://api.us-2.crowdstrike.com"
+    eu1: 
+      BaseURL: "https://api.eu-1.crowdstrike.com"
+
 Resources:
   CloudTrailStack:
     Type: 'AWS::CloudFormation::Stack'
@@ -230,6 +239,7 @@ Resources:
 # Create SSM Distributor Associations
   AssociationStackSet:
     Type: 'AWS::CloudFormation::StackSet'
+    Condition: CreateSSMAssociations
     Properties:
       StackSetName: CrowdStrike-Cloud-SSM-Associations-Stackset
       Description: Create SSM State Manager Association to automatically manage Falcon Sensor installation across SSM Managed Instances
@@ -250,7 +260,7 @@ Resources:
         - ParameterKey: MaxConcurrency
           ParameterValue: !Ref MaxConcurrency
         - ParameterKey: AutomationAssumeRole
-          ParameterValue: !Ref AssociationAssumeRole
+          ParameterValue: !Ref AutomationAssumeRole
         - ParameterKey: ApplyOnlyAtCronInterval
           ParameterValue: !Ref ApplyOnlyAtCronInterval
       AutoDeployment:
@@ -263,6 +273,43 @@ Resources:
               - !Ref ProvisionOU
           Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${StagingS3KeyPrefix}/templates/ssm-association-stackset.yml
+
+  SSMSetupStackSet:
+    Type: 'AWS::CloudFormation::StackSet'
+    Condition: CreateSSMAssociations
+    Properties:
+      StackSetName: CrowdStrike-Cloud-SSM-Setup-Stackset
+      Description: Securely store Falcon credentials and create AWS IAM role to assume when running the AWS Systems Manager Automation document.
+      Capabilities:
+       - CAPABILITY_NAMED_IAM
+      PermissionModel: SERVICE_MANAGED
+      ManagedExecution:
+        Active: true
+      Parameters:
+        - ParameterKey: SecretsManagerSecretName
+          ParameterValue: !Ref SecretsManagerSecretName
+        - ParameterKey: AutomationAssumeRole
+          ParameterValue: !Ref AutomationAssumeRole
+        - ParameterKey: FalconClientID
+          ParameterValue: !Ref FalconClientID
+        - ParameterKey: FalconSecret
+          ParameterValue: !Ref FalconSecret
+        - ParameterKey: BaseURL
+          ParameterValue: !FindInMap
+            - CloudMap
+            - !Ref CSCloud
+            - BaseURL
+      AutoDeployment:
+        Enabled: true
+        RetainStacksOnAccountRemoval: true
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            OrganizationalUnitIds: 
+              - !Ref ProvisionOU
+          Regions: 
+            - !Ref AWS::Region
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${StagingS3KeyPrefix}/templates/ssm-setup-stackset.yml
 
 # Create CSPM Stack and StackSet
   CrowdStrikeCSPMStack:
