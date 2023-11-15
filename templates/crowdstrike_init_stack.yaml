@@ -584,7 +584,7 @@ Resources:
 
   StagingS3Bucket:
     Type: AWS::S3::Bucket
-    DeletionPolicy: Retain
+    DeletionPolicy: Delete
     UpdateReplacePolicy: Retain
     Metadata:
       cfn_nag:
