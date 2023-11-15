@@ -353,7 +353,7 @@
           },
           "S3Key": "aws/horizon-sensor-installation-orchestrator.zip"
         },
-        "Description": "",
+        "Description": "Lambda function to manage Falcon Sensor Installation",
         "Environment": {
           "Variables": {
             "CS_ADDRESS": "",
