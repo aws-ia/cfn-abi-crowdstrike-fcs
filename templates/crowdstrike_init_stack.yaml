@@ -28,7 +28,6 @@ Metadata:
         Parameters:
           - SourceS3BucketName
           - S3BucketRegion
-          - StagingS3KeyPrefix
           - SourceS3BucketNamePrefix
       - Label:
           default: Sensor Management
@@ -45,8 +44,6 @@ Metadata:
         default: Source S3 Bucket Name
       S3BucketRegion:
         default: S3 Bucket Region
-      StagingS3KeyPrefix:
-        default: Staging S3 Key Prefix
       SourceS3BucketNamePrefix:
         default: Source S3 Bucket Name Prefix
       FalconClientID:
@@ -108,10 +105,6 @@ Parameters:
     Description: Execution Role for CrowdStrike Root EB StackSet
     Type: String
     Default: 'CrowdStrikeStackSetExecutionRole'
-  StagingS3KeyPrefix:
-    AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$
-    Type: String
-    Default: cfn-abi-crowdstrike-fcs
   SourceS3BucketName:
     AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$
     Type: String
@@ -122,6 +115,14 @@ Parameters:
     Description:
       Staging S3 bucket name prefix for the artifacts relevant to the solutions. (e.g., lambda zips, CloudFormation templates). The account
       and region are added to the prefix <bucket-name-prefix>-<account-id>-<region>. Example = staging-123456789012-us-east-1.
+    Type: String
+  pRepoURL:
+    Default: "https://github.com/aws-samples/aws-security-reference-architecture-examples.git"
+    Description: AWS Security Reference Architecture examples repository URL
+    Type: String
+  pRepoBranch:
+    Default: "tags/v3.0.4"
+    Description: SRA version to tag
     Type: String
   S3BucketRegion:
     AllowedPattern: ^[a-z][a-z]-[a-z]*-[0-9]*$
@@ -165,10 +166,14 @@ Resources:
   CloudTrailStack:
     Type: 'AWS::CloudFormation::Stack'
     Condition: CreateTrail
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
-      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.${AWS::URLSuffix}/${StagingS3KeyPrefix}/submodules/cfn-abi-aws-cloudtrail/templates/sra-cloudtrail-enable-in-org-ssm.yaml
+      TemplateURL: !Sub >-
+        https://${SourceS3BucketName}.s3.${S3BucketRegion}.${AWS::URLSuffix}/${SourceS3BucketNamePrefix}/submodules/aws-security-reference-architecture-examples/aws_sra_examples/modules/cloudtrail-org-module/templates/sra-cloudtrail-org-module-main.yaml
       Parameters:
-        pSRAS3BucketRegion: !Ref S3BucketRegion
+        pRepoURL: !Ref pRepoURL
+        pRepoBranch: !Ref pRepoBranch
         pEnableDataEventsOnly: false
 
 # Create CSPM Stack and StackSet
@@ -184,7 +189,7 @@ Resources:
         EnableSensorManagement: !Ref EnableSensorManagement
         ClientID: !Ref FalconClientID
         ClientSecret: !Ref FalconSecret
-      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${StagingS3KeyPrefix}/templates/aws_cspm_cloudformation_v2.json
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_v2.json
 
   CrowdStrikeStackSet:
     Type: 'AWS::CloudFormation::StackSet'
@@ -221,7 +226,7 @@ Resources:
             OrganizationalUnitIds: !Ref ProvisionOU
           Regions: 
             - !Ref AWS::Region
-      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${StagingS3KeyPrefix}/templates/aws_cspm_cloudformation_v2.json
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_v2.json
 
 # Optional: Create EventBridge Roles & StackSet
   StackSetAdministrationRole:
@@ -316,7 +321,7 @@ Resources:
             AccountFilterType: NONE
             OrganizationalUnitIds: !Ref ProvisionOU
           Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
-      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${StagingS3KeyPrefix}/templates/aws_cspm_cloudformation_eb_v2.json
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_eb_v2.json
 
   CrowdStrikeRootEbStackSet:
     Type: 'AWS::CloudFormation::StackSet'
@@ -337,7 +342,7 @@ Resources:
             Accounts:
               - !Ref AWS::AccountId
           Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
-      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${StagingS3KeyPrefix}/templates/aws_cspm_cloudformation_eb_v2.json
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_eb_v2.json
 
   CrowdStrikeSecrets:
     Type: AWS::SecretsManager::Secret
@@ -429,7 +434,7 @@ Resources:
       FunctionName: !Ref 'AWS::StackName'
       Code:
         S3Bucket: !Ref StagingS3Bucket
-        S3Key: !Sub ${StagingS3KeyPrefix}/lambda_functions/packages/register-organization/lambda.zip
+        S3Key: !Sub ${SourceS3BucketNamePrefix}/lambda_functions/packages/register-organization/lambda.zip
 
   TriggerRegisterAccountLambda:
     Type: 'Custom::TriggerLambda'
@@ -522,7 +527,7 @@ Resources:
       ServiceToken: !GetAtt 'CopyZipsFunction.Arn'
       DestBucket: !Ref 'StagingS3Bucket'
       SourceBucket: !Ref 'SourceS3BucketName'
-      Prefix: !Sub ${StagingS3KeyPrefix}/
+      Prefix: !Sub ${SourceS3BucketNamePrefix}/
       Objects:
         - lambda_functions/packages/register-organization/lambda.zip
         - lambda_functions/packages/cw-helper/lambda.zip
@@ -552,7 +557,7 @@ Resources:
                   - s3:GetObjectTagging
                 Resource:
                   - !Sub 'arn:${AWS::Partition}:s3:::${SourceS3BucketName}/'
-                  - !Sub 'arn:${AWS::Partition}:s3:::${SourceS3BucketName}/${StagingS3KeyPrefix}/*'
+                  - !Sub 'arn:${AWS::Partition}:s3:::${SourceS3BucketName}/${SourceS3BucketNamePrefix}/*'
               - Effect: Allow
                 Action:
                   - s3:PutObject
@@ -560,7 +565,7 @@ Resources:
                   - s3:PutObjectTagging
                 Resource:
                   - !Sub 'arn:${AWS::Partition}:s3:::${StagingS3Bucket}/'
-                  - !Sub 'arn:${AWS::Partition}:s3:::${StagingS3Bucket}/${StagingS3KeyPrefix}/*'
+                  - !Sub 'arn:${AWS::Partition}:s3:::${StagingS3Bucket}/${SourceS3BucketNamePrefix}/*'
               - Effect: Allow
                 Action:
                   - s3:ListAllMyBuckets
@@ -689,7 +694,7 @@ Resources:
           LOG_LEVEL: "INFO"
       Code:
         S3Bucket: !Ref StagingS3Bucket
-        S3Key: !Sub ${StagingS3KeyPrefix}/lambda_functions/packages/cw-helper/lambda.zip
+        S3Key: !Sub ${SourceS3BucketNamePrefix}/lambda_functions/packages/cw-helper/lambda.zip
 
   OrgIdLambdaLogGroup:
     DeletionPolicy: Retain
