@@ -8,34 +8,35 @@ PROJECT_TYPE_PATH=${BASE_PATH}/projecttype
 
 cd ${PROJECT_PATH}
 
-regions=(us-east-1 us-east-2 us-west-2 us-west-1)
-for region in ${regions[@]}
-do
-    echo "Cleanup running in region: $region"
-    export AWS_DEFAULT_REGION=$region
+cleanup_region() {
+    echo "Cleanup running in region: $1"
+    export AWS_DEFAULT_REGION=$1
     python3 scripts/cleanup_config.py -C scripts/cleanup_config.json
-done
+}
 
-echo $AWS_DEFAULT_REGION
-unset AWS_DEFAULT_REGION
+cleanup_all_regions() {
+    export AWS_DEFAULT_REGION=us-east-1
+    regions=($(aws ec2 describe-regions --query "Regions[*].RegionName" --output text))
+    for region in ${regions[@]}
+    do
+        cleanup_region ${region}
+    done
+}
 
-echo $AWS_DEFAULT_REGION
+run_test() {
+    echo "Running e2e test: $1"
+    cleanup_all_regions
+    echo $AWS_DEFAULT_REGION
+    unset AWS_DEFAULT_REGION
+    echo $AWS_DEFAULT_REGION
+    taskcat test run -t $1
+}
+
 # Run taskcat e2e test
-taskcat test run -t  cw-test
+run_test "cw-test"
 
-for region in ${regions[@]}
-do
-    echo "Cleanup running in region: $region"
-    export AWS_DEFAULT_REGION=$region
-    python3 scripts/cleanup_config.py -C scripts/cleanup_config.json
-done
+run_test "cw-test-ct"
 
-echo $AWS_DEFAULT_REGION
-unset AWS_DEFAULT_REGION
-
-echo $AWS_DEFAULT_REGION
-# Run taskcat e2e test
-taskcat test run -t  cw-test-ct
 ## Executing ash tool
 
 #find ${PROJECT_PATH} -name lambda.zip -exec rm -rf {} \;
@@ -47,4 +48,3 @@ taskcat test run -t  cw-test-ct
 
 #ash --source-dir .
 #cat aggregated_results.txt
-
