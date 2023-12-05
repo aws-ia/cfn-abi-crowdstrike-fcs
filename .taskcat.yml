@@ -52,7 +52,6 @@ tests:
       ExcludeRegions: $[taskcat_ssm_/crowdstrike/exclude_regions]
       EnableSSMDistributor: "true"
       CreateOrgTrail: "true"
-      EnableSSMDistributor: "true"
-      regions:
-      - us-east-1
-      template: templates/crowdstrike_init_stack.yaml
+    regions:
+    - us-east-1
+    template: templates/crowdstrike_init_stack.yaml
