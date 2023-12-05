@@ -37,6 +37,10 @@ run_test "cw-test"
 
 run_test "cw-test-ct"
 
+run_test "cw-test-ssm"
+
+run_test "cw-test-all"
+
 ## Executing ash tool
 
 #find ${PROJECT_PATH} -name lambda.zip -exec rm -rf {} \;
