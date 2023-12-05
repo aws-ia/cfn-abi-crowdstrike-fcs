@@ -277,7 +277,7 @@ Resources:
             AccountFilterType: NONE
             OrganizationalUnitIds: !Ref ProvisionOU
           Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
-      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${StagingS3KeyPrefix}/templates/ssm-association-stackset.yml
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/ssm-association-stackset.yml
 
   SSMSetupStackSet:
     Type: 'AWS::CloudFormation::StackSet'
@@ -313,7 +313,7 @@ Resources:
             OrganizationalUnitIds: !Ref ProvisionOU
           Regions: 
             - !Ref AWS::Region
-      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${StagingS3KeyPrefix}/templates/ssm-setup-stackset.yml
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/ssm-setup-stackset.yml
 
 # Create CSPM Stack and StackSet
   CrowdStrikeCSPMStack:
