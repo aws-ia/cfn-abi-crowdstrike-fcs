@@ -275,8 +275,7 @@ Resources:
       StackInstancesGroup:
         - DeploymentTargets:
             AccountFilterType: NONE
-            OrganizationalUnitIds: 
-              - !Ref ProvisionOU
+            OrganizationalUnitIds: !Ref ProvisionOU
           Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${StagingS3KeyPrefix}/templates/ssm-association-stackset.yml
 
@@ -311,8 +310,7 @@ Resources:
       StackInstancesGroup:
         - DeploymentTargets:
             AccountFilterType: NONE
-            OrganizationalUnitIds: 
-              - !Ref ProvisionOU
+            OrganizationalUnitIds: !Ref ProvisionOU
           Regions: 
             - !Ref AWS::Region
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${StagingS3KeyPrefix}/templates/ssm-setup-stackset.yml
@@ -838,11 +836,11 @@ Resources:
         S3Key: !Sub ${SourceS3BucketNamePrefix}/lambda_functions/packages/cw-helper/lambda.zip
 
   OrgIdLambdaLogGroup:
-    DeletionPolicy: Retain
+    DeletionPolicy: Delete
     Type: AWS::Logs::LogGroup
     UpdateReplacePolicy: Retain
     Properties:
-      LogGroupName: !Sub /aws/lambda/${OrgIdLambdaFunctionName}-${AWS::StackId}
+      LogGroupName: !Sub /aws/lambda/${OrgIdLambdaFunctionName}
       RetentionInDays: 3653
 
   OrgIdLambdaRole:
