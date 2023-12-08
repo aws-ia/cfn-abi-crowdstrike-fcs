@@ -307,6 +307,10 @@ Resources:
       AutoDeployment:
         Enabled: true
         RetainStacksOnAccountRemoval: true
+      OperationPreferences:
+        MaxConcurrentPercentage: 100
+        FailureTolerancePercentage: 50
+        RegionConcurrencyType: PARALLEL
       StackInstancesGroup:
         - DeploymentTargets:
             AccountFilterType: NONE
@@ -359,6 +363,10 @@ Resources:
       AutoDeployment:
         Enabled: true
         RetainStacksOnAccountRemoval: true
+      OperationPreferences:
+        MaxConcurrentPercentage: 100
+        FailureTolerancePercentage: 50
+        RegionConcurrencyType: PARALLEL
       StackInstancesGroup:
         - DeploymentTargets:
             AccountFilterType: NONE
@@ -455,6 +463,10 @@ Resources:
       AutoDeployment:
         Enabled: true
         RetainStacksOnAccountRemoval: true
+      OperationPreferences:
+        MaxConcurrentPercentage: 100
+        FailureTolerancePercentage: 50
+        RegionConcurrencyType: PARALLEL
       StackInstancesGroup:
         - DeploymentTargets:
             AccountFilterType: NONE
@@ -475,6 +487,10 @@ Resources:
         - ParameterKey: CSEventBusName
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.eventbus_name
       PermissionModel: SELF_MANAGED
+      OperationPreferences:
+        MaxConcurrentPercentage: 100
+        FailureTolerancePercentage: 50
+        RegionConcurrencyType: PARALLEL
       StackInstancesGroup:
         - DeploymentTargets:
             AccountFilterType: NONE
