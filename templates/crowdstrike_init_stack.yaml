@@ -599,7 +599,7 @@ Resources:
           - id: CKV_AWS_18
             comment: S3 access logs intentionally not enabled
     Properties:
-      BucketName: !Sub ${SourceS3BucketNamePrefix}-${AWS::StackName}
+      BucketName: !Sub ${SourceS3BucketNamePrefix}-${AWS::AccountId}-${AWS::Region}
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
