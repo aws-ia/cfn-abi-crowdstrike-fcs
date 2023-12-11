@@ -101,6 +101,20 @@
   "Resources": {
     "CrowdStrikeCSPMRole": {
       "Type": "AWS::IAM::Role",
+      "Metadata": {
+        "cfn_nag": {
+          "rules_to_suppress": [
+            {
+              "id": "W11",
+              "reason": "Wildcard used to allow readonly calls against all resources"
+            },
+            {
+              "id": "W28",
+              "reason": "Must have explicit name for solution functionality"
+            }
+          ]
+        }
+      },
       "Properties": {
         "AssumeRolePolicyDocument": {
           "Version": "2012-10-17",
@@ -172,6 +186,16 @@
     "CrowdStrikeEventBridgeRole": {
       "Type": "AWS::IAM::Role",
       "Condition": "ShouldCreateIOAResources",
+      "Metadata": {
+        "cfn_nag": {
+          "rules_to_suppress": [
+            {
+              "id": "W28",
+              "reason": "Must have explicit name for solution functionality"
+            }
+          ]
+        }
+      },
       "Properties": {
         "RoleName": "CrowdStrikeCSPMEventBridge",
         "AssumeRolePolicyDocument": {
@@ -209,6 +233,16 @@
     "CrowdStrikeCloudTrail": {
       "Type": "AWS::CloudTrail::Trail",
       "Condition": "ShouldCreateIOACloudTrailResource",
+      "Metadata": {
+        "cfn_nag": {
+          "rules_to_suppress": [
+            {
+              "id": "CKV_AWS_35",
+              "reason": "We do not require customer to create and manage CMKs as a part of this solution"
+            }
+          ]
+        }
+      },        
       "Properties": {
         "TrailName": "crowdstrike-cloudtrail",
         "S3BucketName": {
@@ -216,12 +250,27 @@
         },
         "IncludeGlobalServiceEvents": true,
         "IsLogging": true,
-        "IsMultiRegionTrail": true
+        "IsMultiRegionTrail": true,
+        "EnableLogFileValidation": true
       }
     },
     "CrowdStrikeSensorManagementRole": {
       "Type": "AWS::IAM::Role",
       "Condition": "ShouldCreateSensorManagementResources",
+      "Metadata": {
+        "cfn_nag": {
+          "rules_to_suppress": [
+            {
+              "id": "W11",
+              "reason": "Wildcard used to allow for document name changes"
+            },
+            {
+              "id": "W28",
+              "reason": "Must have explicit name for solution functionality"
+            }
+          ]
+        }
+      },
       "Properties": {
         "RoleName": "CrowdStrikeSensorManagement",
         "AssumeRolePolicyDocument": {
@@ -283,6 +332,16 @@
     "CrowdStrikeSensorManagementOrchestratorRole": {
       "Type": "AWS::IAM::Role",
       "Condition": "ShouldCreateSensorManagementResources",
+      "Metadata": {
+        "cfn_nag": {
+          "rules_to_suppress": [
+            {
+              "id": "W28",
+              "reason": "Must have explicit name for solution functionality"
+            }
+          ]
+        }
+      },
       "Properties": {
         "RoleName": "CrowdStrikeSensorManagementOrchestrator",
         "AssumeRolePolicyDocument": {
@@ -335,6 +394,16 @@
     "CrowdStrikeSensorManagementLogGroup": {
       "Type": "AWS::Logs::LogGroup",
       "Condition": "ShouldCreateSensorManagementResources",
+      "Metadata": {
+        "cfn_nag": {
+          "rules_to_suppress": [
+            {
+              "id": "W84",
+              "reason": "Default encryption for AWS Cloudwatch Logs suffice"
+            }
+          ]
+        }
+      },
       "Properties": {
         "LogGroupName": "/aws/lambda/cs-horizon-sensor-installation-orchestrator",
         "RetentionInDays": 1
@@ -343,6 +412,28 @@
     "CrowdStrikeSensorManagementLambda": {
       "Type": "AWS::Lambda::Function",
       "Condition": "ShouldCreateSensorManagementResources",
+      "Metadata": {
+        "cfn_nag": {
+          "rules_to_suppress": [
+            {
+              "id": "CKV_AWS_116",
+              "reason": "We do not require customer to create and manage DLQ"
+            },
+            {
+              "id": "CKV_AWS_173",
+              "reason": "Future release will support this"
+            },
+            {
+              "id": "W89",
+              "reason": "We do not require customer to create and manage additional VPC"
+            },
+            {
+              "id": "W58",
+              "reason": "Log permissions defined by CrowdStrikeSensorManagementOrchestratorRole"
+            }
+          ]
+        }
+      },
       "Properties": {
         "Architectures": [
           "x86_64"
@@ -371,6 +462,7 @@
         "Handler": "bootstrap",
         "MemorySize": 128,
         "PackageType": "Zip",
+        "ReservedConcurrentExecutions": 100,
         "Role": {
           "Fn::GetAtt": [
             "CrowdStrikeSensorManagementOrchestratorRole",
