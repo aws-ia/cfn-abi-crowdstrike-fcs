@@ -5,7 +5,6 @@ import sys
 import subprocess
 import boto3
 import requests
-import time
 import base64
 from botocore.exceptions import ClientError
 
@@ -30,6 +29,7 @@ SECRET_STORE_REGION = os.environ['secret_region']
 EXCLUDE_REGIONS = os.environ['exclude_regions']
 AWS_REGION = os.environ['aws_region']
 CS_CLOUD = os.environ['cs_cloud']
+ACCOUNT_TYPE = "commercial"
 
 def get_secret(secret_name, secret_region):
     session = boto3.session.Session()
@@ -134,10 +134,12 @@ def lambda_handler(event, context):
                 logger.info('Event = {}'.format(event))
                 response = falcon.create_aws_account(account_id=aws_account_id,
                                                     organization_id=OrgId,
-                                                    cloudtrail_region=AWS_REGION,
+                                                    behavior_assessment_enabled=True,
+                                                    sensor_management_enabled=True,
+                                                    use_existing_cloudtrail=True,
                                                     user_agent=useragent,
                                                     is_master=True,
-                                                    parameters={"account_type": "commercial"}
+                                                    account_type=ACCOUNT_TYPE
                                                     )
                 if response['status_code'] == 400:
                     error = response['body']['errors'][0]['message']
@@ -154,7 +156,6 @@ def lambda_handler(event, context):
                         "intermediate_role_arn": response['body']['resources'][0]['intermediate_role_arn'],
                         "cs_role_name": response['body']['resources'][0]['intermediate_role_arn'].rsplit('/')[1],
                         "external_id": response['body']['resources'][0]['external_id'],
-                        "eventbus_arn": response['body']['resources'][0]['aws_eventbus_arn'],
                         "eventbus_name": response['body']['resources'][0]['eventbus_name']
                     }
                     response_d['my_regions'] = regions
