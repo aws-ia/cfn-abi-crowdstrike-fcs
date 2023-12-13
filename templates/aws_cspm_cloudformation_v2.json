@@ -102,15 +102,15 @@
     "CrowdStrikeCSPMRole": {
       "Type": "AWS::IAM::Role",
       "Metadata": {
-        "cfn_nag": {
-          "rules_to_suppress": [
+        "checkov": {
+          "skip": [
             {
               "id": "W11",
-              "reason": "Wildcard used to allow readonly calls against all resources"
+              "comment": "Wildcard used to allow readonly calls against all resources"
             },
             {
               "id": "W28",
-              "reason": "Must have explicit name for solution functionality"
+              "comment": "Must have explicit name for solution functionality"
             }
           ]
         }
@@ -187,11 +187,11 @@
       "Type": "AWS::IAM::Role",
       "Condition": "ShouldCreateIOAResources",
       "Metadata": {
-        "cfn_nag": {
-          "rules_to_suppress": [
+        "checkov": {
+          "skip": [
             {
               "id": "W28",
-              "reason": "Must have explicit name for solution functionality"
+              "comment": "Must have explicit name for solution functionality"
             }
           ]
         }
@@ -234,11 +234,11 @@
       "Type": "AWS::CloudTrail::Trail",
       "Condition": "ShouldCreateIOACloudTrailResource",
       "Metadata": {
-        "cfn_nag": {
-          "rules_to_suppress": [
+        "checkov": {
+          "skip": [
             {
               "id": "CKV_AWS_35",
-              "reason": "We do not require customer to create and manage CMKs as a part of this solution"
+              "comment": "We do not require customer to create and manage CMKs as a part of this solution"
             }
           ]
         }
@@ -258,15 +258,15 @@
       "Type": "AWS::IAM::Role",
       "Condition": "ShouldCreateSensorManagementResources",
       "Metadata": {
-        "cfn_nag": {
-          "rules_to_suppress": [
+        "checkov": {
+          "skip": [
             {
               "id": "W11",
-              "reason": "Wildcard used to allow for document name changes"
+              "comment": "Wildcard used to allow for document name changes"
             },
             {
               "id": "W28",
-              "reason": "Must have explicit name for solution functionality"
+              "comment": "Must have explicit name for solution functionality"
             }
           ]
         }
@@ -333,11 +333,11 @@
       "Type": "AWS::IAM::Role",
       "Condition": "ShouldCreateSensorManagementResources",
       "Metadata": {
-        "cfn_nag": {
-          "rules_to_suppress": [
+        "checkov": {
+          "skip": [
             {
               "id": "W28",
-              "reason": "Must have explicit name for solution functionality"
+              "comment": "Must have explicit name for solution functionality"
             }
           ]
         }
@@ -395,11 +395,11 @@
       "Type": "AWS::Logs::LogGroup",
       "Condition": "ShouldCreateSensorManagementResources",
       "Metadata": {
-        "cfn_nag": {
-          "rules_to_suppress": [
+        "checkov": {
+          "skip": [
             {
               "id": "W84",
-              "reason": "Default encryption for AWS Cloudwatch Logs suffice"
+              "comment": "Default encryption for AWS Cloudwatch Logs suffice"
             }
           ]
         }
@@ -413,23 +413,23 @@
       "Type": "AWS::Lambda::Function",
       "Condition": "ShouldCreateSensorManagementResources",
       "Metadata": {
-        "cfn_nag": {
-          "rules_to_suppress": [
+        "checkov": {
+          "skip": [
             {
               "id": "CKV_AWS_116",
-              "reason": "We do not require customer to create and manage DLQ"
+              "comment": "We do not require customer to create and manage DLQ"
             },
             {
               "id": "CKV_AWS_173",
-              "reason": "Future release will support this"
+              "comment": "Future release will support this"
             },
             {
               "id": "W89",
-              "reason": "We do not require customer to create and manage additional VPC"
+              "comment": "We do not require customer to create and manage additional VPC"
             },
             {
               "id": "W58",
-              "reason": "Log permissions defined by CrowdStrikeSensorManagementOrchestratorRole"
+              "comment": "Log permissions defined by CrowdStrikeSensorManagementOrchestratorRole"
             }
           ]
         }
