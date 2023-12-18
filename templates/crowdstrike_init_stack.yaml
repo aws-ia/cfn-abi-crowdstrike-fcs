@@ -505,7 +505,7 @@ Resources:
       checkov:
         skip:
           - id: CKV_AWS_149
-            comment: Solution should run without requiring permissions to create KMS CMKs
+            comment: The default key aws/secretsmanager is sufficient to secure this resource
     Properties:
       Description: CrowdStrike Credentials
       Name: !Join

@@ -398,7 +398,7 @@
         "checkov": {
           "skip": [
             {
-              "id": "W84",
+              "id": "CKV_AWS_158",
               "comment": "Default encryption for AWS Cloudwatch Logs suffice"
             }
           ]
