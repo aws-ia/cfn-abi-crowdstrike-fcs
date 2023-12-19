@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
-Description: "CrowdStrike Cloud Security (CSPM) Root Template. (abp-1kirFQBF75MfEQ3RbMQHRb-5NlayJp9WpX1krs2Aq7Koa-ln87vzuy)"
+Description: "CrowdStrike Cloud Security Root Template. (abp-1kirFQBF75MfEQ3RbMQHRb-5NlayJp9WpX1krs2Aq7Koa-ln87vzuy)"
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -11,6 +11,7 @@ Metadata:
           - FalconClientID
           - FalconSecret
           - CSCloud
+          - SecretsManagerSecretName
       - Label:
           default: Configure Indicator of Attack Scanning
         Parameters:
@@ -23,6 +24,15 @@ Metadata:
           default: Provision OUs
         Parameters:
           - ProvisionOU
+      - Label:
+          default: Deploy Falcon Sensors with SSM Distributor
+        Parameters:
+          - EnableSSMDistributor
+          - AutomationAssumeRole
+          - ApplyOnlyAtCronInterval
+          - ScheduleExpression
+          - MaxErrors
+          - MaxConcurrency
       - Label:
           default: AWS S3 Bucket
         Parameters:
@@ -70,11 +80,26 @@ Metadata:
         default: AWS Organization ID - Lambda Function Name
       OrgIdLambdaRoleName:
         default: AWS Organization ID - Lambda Role Name
+      EnableSSMDistributor:
+        default: Enable Falcon SSM Distributor
+      AutomationAssumeRole:
+        default: SSM Execution Role
+      ApplyOnlyAtCronInterval:
+        default: Apply Only At Cron Interval
+      ScheduleExpression:
+        default: Cron Schedule Expression
+      MaxErrors:
+        default: Max Errors Allowed
+      MaxConcurrency:
+        default: Max Concurrency Allowed
+      SecretsManagerSecretName:
+        default: Secrets Manager Secret Name
 
 Conditions:
   CreateIOAResources: !Equals [ !Ref 'EnableIOA', true ]
   CreateTrail: !Equals [ !Ref 'CreateOrgTrail', true ]
   ExcludeRegionsEmpty:  !Equals [!Ref 'ExcludeRegions', '']
+  CreateSSMAssociations: !Equals [ !Ref 'EnableSSMDistributor', true ]
 
 Parameters:
   FalconClientID:
@@ -162,6 +187,47 @@ Parameters:
     Default: sra-sh-org-id-lambda
     Description: Lambda execution role for getting the AWS Organization ID
     Type: String
+  SecretsManagerSecretName:
+    Description: Secrets Manager Secret Name that contains the Falcon ClientId, ClientSecret, and Cloud for the CrowdStrike APIs.
+    Type: String
+    Default: 'crowdstrike-falcon-api'
+  EnableSSMDistributor:
+    Type: String
+    Description: Deploy Associations in each account to automatically install Falcon Sensors against SSM-Managed Instances.
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'false'
+  AutomationAssumeRole:
+    Type: String
+    Default: 'crowdstrike-distributor-deploy-role'
+    Description: 'Execution Role for CrowdStrike SSM Distributor Package'
+  ApplyOnlyAtCronInterval:
+    Description: By default, when you create a new association, the system runs it immediately after it is created and then according to the schedule you specified. Specify true if you don't want an association to run immediately after you create it. .
+    Type: String
+    Default: 'false'
+  ScheduleExpression:
+    Description: A cron expression that specifies a schedule when the association runs. The schedule runs in Coordinated Universal Time (UTC).
+    Type: String
+    Default: 'cron(0 0 */1 * * ? *)'
+  MaxErrors:
+    Description: The number of errors that are allowed before the system stops sending requests to run the association on additional targets. You can specify either an absolute number of errors, for example 10, or a percentage of the target set, for example 10%.
+    Type: String
+    Default: '10%'
+  MaxConcurrency:
+    Description: The maximum number of targets allowed to run the association at the same time. You can specify a number, for example 10, or a percentage of the target set, for example 10%. The default value is 100%, which means all targets run the association at the same time.
+    Type: String
+    Default: '20%'
+
+Mappings: 
+  CloudMap: 
+    us1: 
+      BaseURL: "https://api.crowdstrike.com"
+    us2: 
+      BaseURL: "https://api.us-2.crowdstrike.com"
+    eu1: 
+      BaseURL: "https://api.eu-1.crowdstrike.com"
+
 Resources:
   CloudTrailStack:
     Type: 'AWS::CloudFormation::Stack'
@@ -175,6 +241,83 @@ Resources:
         pRepoURL: !Ref pRepoURL
         pRepoBranch: !Ref pRepoBranch
         pEnableDataEventsOnly: false
+
+# Create SSM Distributor Associations
+  AssociationStackSet:
+    Type: 'AWS::CloudFormation::StackSet'
+    Condition: CreateSSMAssociations
+    Properties:
+      StackSetName: CrowdStrike-Cloud-SSM-Associations-Stackset
+      Description: Create SSM State Manager Association to automatically manage Falcon Sensor installation across SSM Managed Instances
+      PermissionModel: SERVICE_MANAGED
+      ManagedExecution:
+        Active: true
+      Parameters:
+        - ParameterKey: SecretsManagerSecretName
+          ParameterValue: !Ref SecretsManagerSecretName
+        - ParameterKey: SecretStorageMethod
+          ParameterValue: 'SecretsManager'
+        - ParameterKey: Action
+          ParameterValue: 'install'
+        - ParameterKey: ScheduleExpression
+          ParameterValue: !Ref ScheduleExpression
+        - ParameterKey: MaxErrors
+          ParameterValue: !Ref MaxErrors
+        - ParameterKey: MaxConcurrency
+          ParameterValue: !Ref MaxConcurrency
+        - ParameterKey: AutomationAssumeRole
+          ParameterValue: !Ref AutomationAssumeRole
+        - ParameterKey: ApplyOnlyAtCronInterval
+          ParameterValue: !Ref ApplyOnlyAtCronInterval
+      AutoDeployment:
+        Enabled: true
+        RetainStacksOnAccountRemoval: true
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            OrganizationalUnitIds: !Ref ProvisionOU
+          Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/ssm-association-stackset.yml
+
+  SSMSetupStackSet:
+    Type: 'AWS::CloudFormation::StackSet'
+    Condition: CreateSSMAssociations
+    Properties:
+      StackSetName: CrowdStrike-Cloud-SSM-Setup-Stackset
+      Description: Securely store Falcon credentials and create AWS IAM role to assume when running the AWS Systems Manager Automation document.
+      Capabilities:
+       - CAPABILITY_NAMED_IAM
+      PermissionModel: SERVICE_MANAGED
+      ManagedExecution:
+        Active: true
+      Parameters:
+        - ParameterKey: SecretsManagerSecretName
+          ParameterValue: !Ref SecretsManagerSecretName
+        - ParameterKey: AutomationAssumeRole
+          ParameterValue: !Ref AutomationAssumeRole
+        - ParameterKey: FalconClientID
+          ParameterValue: !Ref FalconClientID
+        - ParameterKey: FalconSecret
+          ParameterValue: !Ref FalconSecret
+        - ParameterKey: BaseURL
+          ParameterValue: !FindInMap
+            - CloudMap
+            - !Ref CSCloud
+            - BaseURL
+      AutoDeployment:
+        Enabled: true
+        RetainStacksOnAccountRemoval: true
+      OperationPreferences:
+        MaxConcurrentPercentage: 100
+        FailureTolerancePercentage: 50
+        RegionConcurrencyType: PARALLEL
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            OrganizationalUnitIds: !Ref ProvisionOU
+          Regions: 
+            - !Ref AWS::Region
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/ssm-setup-stackset.yml
 
 # Create CSPM Stack and StackSet
   CrowdStrikeCSPMStack:
@@ -220,6 +363,10 @@ Resources:
       AutoDeployment:
         Enabled: true
         RetainStacksOnAccountRemoval: true
+      OperationPreferences:
+        MaxConcurrentPercentage: 100
+        FailureTolerancePercentage: 50
+        RegionConcurrencyType: PARALLEL
       StackInstancesGroup:
         - DeploymentTargets:
             AccountFilterType: NONE
@@ -316,6 +463,10 @@ Resources:
       AutoDeployment:
         Enabled: true
         RetainStacksOnAccountRemoval: true
+      OperationPreferences:
+        MaxConcurrentPercentage: 100
+        FailureTolerancePercentage: 50
+        RegionConcurrencyType: PARALLEL
       StackInstancesGroup:
         - DeploymentTargets:
             AccountFilterType: NONE
@@ -336,6 +487,10 @@ Resources:
         - ParameterKey: CSEventBusName
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.eventbus_name
       PermissionModel: SELF_MANAGED
+      OperationPreferences:
+        MaxConcurrentPercentage: 100
+        FailureTolerancePercentage: 50
+        RegionConcurrencyType: PARALLEL
       StackInstancesGroup:
         - DeploymentTargets:
             AccountFilterType: NONE
@@ -350,12 +505,12 @@ Resources:
       checkov:
         skip:
           - id: CKV_AWS_149
-            comment: Solution should run without requiring permissions to create KMS CMKs
+            comment: The default key aws/secretsmanager is sufficient to secure this resource
     Properties:
       Description: CrowdStrike Credentials
       Name: !Join
         - '-'
-        - - CrowdStrikeCloudAPISecret
+        - - !Ref SecretsManagerSecretName
           - !Ref 'AWS::StackName'
       SecretString:
         Fn::Join:
@@ -387,7 +542,7 @@ Resources:
                 Action:
                   - 'secretsmanager:GetSecretValue'
                 Resource:
-                  - !Sub 'arn:${AWS::Partition}:secretsmanager:*:*:secret:CrowdStrikeCloudAPISecret-*'
+                  - !Sub 'arn:${AWS::Partition}:secretsmanager:*:*:secret:${SecretsManagerSecretName}-*'
       ManagedPolicyArns:
         - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
         - !Sub 'arn:${AWS::Partition}:iam::aws:policy/AWSOrganizationsReadOnlyAccess'
@@ -421,7 +576,7 @@ Resources:
           secret_region: !Ref AWS::Region
           secret_name: !Join
             - '-'
-            - - CrowdStrikeCloudAPISecret
+            - - !Ref SecretsManagerSecretName
               - !Ref 'AWS::StackName'
           exclude_regions: !If [ ExcludeRegionsEmpty, 'none', !Ref ExcludeRegions ]
           aws_region: !Ref AWS::Region
@@ -697,7 +852,7 @@ Resources:
         S3Key: !Sub ${SourceS3BucketNamePrefix}/lambda_functions/packages/cw-helper/lambda.zip
 
   OrgIdLambdaLogGroup:
-    DeletionPolicy: Retain
+    DeletionPolicy: Delete
     Type: AWS::Logs::LogGroup
     UpdateReplacePolicy: Retain
     Properties:

@@ -30,3 +30,28 @@ tests:
     regions:
     - us-east-1
     template: templates/crowdstrike_init_stack.yaml
+  cw-test-ssm:
+    parameters:
+      FalconClientID: $[taskcat_ssm_/crowdstrike/falcon_client_id]
+      FalconSecret: $[taskcat_ssm_/crowdstrike/falcon_secret]
+      SourceS3BucketName: $[taskcat_autobucket]
+      S3BucketRegion: $[taskcat_current_region]
+      ProvisionOU: $[taskcat_ssm_/crowdstrike/provision-ou]
+      ExcludeRegions: $[taskcat_ssm_/crowdstrike/exclude_regions]
+      EnableSSMDistributor: "true"
+    regions:
+    - us-east-1
+    template: templates/crowdstrike_init_stack.yaml  
+  cw-test-all:
+    parameters:
+      FalconClientID: $[taskcat_ssm_/crowdstrike/falcon_client_id]
+      FalconSecret: $[taskcat_ssm_/crowdstrike/falcon_secret]
+      SourceS3BucketName: $[taskcat_autobucket]
+      S3BucketRegion: $[taskcat_current_region]
+      ProvisionOU: $[taskcat_ssm_/crowdstrike/provision-ou]
+      ExcludeRegions: $[taskcat_ssm_/crowdstrike/exclude_regions]
+      EnableSSMDistributor: "true"
+      CreateOrgTrail: "true"
+    regions:
+    - us-east-1
+    template: templates/crowdstrike_init_stack.yaml
