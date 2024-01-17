@@ -24,12 +24,17 @@ cleanup_all_regions() {
 }
 
 run_test() {
-    echo "Running e2e test: $1"
     cleanup_all_regions
-    echo $AWS_DEFAULT_REGION
     unset AWS_DEFAULT_REGION
-    echo $AWS_DEFAULT_REGION
-    taskcat test run -t $1
+    if [ -z "$1" ]; then
+        echo "Running e2e test: ALL"
+        taskcat test run -n
+        .project_automation/functional_tests/scoutsuite/scoutsuite.sh
+    else
+        echo "Running e2e test: $1"
+        taskcat test run -n -t $1
+        .project_automation/functional_tests/scoutsuite/scoutsuite.sh
+    fi
 }
 
 # Run taskcat e2e test

@@ -94,5 +94,9 @@
     },
     {
         "Type" : "GUARDDUTY_DET"
+    },
+    {
+        "Type" : "STACK",
+        "Filter" : "Lambda-S3-PresignedURL"
     }
 ]
