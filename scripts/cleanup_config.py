@@ -23,7 +23,13 @@ ORG  = SESSION.client('organizations')
 GD  = SESSION.client('guardduty')
 
 STACKSTATUS = [ 'ROLLBACK_FAILED', 'ROLLBACK_COMPLETE', 'DELETE_FAILED', 'DELETE_COMPLETE']
-
+VALID_STATUS = ['CREATE_IN_PROGRESS', 'CREATE_FAILED', 'CREATE_COMPLETE',
+                'ROLLBACK_IN_PROGRESS', 'ROLLBACK_FAILED', 'ROLLBACK_COMPLETE',
+                'DELETE_IN_PROGRESS', 'DELETE_FAILED',
+                'UPDATE_IN_PROGRESS', 'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS',
+                'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_IN_PROGRESS',
+                'UPDATE_ROLLBACK_FAILED', 'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS',
+                'UPDATE_ROLLBACK_COMPLETE', 'REVIEW_IN_PROGRESS']
 def list_stacksets():
     '''List all stacksets in the account'''
     response = CF.list_stack_sets()
@@ -145,11 +151,11 @@ def delete_stacksets(filters):
         CF.delete_stack_set(StackSetName=cf_name)
 
 def list_all_stacks():
-    '''List all stacks in the account'''
-    response = CF.list_stacks()
+    '''List all stacks in the account with status other than DELETE_COMPLETE'''
+    response = CF.list_stacks(StackStatusFilter=VALID_STATUS)
     stacks = response['StackSummaries']
     while response.get('NextToken'):
-        response = CF.list_stacks(NextToken=response['NextToken'])
+        response = CF.list_stacks(StackStatusFilter=VALID_STATUS, NextToken=response['NextToken'])
         stacks.extend(response['StackSummaries'])
     return stacks
 
@@ -170,20 +176,31 @@ def is_nested_stack(stack_name):
         result = True
     return result
 
+def list_stacks_by_prefix(stack_prefix):
+    '''List stacks by prefix'''
+    stacks = list_all_stacks()
+    output = []
+    for stack in stacks:
+        if stack['StackName'].startswith(stack_prefix):
+            output.append(stack['StackName'])
+    return sorted(output, key=len)
+
 def delete_stack(filters='tCaT-'):
     '''Delete all stacks created by CfCT solution in the account'''
-    stacks = list_all_stacks()
+    stacks = list_stacks_by_prefix(filters)
     for stack in stacks:
-        stack_name = stack['StackName']
-        stack_status = stack['StackStatus']
-        if stack_name.startswith(filters) and stack_status != 'DELETE_COMPLETE':
-            print('Deleting stack: %s', stack_name)
-            CF.delete_stack(StackName=stack_name)
+        status = list_stack_status_by_name(stack)
+        if status:
+            print(f"Deleting stack: {stack}")
+            CF.delete_stack(StackName=stack)
             wait = 1
-            while list_stack_status_by_name(stack_name) not in STACKSTATUS and wait < 60:
-                print('Wait: %s, Stack: %s', stack_name, wait)
-                sleep(10)
+            stack_status = list_stack_status_by_name(stack)
+            while stack_status not in STACKSTATUS and wait < 60:
+                sleep_time = 10-wait/6
+                print(f"Wait: {stack}, {wait}, {sleep_time}, {stack_status}")
+                sleep(sleep_time)
                 wait += 1
+                stack_status = list_stack_status_by_name(stack)
 
 def delete_all_objects_from_s3_bucket(bucket_name, account=None):
     '''Delete all objects from an S3 bucket'''

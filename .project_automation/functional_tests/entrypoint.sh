@@ -30,10 +30,12 @@ run_test() {
         echo "Running e2e test: ALL"
         taskcat test run -n
         .project_automation/functional_tests/scoutsuite/scoutsuite.sh
+        tastcat test clean ALL
     else
         echo "Running e2e test: $1"
         taskcat test run -n -t $1
         .project_automation/functional_tests/scoutsuite/scoutsuite.sh
+        tastcat test clean ALL
     fi
 }
 
