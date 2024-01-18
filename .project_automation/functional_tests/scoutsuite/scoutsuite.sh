@@ -19,7 +19,6 @@ run_scoutsuite() {
     # Upload Scoutsuite security scan results to S3 bucket named scoutsuite-results-aws-AWS-ACCOUNT-ID
     python3 .project_automation/functional_tests/scoutsuite/process-scoutsuite-report.py
     # Delete taskcat e2e test resources
-    REGION=$(aws ec2 describe-availability-zones --all-availability-zones --query 'AvailabilityZones[0].RegionName' --output text)
     taskcat test clean ALL -w -r $REGION
     process_scoutsuite_report
 }
