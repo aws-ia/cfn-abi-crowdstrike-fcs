@@ -5,6 +5,7 @@
 # managed and local tasks always use these variables for the project and project type path
 PROJECT_PATH=${BASE_PATH}/project
 PROJECT_TYPE_PATH=${BASE_PATH}/projecttype
+export REGION=$(grep -A1 regions: .taskcat.yml | awk '/ - / {print $NF}' |sort | uniq -c |sort -k1| head -1 |awk '{print $NF}')
 
 cd ${PROJECT_PATH}
 
@@ -15,7 +16,7 @@ cleanup_region() {
 }
 
 cleanup_all_regions() {
-    export AWS_DEFAULT_REGION=us-east-1
+    export AWS_DEFAULT_REGION=$REGION
     regions=($(aws ec2 describe-regions --query "Regions[*].RegionName" --output text))
     for region in ${regions[@]}
     do
@@ -24,12 +25,17 @@ cleanup_all_regions() {
 }
 
 run_test() {
-    echo "Running e2e test: $1"
     cleanup_all_regions
-    echo $AWS_DEFAULT_REGION
     unset AWS_DEFAULT_REGION
-    echo $AWS_DEFAULT_REGION
-    taskcat test run -t $1
+    if [ -z "$1" ]; then
+        echo "Running e2e test: ALL"
+        taskcat test run -n
+        .project_automation/functional_tests/scoutsuite/scoutsuite.sh
+    else
+        echo "Running e2e test: $1"
+        taskcat test run -n -t $1
+        .project_automation/functional_tests/scoutsuite/scoutsuite.sh
+    fi
 }
 
 # Run taskcat e2e test

@@ -1,5 +1,9 @@
 [
     {
+        "Type" : "STACK",
+        "Filter" : "tCaT-cw-test-"
+    },
+    {
         "Type" : "SSM_PARAMETER",
         "Filter" : "/sra/control-tower/",
         "Account" : "log_account"
@@ -67,6 +71,17 @@
         "Filter": "sra-codebuild-project"
     },
     {
+        "Type" : "GUARDDUTY_DET"
+    },
+    {
+        "Type" : "STACK_SET",
+        "Filter" : "sra-stackset-execution-role"
+    },
+    {
+        "Type" : "STACK",
+        "Filter" : "sra-common-prerequisites-staging-s3-bucket"
+    },
+    {
         "Type" : "IAM_ROLE",
         "Filter" : "sra-execution",
         "Account" : "log_account"
@@ -81,18 +96,7 @@
         "Account" : "audit"
     },
     {
-        "Type" : "STACK_SET",
-        "Filter" : "sra-stackset-execution-role"
-    },
-    {
         "Type" : "STACK",
-        "Filter" : "sra-common-prerequisites-staging-s3-bucket"
-    },
-    {
-        "Type" : "STACK",
-        "Filter" : "tCaT-cw-test-"
-    },
-    {
-        "Type" : "GUARDDUTY_DET"
+        "Filter" : "Lambda-S3-PresignedURL"
     }
 ]

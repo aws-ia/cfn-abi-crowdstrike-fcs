@@ -19,7 +19,7 @@ run_scoutsuite() {
     # Upload Scoutsuite security scan results to S3 bucket named scoutsuite-results-aws-AWS-ACCOUNT-ID
     python3 .project_automation/functional_tests/scoutsuite/process-scoutsuite-report.py
     # Delete taskcat e2e test resources
-    taskcat test clean ALL
+    taskcat test clean ALL -w -r $REGION
     process_scoutsuite_report
 }
 
@@ -29,7 +29,8 @@ process_scoutsuite_report() {
     scoutsuite_s3_filename=$(cat scoutsuite_s3_filename.txt)
     rm scoutsuite_sysout.txt
     rm scoutsuite_s3_filename.txt
-    if [ "$scoutsuite_sysout_result" -ne 0 ]; then       
+    if [ "$scoutsuite_sysout_result" -ne 0 ]; 
+    then
         # The value is non-zero, indicating Scoutsuite report needs to be checked for security issues
         echo "Scoutsuite report contains security issues. For details please check the log messages above or the file $scoutsuite_s3_filename in the S3 bucket named scoutsuite-results-aws-$AWS_ACCOUNT_ID in the AWS test account provided by the ABI team."
         exit 1 
