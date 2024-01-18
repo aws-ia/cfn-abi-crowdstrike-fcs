@@ -196,7 +196,7 @@ def delete_stack(filters='tCaT-'):
             wait = 1
             stack_status = list_stack_status_by_name(stack)
             while stack_status and stack_status not in STACKSTATUS and wait < 60:
-                sleep_time = 10-wait/6
+                sleep_time = 15-wait/6
                 print(f"Wait: {stack}, {wait}, {sleep_time}, {stack_status}")
                 sleep(sleep_time)
                 wait += 1
