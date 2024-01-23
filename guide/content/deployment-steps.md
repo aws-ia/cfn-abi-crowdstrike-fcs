@@ -20,6 +20,7 @@ description: Deployment steps.
         * **Provision OUs**: _Comma Delimited List of OU(s) to provision resources. If you are provisioning the entire Organization, please enter the Root OU (r-****)_
         * **Exclude Prohibited Regions**: `[<region-1>, <region-2>,....]`  _(Exclude regions from EventBridge Rules for IOA. Use this when SCPs cause stacksets to fail.)_
         * **Enable Sensor Management**: Choose `true` or `false`. The default is `false`
+        * **API Credentials Storage Mode**: Choose `secret` or `lambda`.  The default is `secret`
         * **EnableSSMDistributor**: Choose `true` or `false`. The default is `true`
         * **AutomationAssumeRole**: Define the name of the SSM Automation Execution Role. The default is `crowdstrike-distributor-deploy-role`
         * **ApplyOnlyAtCronInterval**: Choose `true` or `false`. The default is `false`
