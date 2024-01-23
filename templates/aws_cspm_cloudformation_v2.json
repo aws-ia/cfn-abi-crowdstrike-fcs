@@ -245,9 +245,7 @@
                   "Action": [
                     "events:PutEvents"
                   ],
-                  "Resource": {
-                    "Fn::Sub": "arn:aws:events:*:*:event-bus/cs-*"
-                  },
+                  "Resource": "arn:aws:events:*:*:event-bus/cs-*",
                   "Effect": "Allow"
                 }
               ]
