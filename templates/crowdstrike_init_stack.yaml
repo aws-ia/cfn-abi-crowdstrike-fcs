@@ -43,6 +43,7 @@ Metadata:
           default: Sensor Management
         Parameters:
           - EnableSensorManagement
+          - APICredentialsStorageMode
       - Label:
           default: AWS Organization ID - Lambda Function Properties
         Parameters:
@@ -94,6 +95,8 @@ Metadata:
         default: Max Concurrency Allowed
       SecretsManagerSecretName:
         default: Secrets Manager Secret Name
+      APICredentialsStorageMode:
+        default: API Credentials Storage Mode
 
 Conditions:
   CreateIOAResources: !Equals [ !Ref 'EnableIOA', true ]
@@ -218,6 +221,11 @@ Parameters:
     Description: The maximum number of targets allowed to run the association at the same time. You can specify a number, for example 10, or a percentage of the target set, for example 10%. The default value is 100%, which means all targets run the association at the same time.
     Type: String
     Default: '20%'
+  APICredentialsStorageMode:
+    Type: String
+    Description: How Falcon API credentials are stored for Sensor Management. 'lambda' stores them in the lambda environment variables, 'secret' in an AWS secret.
+    Default: 'secret'
+    AllowedValues: ['lambda', 'secret']
 
 Mappings: 
   CloudMap: 
@@ -330,6 +338,7 @@ Resources:
         CSAccountNumber: !GetAtt TriggerRegisterAccountLambda.cs_account_id
         EnableIOA: !Ref EnableIOA
         EnableSensorManagement: !Ref EnableSensorManagement
+        APICredentialsStorageMode: !Ref APICredentialsStorageMode
         ClientID: !Ref FalconClientID
         ClientSecret: !Ref FalconSecret
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_v2.json
@@ -355,6 +364,8 @@ Resources:
           ParameterValue: !Ref EnableIOA
         - ParameterKey: EnableSensorManagement
           ParameterValue: !Ref EnableSensorManagement
+        - ParameterKey: APICredentialsStorageMode
+          ParameterValue: !Ref APICredentialsStorageMode
         - ParameterKey: ClientID
           ParameterValue: !Ref FalconClientID
         - ParameterKey: ClientSecret

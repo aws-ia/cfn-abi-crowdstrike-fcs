@@ -45,6 +45,8 @@ run_test "cw-test-ct"
 
 run_test "cw-test-ssm"
 
+run_test "cw-test-smlambda"
+
 run_test "cw-test-all"
 
 ## Executing ash tool
