@@ -452,6 +452,16 @@
     "CrowdStrikeSensorManagementFalconCredentialsSecret": {
       "Type": "AWS::SecretsManager::Secret",
       "Condition": "ShouldCreateSensorManagementCredentialsSecret",
+      "Metadata": {
+        "checkov": {
+          "skip": [
+            {
+              "id": "CKV_AWS_149",
+              "comment": "The default key aws/secretsmanager is sufficient to secure this resource"
+            }
+          ]
+        }
+      },
       "Properties": {
         "Name": "/CrowdStrike/CSPM/SensorManagement/FalconAPICredentials",
         "Description": "Falcon API credentials. Used by the 1-Click sensor management orchestrator.",
