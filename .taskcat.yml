@@ -67,3 +67,19 @@ tests:
     regions:
     - us-east-1
     template: templates/crowdstrike_init_stack.yaml
+  cw-test-nonct:
+    parameters:
+      FalconClientID: $[taskcat_ssm_/crowdstrike/falcon_client_id]
+      FalconSecret: $[taskcat_ssm_/crowdstrike/falcon_secret]
+      SourceS3BucketName: $[taskcat_autobucket]
+      S3BucketRegion: $[taskcat_current_region]
+      ProvisionOU: $[taskcat_ssm_/crowdstrike/provision-ou]
+      CreateOrgTrail: "true"
+      ExcludeRegions: $[taskcat_ssm_/crowdstrike/exclude_regions]
+      pControlTower: 'false'
+      pLogArchiveAccountId: $[taskcat_ssm_/nonct/log-archive-account-id]
+      pSecurityAccountId: $[taskcat_ssm_/nonct/audit-account-id]
+      pGovernedRegions: 'us-east-1,us-east-2'
+    regions:
+    - us-east-1
+    template: templates/crowdstrike_init_stack.yaml
