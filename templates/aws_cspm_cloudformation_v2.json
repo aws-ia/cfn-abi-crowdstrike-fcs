@@ -536,7 +536,6 @@
         "Handler": "bootstrap",
         "MemorySize": 128,
         "PackageType": "Zip",
-        "ReservedConcurrentExecutions": 100,
         "Role": {
           "Fn::GetAtt": [
             "CrowdStrikeSensorManagementOrchestratorRole",
