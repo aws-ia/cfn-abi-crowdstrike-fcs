@@ -87,6 +87,38 @@ def get_active_regions(AWS_REGION):
         return my_regions
     except Exception as e:
         return e
+
+def get_ssm_regions():
+    try:
+        supported_regions = [
+            "af-south-1",
+            "ap-east-1",
+            "ap-northeast-1",
+            "ap-northeast-2",
+            "ap-south-1",
+            "ap-southeast-1",
+            "ap-southeast-2",
+            "ca-central-1",
+            "eu-central-1",
+            "eu-north-1",
+            "eu-south-1",
+            "eu-west-1",
+            "eu-west-2",
+            "eu-west-3",
+            "me-south-1",
+            "sa-east-1",
+            "us-east-1",
+            "us-east-2",
+            "us-west-1",
+            "us-west-2"
+        ]
+        ssm_regions = []
+        for supported_region in supported_regions:
+            if supported_region not in EXCLUDE_REGIONS:
+                ssm_regions += [supported_region]
+        return ssm_regions
+    except Exception as e:
+        return e
     
 def cfnresponse_send(event, context, responseStatus, responseData, physicalResourceId=None, noEcho=False):
     responseUrl = event['ResponseURL']
@@ -118,6 +150,7 @@ def lambda_handler(event, context):
     logger.info('Context {}'.format(context))
     aws_account_id = context.invoked_function_arn.split(":")[4]
     regions = get_active_regions(AWS_REGION)
+    ssm_regions = get_ssm_regions
     OrgId = get_management_id()
     try:
         secret_str = get_secret(SECRET_STORE_NAME, SECRET_STORE_REGION)
@@ -159,6 +192,7 @@ def lambda_handler(event, context):
                         "eventbus_name": response['body']['resources'][0]['eventbus_name']
                     }
                     response_d['my_regions'] = regions
+                    response_d['ssm_regions'] = ssm_regions
                     cfnresponse_send(event, context, SUCCESS, response_d, "CustomResourcePhysicalID")
                 else:
                     response_d = response['body']
