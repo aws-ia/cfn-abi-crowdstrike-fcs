@@ -49,6 +49,8 @@ run_test "cw-test-smlambda"
 
 run_test "cw-test-all"
 
+#run_test "cw-test-nonct"
+
 ## Executing ash tool
 
 #find ${PROJECT_PATH} -name lambda.zip -exec rm -rf {} \;
