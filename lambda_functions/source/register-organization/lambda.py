@@ -150,7 +150,7 @@ def lambda_handler(event, context):
     logger.info('Context {}'.format(context))
     aws_account_id = context.invoked_function_arn.split(":")[4]
     regions = get_active_regions(AWS_REGION)
-    ssm_regions = get_ssm_regions
+    ssm_regions = get_ssm_regions()
     OrgId = get_management_id()
     try:
         secret_str = get_secret(SECRET_STORE_NAME, SECRET_STORE_REGION)
