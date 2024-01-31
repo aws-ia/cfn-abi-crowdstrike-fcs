@@ -74,49 +74,43 @@ def get_active_regions(AWS_REGION):
         service_name='ec2',
         region_name=AWS_REGION
     )
+    supported_regions = [
+        "af-south-1",
+        "ap-east-1",
+        "ap-northeast-1",
+        "ap-northeast-2",
+        "ap-south-1",
+        "ap-southeast-1",
+        "ap-southeast-2",
+        "ca-central-1",
+        "eu-central-1",
+        "eu-north-1",
+        "eu-south-1",
+        "eu-west-1",
+        "eu-west-2",
+        "eu-west-3",
+        "me-south-1",
+        "sa-east-1",
+        "us-east-1",
+        "us-east-2",
+        "us-west-1",
+        "us-west-2"
+    ]
+    active_regions = []
+    my_regions = []
+    ssm_regions = []
     try:
         describe_regions_response = client.describe_regions(AllRegions=False)
         regions = describe_regions_response['Regions']
-        active_regions = []
-        my_regions = []
         for region in regions:
             active_regions += [region['RegionName']]
         for region in active_regions:
             if region not in EXCLUDE_REGIONS:
                 my_regions += [region]
-        return my_regions
-    except Exception as e:
-        return e
-
-def get_ssm_regions():
-    try:
-        supported_regions = [
-            "af-south-1",
-            "ap-east-1",
-            "ap-northeast-1",
-            "ap-northeast-2",
-            "ap-south-1",
-            "ap-southeast-1",
-            "ap-southeast-2",
-            "ca-central-1",
-            "eu-central-1",
-            "eu-north-1",
-            "eu-south-1",
-            "eu-west-1",
-            "eu-west-2",
-            "eu-west-3",
-            "me-south-1",
-            "sa-east-1",
-            "us-east-1",
-            "us-east-2",
-            "us-west-1",
-            "us-west-2"
-        ]
-        ssm_regions = []
-        for supported_region in supported_regions:
-            if supported_region not in EXCLUDE_REGIONS:
-                ssm_regions += [supported_region]
-        return ssm_regions
+        for region in my_regions:
+            if region in supported_regions:
+                ssm_regions += [region]
+        return my_regions, ssm_regions
     except Exception as e:
         return e
     
@@ -149,8 +143,7 @@ def lambda_handler(event, context):
     logger.info('Got event {}'.format(event))
     logger.info('Context {}'.format(context))
     aws_account_id = context.invoked_function_arn.split(":")[4]
-    regions = get_active_regions(AWS_REGION)
-    ssm_regions = get_ssm_regions()
+    regions, ssm_regions = get_active_regions(AWS_REGION)
     OrgId = get_management_id()
     try:
         secret_str = get_secret(SECRET_STORE_NAME, SECRET_STORE_REGION)
