@@ -328,7 +328,7 @@ Resources:
         - DeploymentTargets:
             AccountFilterType: NONE
             OrganizationalUnitIds: !Ref ProvisionOU
-          Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
+          Regions: !GetAtt TriggerRegisterAccountLambda.ssm_regions
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/ssm-association-stackset.yml
 
   SSMSetupStackSet:
