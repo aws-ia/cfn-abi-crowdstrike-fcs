@@ -639,7 +639,7 @@ Resources:
       Handler: lambda.lambda_handler
       MemorySize: 128
       Role: !GetAtt "LambdaCrowdStrikeRegistrationRole.Arn"
-      Runtime: python3.7
+      Runtime: python3.11
       Timeout: 300
       FunctionName: !Ref 'AWS::StackName'
       Code:
