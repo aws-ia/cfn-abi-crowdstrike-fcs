@@ -190,6 +190,9 @@
                   "Effect": "Allow",
                   "Resource": "*",
                   "Action": [
+                    "ecr:BatchGetImage",
+                    "ecr:GetDownloadUrlForLayer",
+                    "lambda:GetLayerVersion",
                     "backup:ListBackupPlans",
                     "backup:ListRecoveryPointsByBackupVault",
                     "ecr:GetRegistryScanningConfiguration",
