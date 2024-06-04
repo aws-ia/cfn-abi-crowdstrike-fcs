@@ -47,5 +47,5 @@ Resources:
               Service: 'ssm.amazonaws.com'
             Action: 'sts:AssumeRole'
       ManagedPolicyArns:
-        - 'arn:aws:iam::aws:policy/service-role/AmazonSSMAutomationRole'
-        - 'arn:aws:iam::aws:policy/SecretsManagerReadWrite'
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonSSMAutomationRole'
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/SecretsManagerReadWrite'

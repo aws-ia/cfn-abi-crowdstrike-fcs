@@ -150,7 +150,9 @@
                   "Fn::Join": [
                     "",
                     [
-                      "arn:aws:iam::",
+                      {
+                        "Fn::Sub": "arn:${AWS::Partition}:iam::"
+                      },
                       {
                         "Ref": "CSAccountNumber"
                       },
@@ -179,7 +181,9 @@
           "Ref": "RoleName"
         },
         "ManagedPolicyArns": [
-          "arn:aws:iam::aws:policy/SecurityAudit"
+          {
+            "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/SecurityAudit"
+        }
         ],
         "Policies": [
           {
@@ -248,7 +252,9 @@
                   "Action": [
                     "events:PutEvents"
                   ],
-                  "Resource": "arn:aws:events:*:*:event-bus/cs-*",
+                  "Resource": {
+                    "Fn::Sub": "arn:${AWS::Partition}:events:*:*:event-bus/cs-*"
+                },
                   "Effect": "Allow"
                 }
               ]
@@ -307,7 +313,7 @@
               "Effect": "Allow",
               "Principal": {
                 "AWS": {
-                  "Fn::Sub": "arn:aws:iam::${CSAccountNumber}:role/${CSRoleName}"
+                  "Fn::Sub": "arn:${AWS::Partition}:iam::${CSAccountNumber}:role/${CSRoleName}"
                 }
               },
               "Action": [
@@ -335,7 +341,7 @@
                     "lambda:InvokeAsync"
                   ],
                   "Resource": {
-                    "Fn::Sub": "arn:aws:lambda:*:${AWS::AccountId}:function:cs-*"
+                    "Fn::Sub": "arn:${AWS::Partition}:lambda:*:${AWS::AccountId}:function:cs-*"
                   },
                   "Effect": "Allow",
                   "Sid": "InvokeLambda"
@@ -396,8 +402,12 @@
                     "ssm:SendCommand"
                   ],
                   "Resource":[
-                    "arn:aws:ssm:*:*:document/*",
-                    "arn:aws:ec2:*:*:instance/*"
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:ssm:*:*:document/*"
+                  },
+                  {
+                      "Fn::Sub": "arn:${AWS::Partition}:ec2:*:*:instance/*"
+                  }
                   ]
                 },
                 {
@@ -406,8 +416,12 @@
                     "logs:CreateLogStream"
                   ],
                   "Resource": [
-                    "arn:aws:logs:*:*:log-group:/aws/lambda/cs-*",
-                    "arn:aws:logs:*:*:log-group:/aws/lambda/cs-*:log-stream:*"
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:*:*:log-group:/aws/lambda/cs-*"
+                  },
+                  {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:*:*:log-group:/aws/lambda/cs-*:log-stream:*"
+                  }
                   ],
                   "Effect": "Allow",
                   "Sid": "Logging"
@@ -421,7 +435,9 @@
                         "secretsmanager:GetSecretValue"
                       ],
                       "Resource": [
-                        {"Fn::Sub": "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/CrowdStrike/CSPM/SensorManagement/FalconAPICredentials-??????"}
+                        {
+                          "Fn::Sub": "arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/CrowdStrike/CSPM/SensorManagement/FalconAPICredentials-??????"
+                      }
                       ],
                       "Effect": "Allow"
                     },

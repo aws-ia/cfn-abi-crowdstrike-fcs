@@ -5,6 +5,11 @@ Description: "CrowdStrike Cloud Security Root Template. (abp-1kirFQBF75MfEQ3RbMQ
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
+      - Label: 
+          default: Account Type
+        Parameters:
+          - FalconAccountType
+          - AWSAccountType
       - Label:
           default: CrowdStrike Falcon API Key
         Parameters:
@@ -58,6 +63,10 @@ Metadata:
           - pLogArchiveAccountId
 
     ParameterLabels:
+      FalconAccountType:
+        default: Falcon Account Type
+      AWSAccountType:
+        default: AWS Account Type
       SourceS3BucketName:
         default: Source S3 Bucket Name
       S3BucketRegion:
@@ -118,8 +127,23 @@ Conditions:
   CreateTrail: !Equals [ !Ref 'CreateOrgTrail', true ]
   ExcludeRegionsEmpty:  !Equals [!Ref 'ExcludeRegions', '']
   CreateSSMAssociations: !Equals [ !Ref 'EnableSSMDistributor', true ]
+  IsCommercialIOA: !And [!Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', commercial ], !Equals [!Ref 'EnableIOA', true ]]
+  IsGovCloudIOA: !And [!Equals [ !Ref 'AWSAccountType', govcloud ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
+  IsCommToGovCloudIOA: !And [!Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
 
 Parameters:
+  FalconAccountType:
+    Type: String
+    AllowedValues:
+      - 'commercial'
+      - 'govcloud'
+    Default: 'commercial'
+  AWSAccountType:
+    Type: String
+    AllowedValues:
+      - 'commercial'
+      - 'govcloud'
+    Default: 'commercial'
   FalconClientID:
     Description: Your Falcon OAuth2 Client ID.
     NoEcho: 'true'
@@ -131,7 +155,12 @@ Parameters:
   CSCloud:
     Type: String
     Default: us1
-    AllowedValues: [ "us1", "us2", "eu1" ]
+    AllowedValues: 
+      - 'us1'
+      - 'us2'
+      - 'eu1'
+      - 'usgov1'
+      - 'usgov2'
     Description: The Cloud your CID is hosted in
   EnableIOA:
     Type: String
@@ -168,7 +197,6 @@ Parameters:
     Description: SRA version to tag
     Type: String
   S3BucketRegion:
-    AllowedPattern: ^[a-z][a-z]-[a-z]*-[0-9]*$
     Type: String
     Default: us-east-1
   CreateOrgTrail:
@@ -504,9 +532,87 @@ Resources:
                 Resource: !Sub 'arn:${AWS::Partition}:s3:::cfn-abi-crowdstrike-fcs-*'
                 Effect: Allow
 
-  CrowdStrikeEbStackSet:
+  # Root IOA StackSets
+  CommCrowdStrikeRootEbStackSet:
     Type: 'AWS::CloudFormation::StackSet'
-    Condition: CreateIOAResources
+    Condition: IsCommercialIOA
+    Properties:
+      AdministrationRoleARN: !GetAtt StackSetAdministrationRole.Arn
+      ExecutionRoleName: !Ref StackSetExecutionRole
+      StackSetName: "CrowdStrike-Cloud-Security-Root-EB-Stackset"
+      Parameters:
+        - ParameterKey: CSAccountNumber
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.cs_account_id
+        - ParameterKey: CSEventBusName
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.eventbus_name
+      PermissionModel: SELF_MANAGED
+      OperationPreferences:
+        MaxConcurrentPercentage: 100
+        FailureTolerancePercentage: 50
+        RegionConcurrencyType: PARALLEL
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            Accounts:
+              - !Ref AWS::AccountId
+          Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_eb_v2.json
+
+  GovCrowdStrikeRootEbStackSet:
+    Type: 'AWS::CloudFormation::StackSet'
+    Condition: IsGovCloudIOA
+    Properties:
+      AdministrationRoleARN: !GetAtt StackSetAdministrationRole.Arn
+      ExecutionRoleName: !Ref StackSetExecutionRole
+      StackSetName: "CrowdStrike-Cloud-Security-Root-EB-Stackset"
+      Parameters:
+        - ParameterKey: CSAccountNumber
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.cs_account_id
+        - ParameterKey: CSEventBusName
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.eventbus_name
+      PermissionModel: SELF_MANAGED
+      OperationPreferences:
+        MaxConcurrentPercentage: 100
+        FailureTolerancePercentage: 50
+        RegionConcurrencyType: PARALLEL
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            Accounts:
+              - !Ref AWS::AccountId
+          Regions: !GetAtt TriggerRegisterAccountLambda.regions_list
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_eb_v2.json
+
+  CommGovCrowdStrikeRootEbStackSet:
+    Type: 'AWS::CloudFormation::StackSet'
+    Condition: IsCommToGovCloudIOA
+    Properties:
+      Capabilities:
+        - CAPABILITY_IAM
+        - CAPABILITY_NAMED_IAM
+      AdministrationRoleARN: !GetAtt StackSetAdministrationRole.Arn
+      ExecutionRoleName: !Ref StackSetExecutionRole
+      StackSetName: "CrowdStrike-Cloud-Security-Root-EB-Stackset"
+      Parameters:
+        - ParameterKey: DefaultEventBusRegion
+          ParameterValue: !Ref AWS::Region
+      PermissionModel: SELF_MANAGED
+      OperationPreferences:
+        MaxConcurrentPercentage: 100
+        FailureTolerancePercentage: 50
+        RegionConcurrencyType: PARALLEL
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            Accounts:
+              - !Ref AWS::AccountId
+          Regions: !GetAtt TriggerRegisterAccountLambda.comm_gov_eb_regions
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_eb_comm_gov.json
+  
+  # IOA StackSets
+  CommCrowdStrikeEbStackSet:
+    Type: 'AWS::CloudFormation::StackSet'
+    Condition: IsCommercialIOA
     Properties:
       StackSetName: "CrowdStrike-Cloud-Security-EB-Stackset"
       Parameters:
@@ -529,30 +635,85 @@ Resources:
           Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_eb_v2.json
 
-  CrowdStrikeRootEbStackSet:
+  GovCrowdStrikeEbStackSet:
     Type: 'AWS::CloudFormation::StackSet'
-    Condition: CreateIOAResources
+    Condition: IsGovCloudIOA
     Properties:
-      AdministrationRoleARN: !GetAtt StackSetAdministrationRole.Arn
-      ExecutionRoleName: !Ref StackSetExecutionRole
-      StackSetName: "CrowdStrike-Cloud-Security-Root-EB-Stackset"
+      StackSetName: "CrowdStrike-Cloud-Security-EB-Stackset"
       Parameters:
         - ParameterKey: CSAccountNumber
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.cs_account_id
         - ParameterKey: CSEventBusName
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.eventbus_name
-      PermissionModel: SELF_MANAGED
+      PermissionModel: SERVICE_MANAGED
       OperationPreferences:
         MaxConcurrentPercentage: 100
         FailureTolerancePercentage: 50
         RegionConcurrencyType: PARALLEL
+      AutoDeployment: 
+        Enabled: true
+        RetainStacksOnAccountRemoval: true
       StackInstancesGroup:
         - DeploymentTargets:
             AccountFilterType: NONE
-            Accounts:
-              - !Ref AWS::AccountId
-          Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
+            OrganizationalUnitIds: !Ref ProvisionOU
+          Regions: !GetAtt TriggerRegisterAccountLambda.regions_list
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_eb_v2.json
+
+  CommGovCrowdStrikeEbStackSet:
+    Type: 'AWS::CloudFormation::StackSet'
+    Condition: IsCommToGovCloudIOA
+    Properties:
+      Capabilities:
+        - CAPABILITY_IAM
+        - CAPABILITY_NAMED_IAM
+      StackSetName: "CrowdStrike-Cloud-Security-EB-Stackset"
+      Parameters:
+        - ParameterKey: DefaultEventBusRegion
+          ParameterValue: !Ref AWS::Region
+      PermissionModel: SERVICE_MANAGED
+      OperationPreferences:
+        MaxConcurrentPercentage: 100
+        FailureTolerancePercentage: 50
+        RegionConcurrencyType: PARALLEL
+      AutoDeployment: 
+        Enabled: true
+        RetainStacksOnAccountRemoval: true
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            OrganizationalUnitIds: !Ref ProvisionOU
+          Regions: !GetAtt TriggerRegisterAccountLambda.comm_gov_eb_regions
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_eb_comm_gov.json
+
+  CommGovCrowdStrikeIOAStackSet:
+    Type: 'AWS::CloudFormation::StackSet'
+    Condition: IsCommToGovCloudIOA
+    Properties:
+      Capabilities:
+        - CAPABILITY_IAM
+        - CAPABILITY_NAMED_IAM
+      StackSetName: "CrowdStrike-Cloud-Security-IOA-Stackset"
+      Parameters:
+        - ParameterKey: ClientID
+          ParameterValue: !Ref FalconClientID
+        - ParameterKey: ClientSecret
+          ParameterValue: !Ref FalconSecret
+      PermissionModel: SERVICE_MANAGED
+      OperationPreferences:
+        MaxConcurrentPercentage: 100
+        FailureTolerancePercentage: 50
+        RegionConcurrencyType: PARALLEL
+      AutoDeployment: 
+        Enabled: true
+        RetainStacksOnAccountRemoval: true
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            OrganizationalUnitIds: !Ref ProvisionOU
+          Regions: 
+            - !Ref AWS::Region
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_ioa_comm_gov.json
 
   CrowdStrikeSecrets:
     Type: AWS::SecretsManager::Secret
@@ -754,7 +915,7 @@ Resources:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
       Path: /
       Policies:
         - PolicyName: lambda-copier

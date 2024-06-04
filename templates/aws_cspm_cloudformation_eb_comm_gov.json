@@ -1,35 +1,11 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "Setup script to enable CrowdStrike Falcon CSPM. (abp-1kirFQBF75MfEQ3RbMQHRb-5NlayJp9WpX1krs2Aq7Koa-ln87w0mw)",
+    "Description": "Setup script to enable CrowdStrike Falcon CSPM.",
     "Parameters": {
-      "CSAccountNumber": {
-        "Description": "Crowdstrike account number",
-        "Type": "String",
-        "MinLength": "12",
-        "MaxLength": "12"
-      },
-      "CSEventBusName": {
-        "Description": "CrowdStrike Event Bridge Name",
-        "Type": "String"
-      },
       "DefaultEventBusRegion": {
         "Type": "String",
         "Default": "us-east-1"
-      },
-      "AWSAccountType": {
-        "Type": "String",
-        "Default": "commercial"
       }
-    },
-    "Conditions": {
-      "IsGovCloud": {
-        "Fn::Equals": [
-            {
-                "Ref": "AWSAccountType"
-            },
-            "govcloud"
-        ]
-    }
     },
     "Resources": {
       "CrowdStrikeEventBusRule": {
@@ -66,11 +42,7 @@
           "Targets": [
             {
               "Arn": {
-                "Fn::If" : [
-                  "IsGovCloud",
-                  {"Fn::Sub": "arn:aws:events:${AWS::Region}:${CSAccountNumber}:event-bus/${CSEventBusName}"},
-                  {"Fn::Sub": "arn:aws:events:${DefaultEventBusRegion}:${CSAccountNumber}:event-bus/${CSEventBusName}"}
-                ]
+                "Fn::Sub": "arn:aws:events:${DefaultEventBusRegion}:${AWS::AccountId}:event-bus/default"
               },
               "RoleArn": {
                 "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/CrowdStrikeCSPMEventBridge"
@@ -135,11 +107,7 @@
           "Targets": [
             {
               "Arn": {
-                "Fn::If" : [
-                  "IsGovCloud",
-                  {"Fn::Sub": "arn:aws:events:${AWS::Region}:${CSAccountNumber}:event-bus/${CSEventBusName}"},
-                  {"Fn::Sub": "arn:aws:events:${DefaultEventBusRegion}:${CSAccountNumber}:event-bus/${CSEventBusName}"}
-                ]
+                "Fn::Sub": "arn:aws:events:${DefaultEventBusRegion}:${AWS::AccountId}:event-bus/default"
               },
               "RoleArn": {
                 "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/CrowdStrikeCSPMEventBridge"
