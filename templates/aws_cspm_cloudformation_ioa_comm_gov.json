@@ -30,6 +30,11 @@
           "false"
         ],
         "Default": "true"
+      },
+      "PermissionsBoundary": {
+        "Type": "String",
+        "Description": "The name of the policy used to set the permissions boundary for IAM roles",
+        "Default": ""
       }
     },
     "Conditions": {
@@ -40,6 +45,11 @@
             "Ref": "EnableIOA"
           }
         ]
+      },
+      "SetPermissionsBoundary": {
+        "Fn::Not": [{
+          "Fn::Equals" : [ {"Ref": "PermissionsBoundary"}, "" ]
+        }]
       },
       "ShouldCreateIOACloudTrailResource": {
         "Fn::And": [
@@ -62,6 +72,13 @@
         "Type": "AWS::IAM::Role",
         "Condition": "ShouldCreateIOAResources",
         "Properties": {
+          "PermissionsBoundary": { 
+            "Fn::If": [ 
+              "SetPermissionsBoundary", 
+              {"Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/${PermissionsBoundary}"}, 
+              {"Ref": "AWS::NoValue"}
+            ]
+          },
           "RoleName": "CrowdStrikeCSPMEventBridge",
           "AssumeRolePolicyDocument": {
             "Version": "2012-10-17",
@@ -99,6 +116,13 @@
         "Type": "AWS::IAM::Role",
         "Condition": "ShouldCreateIOAResources",
         "Properties": {
+          "PermissionsBoundary": { 
+            "Fn::If": [ 
+              "SetPermissionsBoundary", 
+              {"Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/${PermissionsBoundary}"}, 
+              {"Ref": "AWS::NoValue"}
+            ]
+          },
           "RoleName": "CrowdStrikeCSPMLambda",
           "AssumeRolePolicyDocument": {
             "Version": "2012-10-17",
@@ -489,6 +513,16 @@
       "CrowdStrikeS3Bucket": {
         "Type": "AWS::S3::Bucket",
         "Condition": "ShouldCreateIOACloudTrailResource",
+        "Metadata": {
+          "cfn_nag": {
+            "skip": [
+              {
+                "id": "W3045",
+                "comment": "Access control sufficient"
+              }
+            ]
+          }
+        },
         "Properties": {
           "PublicAccessBlockConfiguration": {
             "BlockPublicAcls" : "true",
@@ -638,6 +672,13 @@
         "Type": "AWS::IAM::Role",
         "Condition": "ShouldCreateIOAResources",
         "Properties": {
+          "PermissionsBoundary": { 
+            "Fn::If": [ 
+              "SetPermissionsBoundary", 
+              {"Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/${PermissionsBoundary}"}, 
+              {"Ref": "AWS::NoValue"}
+            ]
+          },
           "RoleName": "CrowdStrikeCSPMRegistration",
           "AssumeRolePolicyDocument": {
             "Version": "2012-10-17",

@@ -10,6 +10,10 @@ Metadata:
         Parameters:
           - FalconAccountType
           - AWSAccountType
+      - Label: 
+          default: Permissions Boundary
+        Parameters:
+          - PermissionsBoundary
       - Label:
           default: CrowdStrike Falcon API Key
         Parameters:
@@ -121,17 +125,13 @@ Metadata:
         default: pSecurityAccountId
       pLogArchiveAccountId:
         default: pLogArchiveAccountId
-
-Conditions:
-  CreateIOAResources: !Equals [ !Ref 'EnableIOA', true ]
-  CreateTrail: !Equals [ !Ref 'CreateOrgTrail', true ]
-  ExcludeRegionsEmpty:  !Equals [!Ref 'ExcludeRegions', '']
-  CreateSSMAssociations: !Equals [ !Ref 'EnableSSMDistributor', true ]
-  IsCommercialIOA: !And [!Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', commercial ], !Equals [!Ref 'EnableIOA', true ]]
-  IsGovCloudIOA: !And [!Equals [ !Ref 'AWSAccountType', govcloud ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
-  IsCommToGovCloudIOA: !And [!Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
+      PermissionsBoundary:
+        default: Permissions Boundary Policy Name
 
 Parameters:
+  PermissionsBoundary:
+    Type: String
+    Description: The name of the policy used to set the permissions boundary for IAM roles.
   FalconAccountType:
     Type: String
     AllowedValues:
@@ -304,6 +304,16 @@ Mappings:
     eu1: 
       BaseURL: "https://api.eu-1.crowdstrike.com"
 
+Conditions:
+  CreateIOAResources: !Equals [ !Ref 'EnableIOA', true ]
+  CreateTrail: !Equals [ !Ref 'CreateOrgTrail', true ]
+  ExcludeRegionsEmpty:  !Equals [!Ref 'ExcludeRegions', '']
+  CreateSSMAssociations: !Equals [ !Ref 'EnableSSMDistributor', true ]
+  IsCommercialIOA: !And [!Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', commercial ], !Equals [!Ref 'EnableIOA', true ]]
+  IsGovCloudIOA: !And [!Equals [ !Ref 'AWSAccountType', govcloud ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
+  IsCommToGovCloudIOA: !And [!Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
+  SetPermissionsBoundary: !Not [ !Equals [ !Ref PermissionsBoundary, '' ] ]
+
 Resources:
   CloudTrailStack:
     Type: 'AWS::CloudFormation::Stack'
@@ -379,6 +389,8 @@ Resources:
           ParameterValue: !Ref FalconClientID
         - ParameterKey: FalconSecret
           ParameterValue: !Ref FalconSecret
+        - ParameterKey: PermissionsBoundary
+          ParameterValue: !Ref PermissionsBoundary
         - ParameterKey: BaseURL
           ParameterValue: !FindInMap
             - CloudMap
@@ -413,6 +425,7 @@ Resources:
         APICredentialsStorageMode: !Ref APICredentialsStorageMode
         ClientID: !Ref FalconClientID
         ClientSecret: !Ref FalconSecret
+        PermissionsBoundary: !Ref PermissionsBoundary
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_v2.json
 
   CrowdStrikeStackSet:
@@ -442,6 +455,8 @@ Resources:
           ParameterValue: !Ref FalconClientID
         - ParameterKey: ClientSecret
           ParameterValue: !Ref FalconSecret
+        - ParameterKey: PermissionsBoundary
+          ParameterValue: !Ref PermissionsBoundary
       PermissionModel: SERVICE_MANAGED
       AutoDeployment:
         Enabled: true
@@ -463,6 +478,11 @@ Resources:
     Type: AWS::IAM::Role
     Condition: CreateIOAResources
     Properties:
+      PermissionsBoundary:
+        Fn::If:
+          - SetPermissionsBoundary
+          - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}'
+          - Ref: AWS::NoValue
       RoleName: !Ref StackSetAdminRole
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -497,6 +517,11 @@ Resources:
           - id: CKV_AWS_111
             comment: IAM PassRole action is constrained by resource ARN.
     Properties:
+      PermissionsBoundary:
+        Fn::If:
+          - SetPermissionsBoundary
+          - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}'
+          - Ref: AWS::NoValue
       RoleName: !Ref StackSetExecRole
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -699,6 +724,8 @@ Resources:
           ParameterValue: !Ref FalconClientID
         - ParameterKey: ClientSecret
           ParameterValue: !Ref FalconSecret
+        - ParameterKey: PermissionsBoundary
+          ParameterValue: !Ref PermissionsBoundary
       PermissionModel: SERVICE_MANAGED
       OperationPreferences:
         MaxConcurrentPercentage: 100
@@ -740,6 +767,11 @@ Resources:
   LambdaCrowdStrikeRegistrationRole:
     Type: AWS::IAM::Role
     Properties:
+      PermissionsBoundary:
+        Fn::If:
+          - SetPermissionsBoundary
+          - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}'
+          - Ref: AWS::NoValue
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -907,6 +939,11 @@ Resources:
   CopyZipsRole:
     Type: AWS::IAM::Role
     Properties:
+      PermissionsBoundary:
+        Fn::If:
+          - SetPermissionsBoundary
+          - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}'
+          - Ref: AWS::NoValue
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -1085,6 +1122,11 @@ Resources:
           - id: W28
             reason: The role name is defined to identify automation resources
     Properties:
+      PermissionsBoundary:
+        Fn::If:
+          - SetPermissionsBoundary
+          - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}'
+          - Ref: AWS::NoValue
       RoleName: !Ref OrgIdLambdaRoleName
       Description: !Sub Role for '${OrgIdLambdaRoleName}' Lambda function
       AssumeRolePolicyDocument:

@@ -64,6 +64,11 @@
       "MinLength": "1",
       "NoEcho": "true"
     },
+    "PermissionsBoundary": {
+      "Type": "String",
+      "Description": "The name of the policy used to set the permissions boundary for IAM roles",
+      "Default": ""
+    },
     "APICredentialsStorageMode": {
       "Type": "String",
       "Description": "How Falcon API credentials are stored. 'lambda' stores them in the lambda environment variables, 'secret' in an AWS secret.",
@@ -79,6 +84,11 @@
           "Ref": "EnableIOA"
         }
       ]
+    },
+    "SetPermissionsBoundary": {
+      "Fn::Not": [{
+        "Fn::Equals" : [ {"Ref": "PermissionsBoundary"}, "" ]
+      }]
     },
     "ShouldCreateIOACloudTrailResource": {
       "Fn::And": [
@@ -140,6 +150,13 @@
         }
       },
       "Properties": {
+        "PermissionsBoundary": { 
+            "Fn::If": [ 
+              "SetPermissionsBoundary", 
+              {"Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/${PermissionsBoundary}"}, 
+              {"Ref": "AWS::NoValue"}
+            ]
+          },
         "AssumeRolePolicyDocument": {
           "Version": "2012-10-17",
           "Statement": [
@@ -228,6 +245,13 @@
         }
       },
       "Properties": {
+        "PermissionsBoundary": { 
+            "Fn::If": [ 
+              "SetPermissionsBoundary", 
+              {"Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/${PermissionsBoundary}"}, 
+              {"Ref": "AWS::NoValue"}
+            ]
+          },
         "RoleName": "CrowdStrikeCSPMEventBridge",
         "AssumeRolePolicyDocument": {
           "Version": "2012-10-17",
@@ -305,6 +329,13 @@
         }
       },
       "Properties": {
+        "PermissionsBoundary": { 
+            "Fn::If": [ 
+              "SetPermissionsBoundary", 
+              {"Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/${PermissionsBoundary}"}, 
+              {"Ref": "AWS::NoValue"}
+            ]
+          },
         "RoleName": "CrowdStrikeSensorManagement",
         "AssumeRolePolicyDocument": {
           "Version": "2012-10-17",
@@ -376,6 +407,13 @@
         }
       },
       "Properties": {
+        "PermissionsBoundary": { 
+            "Fn::If": [ 
+              "SetPermissionsBoundary", 
+              {"Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/${PermissionsBoundary}"}, 
+              {"Ref": "AWS::NoValue"}
+            ]
+          },
         "RoleName": "CrowdStrikeSensorManagementOrchestrator",
         "AssumeRolePolicyDocument": {
           "Version": "2012-10-17",

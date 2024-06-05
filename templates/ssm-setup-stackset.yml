@@ -17,6 +17,13 @@ Parameters:
   BaseURL:
     Description: Your Falcon OAuth2 API Base URL.
     Type: String
+  PermissionsBoundary:
+    Type: String
+    Description: The name of the policy used to set the permissions boundary for IAM roles.
+    Default: ''
+
+Conditions:
+  SetPermissionsBoundary: !Not [ !Equals [ !Ref PermissionsBoundary, '' ] ]
 
 Resources:
   CrowdStrikeSecrets:
@@ -39,6 +46,11 @@ Resources:
     Type: 'AWS::IAM::Role'
     Properties:
       RoleName: !Ref AutomationAssumeRole
+      PermissionsBoundary:
+        Fn::If:
+          - SetPermissionsBoundary
+          - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}'
+          - Ref: AWS::NoValue
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
