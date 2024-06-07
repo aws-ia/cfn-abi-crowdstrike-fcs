@@ -515,12 +515,9 @@
         "Condition": "ShouldCreateIOACloudTrailResource",
         "Metadata": {
           "cfn-lint": {
-            "skip": [
-              {
-                "id": "W3045",
-                "comment": "Access control sufficient"
-              }
-            ]
+            "config": {
+                "ignore_checks": ["W3045"]
+            }
           }
         },
         "Properties": {
