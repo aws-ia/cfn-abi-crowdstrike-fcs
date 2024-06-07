@@ -514,7 +514,7 @@
         "Type": "AWS::S3::Bucket",
         "Condition": "ShouldCreateIOACloudTrailResource",
         "Metadata": {
-          "cfn_nag": {
+          "cfn-lint": {
             "skip": [
               {
                 "id": "W3045",
