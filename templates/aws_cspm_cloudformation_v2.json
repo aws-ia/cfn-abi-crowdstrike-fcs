@@ -153,7 +153,7 @@
         "PermissionsBoundary": { 
             "Fn::If": [ 
               "SetPermissionsBoundary", 
-              {"Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/${PermissionsBoundary}"}, 
+              {"Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}"}, 
               {"Ref": "AWS::NoValue"}
             ]
           },
@@ -199,7 +199,7 @@
         },
         "ManagedPolicyArns": [
           {
-            "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/SecurityAudit"
+            "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::Partition}:policy/SecurityAudit"
         }
         ],
         "Policies": [
@@ -248,7 +248,7 @@
         "PermissionsBoundary": { 
             "Fn::If": [ 
               "SetPermissionsBoundary", 
-              {"Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/${PermissionsBoundary}"}, 
+              {"Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}"}, 
               {"Ref": "AWS::NoValue"}
             ]
           },
@@ -332,7 +332,7 @@
         "PermissionsBoundary": { 
             "Fn::If": [ 
               "SetPermissionsBoundary", 
-              {"Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/${PermissionsBoundary}"}, 
+              {"Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}"}, 
               {"Ref": "AWS::NoValue"}
             ]
           },
@@ -410,7 +410,7 @@
         "PermissionsBoundary": { 
             "Fn::If": [ 
               "SetPermissionsBoundary", 
-              {"Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/${PermissionsBoundary}"}, 
+              {"Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}"}, 
               {"Ref": "AWS::NoValue"}
             ]
           },

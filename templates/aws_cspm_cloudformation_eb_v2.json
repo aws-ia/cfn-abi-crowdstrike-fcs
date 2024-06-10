@@ -68,12 +68,12 @@
               "Arn": {
                 "Fn::If" : [
                   "IsGovCloud",
-                  {"Fn::Sub": "arn:aws:events:${AWS::Region}:${CSAccountNumber}:event-bus/${CSEventBusName}"},
-                  {"Fn::Sub": "arn:aws:events:${DefaultEventBusRegion}:${CSAccountNumber}:event-bus/${CSEventBusName}"}
+                  {"Fn::Sub": "arn:${AWS::Partition}:events:${AWS::Region}:${CSAccountNumber}:event-bus/${CSEventBusName}"},
+                  {"Fn::Sub": "arn:${AWS::Partition}:events:${DefaultEventBusRegion}:${CSAccountNumber}:event-bus/${CSEventBusName}"}
                 ]
               },
               "RoleArn": {
-                "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/CrowdStrikeCSPMEventBridge"
+                "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/CrowdStrikeCSPMEventBridge"
               },
               "Id": "CrowdStrikeCentralizeEvents"
             }
@@ -137,12 +137,12 @@
               "Arn": {
                 "Fn::If" : [
                   "IsGovCloud",
-                  {"Fn::Sub": "arn:aws:events:${AWS::Region}:${CSAccountNumber}:event-bus/${CSEventBusName}"},
-                  {"Fn::Sub": "arn:aws:events:${DefaultEventBusRegion}:${CSAccountNumber}:event-bus/${CSEventBusName}"}
+                  {"Fn::Sub": "arn:${AWS::Partition}:events:${AWS::Region}:${CSAccountNumber}:event-bus/${CSEventBusName}"},
+                  {"Fn::Sub": "arn:${AWS::Partition}:events:${DefaultEventBusRegion}:${CSAccountNumber}:event-bus/${CSEventBusName}"}
                 ]
               },
               "RoleArn": {
-                "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/CrowdStrikeCSPMEventBridge"
+                "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/CrowdStrikeCSPMEventBridge"
               },
               "Id": "CrowdStrikeCentralizeEvents"
             }
