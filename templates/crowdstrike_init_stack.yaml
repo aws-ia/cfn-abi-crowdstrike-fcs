@@ -132,6 +132,7 @@ Parameters:
   PermissionsBoundary:
     Type: String
     Description: The name of the policy used to set the permissions boundary for IAM roles.
+    Default: ''
   FalconAccountType:
     Type: String
     AllowedValues:
