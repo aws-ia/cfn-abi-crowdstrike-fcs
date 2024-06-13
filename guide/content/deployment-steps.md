@@ -4,7 +4,7 @@ title: Deployment steps
 description: Deployment steps.
 ---
 
-## Launch the CloudFormation template in the AWS Organizations management account {#launch-cfn}
+## Option 1: Launch the CloudFormation template in the AWS Organizations management account {#launch-cfn}
 
 
 1. Download the [CloudFormation template](https://raw.githubusercontent.com/aws-ia/cfn-abi-crowdstrike-fcs/main/templates/crowdstrike_init_stack.yaml).
@@ -27,6 +27,7 @@ description: Deployment steps.
         * **ScheduleExpression**: Define the schedule or rate by which the SSM Automation runs. The default is `cron(0 0 */1 * * ? *)` (runs every hour)
         * **MaxErrors**: The number or percent of errors that are allowed before the system stops sending requests to run the association on additional targets. The default is `10%`
         * **MaxConcurrency**: The maximum number or percent of targets allowed to run the association at the same time. The default is `20%`
+        * **PermissionsBoundary**: Name of Permissions Boundary policy to apply to IAM Roles (if applicable)
 
     * Leave the remaining parameters as default (listed below).
         * **Source S3 Bucket Name**: `aws-abi`
@@ -47,7 +48,7 @@ description: Deployment steps.
 Wait for the CloudFormation status to change to `CREATE_COMPLETE` state.
 
 
-## Launch using Customizations for Control Tower {#launch-cfct}
+## Option 2: Launch using Customizations for Control Tower {#launch-cfct}
 
 
 [Customizations for AWS Control Tower](https://aws.amazon.com/solutions/implementations/customizations-for-aws-control-tower/) (CfCT) combines AWS Control Tower and other AWS services to help you set up an AWS environment. You can deploy the templates provided with the ABI solution using CfCT.
