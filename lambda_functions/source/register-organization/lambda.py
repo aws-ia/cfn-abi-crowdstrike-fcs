@@ -27,9 +27,11 @@ useragent = ("%s/%s" % (name, VERSION))
 SECRET_STORE_NAME = os.environ['secret_name']
 SECRET_STORE_REGION = os.environ['secret_region']
 EXCLUDE_REGIONS = os.environ['exclude_regions']
-AWS_REGION = os.environ['aws_region']
+EXISTING_CLOUDTRAIL = eval(os.environ['existing_cloudtrail'])
+AWS_REGION = os.environ['AWS_REGION']
 CS_CLOUD = os.environ['cs_cloud']
-ACCOUNT_TYPE = "commercial"
+AWS_ACCOUNT_TYPE = os.environ['aws_account_type']
+FALCON_ACCOUNT_TYPE = os.environ['falcon_account_type']
 
 def get_secret(secret_name, secret_region):
     session = boto3.session.Session()
@@ -98,6 +100,7 @@ def get_active_regions(AWS_REGION):
     ]
     active_regions = []
     my_regions = []
+    comm_gov_eb_regions = []
     ssm_regions = []
     try:
         describe_regions_response = client.describe_regions(AllRegions=False)
@@ -107,10 +110,13 @@ def get_active_regions(AWS_REGION):
         for region in active_regions:
             if region not in EXCLUDE_REGIONS:
                 my_regions += [region]
+        for region in active_regions:
+            if region in my_regions and region != AWS_REGION:
+                comm_gov_eb_regions += [region]
         for region in my_regions:
             if region in supported_regions:
                 ssm_regions += [region]
-        return my_regions, ssm_regions
+        return my_regions, ssm_regions, comm_gov_eb_regions
     except Exception as e:
         return e
     
@@ -143,7 +149,7 @@ def lambda_handler(event, context):
     logger.info('Got event {}'.format(event))
     logger.info('Context {}'.format(context))
     aws_account_id = context.invoked_function_arn.split(":")[4]
-    regions, ssm_regions = get_active_regions(AWS_REGION)
+    regions, comm_gov_eb_regions, ssm_regions = get_active_regions(AWS_REGION)
     OrgId = get_management_id()
     try:
         secret_str = get_secret(SECRET_STORE_NAME, SECRET_STORE_REGION)
@@ -158,15 +164,28 @@ def lambda_handler(event, context):
                                     )
             if event['RequestType'] in ['Create']:
                 logger.info('Event = {}'.format(event))
-                response = falcon.create_aws_account(account_id=aws_account_id,
-                                                    organization_id=OrgId,
-                                                    behavior_assessment_enabled=True,
-                                                    sensor_management_enabled=True,
-                                                    use_existing_cloudtrail=True,
-                                                    user_agent=useragent,
-                                                    is_master=True,
-                                                    account_type=ACCOUNT_TYPE
-                                                    )
+                if EXISTING_CLOUDTRAIL:
+                    response = falcon.create_aws_account(account_id=aws_account_id,
+                                                        organization_id=OrgId,
+                                                        behavior_assessment_enabled=True,
+                                                        sensor_management_enabled=True,
+                                                        use_existing_cloudtrail=EXISTING_CLOUDTRAIL,
+                                                        user_agent=useragent,
+                                                        is_master=True,
+                                                        account_type=AWS_ACCOUNT_TYPE
+                                                        )                    
+                else:
+                    response = falcon.create_aws_account(account_id=aws_account_id,
+                                                        organization_id=OrgId,
+                                                        behavior_assessment_enabled=True,
+                                                        sensor_management_enabled=True,
+                                                        use_existing_cloudtrail=EXISTING_CLOUDTRAIL,
+                                                        aws_cloudtrail_region=AWS_REGION,
+                                                        user_agent=useragent,
+                                                        is_master=True,
+                                                        account_type=AWS_ACCOUNT_TYPE
+                                                        )
+                logger.info('Response: {}'.format(response))
                 if response['status_code'] == 400:
                     error = response['body']['errors'][0]['message']
                     logger.info('Account Registration Failed with reason....{}'.format(error))
@@ -181,11 +200,22 @@ def lambda_handler(event, context):
                         "iam_role_name": response['body']['resources'][0]['iam_role_arn'].rsplit('/')[1],
                         "intermediate_role_arn": response['body']['resources'][0]['intermediate_role_arn'],
                         "cs_role_name": response['body']['resources'][0]['intermediate_role_arn'].rsplit('/')[1],
-                        "external_id": response['body']['resources'][0]['external_id'],
-                        "eventbus_name": response['body']['resources'][0]['eventbus_name']
+                        "external_id": response['body']['resources'][0]['external_id']
                     }
-                    response_d['my_regions'] = regions
-                    response_d['ssm_regions'] = ssm_regions
+                    if not EXISTING_CLOUDTRAIL:
+                        response_d['cs_bucket_name'] = response['body']['resources'][0]['aws_cloudtrail_bucket_name']
+                    if FALCON_ACCOUNT_TYPE == "commercial":
+                        response_d['eventbus_name'] = response['body']['resources'][0]['eventbus_name']
+                        response_d['my_regions'] = regions
+                        response_d['ssm_regions'] = ssm_regions
+                    elif FALCON_ACCOUNT_TYPE == "govcloud" and AWS_ACCOUNT_TYPE == "govcloud" :
+                        response_d['eventbus_name'] = response['body']['resources'][0]['eventbus_name'].rsplit(',')[0]
+                        response_d['my_regions'] = regions
+                        response_d['ssm_regions'] = ssm_regions
+                    elif FALCON_ACCOUNT_TYPE == "govcloud" and AWS_ACCOUNT_TYPE == "commercial" :
+                        response_d['comm_gov_eb_regions'] = comm_gov_eb_regions
+                        response_d['my_regions'] = regions
+                        response_d['ssm_regions'] = ssm_regions
                     cfnresponse_send(event, context, SUCCESS, response_d, "CustomResourcePhysicalID")
                 else:
                     response_d = response['body']

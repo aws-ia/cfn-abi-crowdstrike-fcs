@@ -828,8 +828,10 @@ Resources:
             - - !Ref SecretsManagerSecretName
               - !Ref 'AWS::StackName'
           exclude_regions: !If [ ExcludeRegionsEmpty, 'none', !Ref ExcludeRegions ]
-          aws_region: !Ref AWS::Region
           cs_cloud: !Ref CSCloud
+          aws_account_type: !Ref AWSAccountType
+          falcon_account_type: !Ref FalconAccountType
+          existing_cloudtrail: !If [ CreateTrail, 'False', 'True' ]
       Handler: lambda.lambda_handler
       MemorySize: 128
       Role: !GetAtt "LambdaCrowdStrikeRegistrationRole.Arn"
