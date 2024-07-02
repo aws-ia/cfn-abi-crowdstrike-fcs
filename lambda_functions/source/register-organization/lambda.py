@@ -180,7 +180,7 @@ def lambda_handler(event, context):
                                                         behavior_assessment_enabled=True,
                                                         sensor_management_enabled=True,
                                                         use_existing_cloudtrail=EXISTING_CLOUDTRAIL,
-                                                        aws_cloudtrail_region=AWS_REGION,
+                                                        cloudtrail_region=AWS_REGION,
                                                         user_agent=useragent,
                                                         is_master=True,
                                                         account_type=AWS_ACCOUNT_TYPE
