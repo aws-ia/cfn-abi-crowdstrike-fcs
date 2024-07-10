@@ -671,7 +671,7 @@ Resources:
             AccountFilterType: NONE
             Accounts:
               - !Ref AWS::AccountId
-          Regions: !GetAtt TriggerRegisterAccountLambda.regions_list
+          Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_eb_v2.json
 
   CommGovCrowdStrikeRootEbStackSet:
@@ -748,7 +748,7 @@ Resources:
         - DeploymentTargets:
             AccountFilterType: NONE
             OrganizationalUnitIds: !Ref ProvisionOU
-          Regions: !GetAtt TriggerRegisterAccountLambda.regions_list
+          Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_eb_v2.json
 
   CommGovCrowdStrikeEbStackSet:
