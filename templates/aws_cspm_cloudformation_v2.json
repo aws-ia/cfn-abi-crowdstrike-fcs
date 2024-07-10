@@ -74,6 +74,14 @@
       "Description": "How Falcon API credentials are stored. 'lambda' stores them in the lambda environment variables, 'secret' in an AWS secret.",
       "Default": "lambda",
       "AllowedValues": ["lambda", "secret"]
+    },
+    "CreateEventBridgeRole": {
+      "Type": "String",
+      "AllowedValues": [
+        "true",
+        "false"
+      ],
+      "Default": "true"
     }
   },
   "Conditions": {
@@ -82,6 +90,21 @@
         true,
         {
           "Ref": "EnableIOA"
+        }
+      ]
+    },
+    "ShouldCreateEventBridgeRole": {
+      "Fn::And": [
+        {
+          "Condition": "ShouldCreateIOAResources"
+        },
+        {
+          "Fn::Equals": [
+            true,
+            {
+              "Ref": "CreateEventBridgeRole"
+            }
+          ]
         }
       ]
     },
@@ -233,7 +256,7 @@
     },
     "CrowdStrikeEventBridgeRole": {
       "Type": "AWS::IAM::Role",
-      "Condition": "ShouldCreateIOAResources",
+      "Condition": "ShouldCreateEventBridgeRole",
       "Metadata": {
         "checkov": {
           "skip": [

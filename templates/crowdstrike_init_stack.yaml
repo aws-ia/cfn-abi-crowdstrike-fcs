@@ -447,6 +447,7 @@ Resources:
         ClientID: !Ref FalconClientID
         ClientSecret: !Ref FalconSecret
         PermissionsBoundary: !Ref PermissionsBoundary
+        CreateEventBridgeRole: 'false'
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_v2.json
   CrowdStrikeStackSet:
     Condition: IsNotCommToGovCloud
@@ -523,6 +524,8 @@ Resources:
           ParameterValue: !Ref FalconSecret
         - ParameterKey: PermissionsBoundary
           ParameterValue: !Ref PermissionsBoundary
+        - ParameterKey: CreateEventBridgeRole
+          ParameterValue: 'false'
       PermissionModel: SERVICE_MANAGED
       AutoDeployment:
         Enabled: true
