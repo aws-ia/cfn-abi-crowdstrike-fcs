@@ -313,7 +313,10 @@ Conditions:
   IsCommercialIOA: !And [!Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', commercial ], !Equals [!Ref 'EnableIOA', true ]]
   IsGovCloudIOA: !And [!Equals [ !Ref 'AWSAccountType', govcloud ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
   IsCommToGovCloudIOA: !And [!Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
-  SetPermissionsBoundary: !Not [ !Equals [ !Ref PermissionsBoundary, '' ] ]
+  IsCommToGovCloudGov1: !And [!Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'CSCloud', 'usgov1' ]]
+  IsNotCommToGovCloud: !And [!Not [ !Equals [ !Ref 'AWSAccountType', commercial ]], !Not [!Equals [ !Ref 'FalconAccountType', govcloud ]]]
+  IsCommToGovCloud: !And [!Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', govcloud ]]
+  SetPermissionsBoundary: !Not [ !Equals [ !Ref PermissionsBoundary, '' ]]
 
 Resources:
   CloudTrailStack:
@@ -414,6 +417,7 @@ Resources:
 
 # Create CSPM Stack and StackSet
   CrowdStrikeCSPMStack:
+    Condition: IsNotCommToGovCloud
     Type: 'AWS::CloudFormation::Stack'
     Properties:
       Parameters:
@@ -428,8 +432,24 @@ Resources:
         ClientSecret: !Ref FalconSecret
         PermissionsBoundary: !Ref PermissionsBoundary
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_v2.json
-
+  CrowdStrikeCommGovCSPMStack:
+    Condition: IsCommToGovCloud
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      Parameters:
+        RoleName: !GetAtt TriggerRegisterAccountLambda.iam_role_name
+        ExternalID: !GetAtt TriggerRegisterAccountLambda.external_id
+        CSRoleName: !GetAtt TriggerRegisterAccountLambda.cs_role_name
+        CSAccountNumber: !If [IsCommToGovCloudGov1, '287238819661', '188583992825']
+        EnableIOA: !Ref EnableIOA
+        EnableSensorManagement: !Ref EnableSensorManagement
+        APICredentialsStorageMode: !Ref APICredentialsStorageMode
+        ClientID: !Ref FalconClientID
+        ClientSecret: !Ref FalconSecret
+        PermissionsBoundary: !Ref PermissionsBoundary
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_v2.json
   CrowdStrikeStackSet:
+    Condition: IsNotCommToGovCloud
     Type: 'AWS::CloudFormation::StackSet'
     Properties:
       StackSetName: "CrowdStrike-Cloud-Security-Stackset"
@@ -446,6 +466,51 @@ Resources:
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.cs_role_name
         - ParameterKey: CSAccountNumber
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.cs_account_id
+        - ParameterKey: EnableIOA
+          ParameterValue: !Ref EnableIOA
+        - ParameterKey: EnableSensorManagement
+          ParameterValue: !Ref EnableSensorManagement
+        - ParameterKey: APICredentialsStorageMode
+          ParameterValue: !Ref APICredentialsStorageMode
+        - ParameterKey: ClientID
+          ParameterValue: !Ref FalconClientID
+        - ParameterKey: ClientSecret
+          ParameterValue: !Ref FalconSecret
+        - ParameterKey: PermissionsBoundary
+          ParameterValue: !Ref PermissionsBoundary
+      PermissionModel: SERVICE_MANAGED
+      AutoDeployment:
+        Enabled: true
+        RetainStacksOnAccountRemoval: true
+      OperationPreferences:
+        MaxConcurrentPercentage: 100
+        FailureTolerancePercentage: 50
+        RegionConcurrencyType: PARALLEL
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            OrganizationalUnitIds: !Ref ProvisionOU
+          Regions: 
+            - !Ref AWS::Region
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_v2.json
+  CrowdStrikeCommGovStackSet:
+    Condition: IsCommToGovCloud
+    Type: 'AWS::CloudFormation::StackSet'
+    Properties:
+      StackSetName: "CrowdStrike-Cloud-Security-Stackset"
+      Capabilities:
+        - CAPABILITY_IAM
+        - CAPABILITY_NAMED_IAM
+        - CAPABILITY_AUTO_EXPAND
+      Parameters:
+        - ParameterKey: RoleName
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.iam_role_name
+        - ParameterKey: ExternalID
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.external_id
+        - ParameterKey: CSRoleName
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.cs_role_name
+        - ParameterKey: CSAccountNumber
+          ParameterValue: !If [IsCommToGovCloudGov1, '287238819661', '188583992825']
         - ParameterKey: EnableIOA
           ParameterValue: !Ref EnableIOA
         - ParameterKey: EnableSensorManagement
@@ -1110,7 +1175,6 @@ Resources:
   OrgIdLambdaLogGroup:
     DeletionPolicy: Delete
     Type: AWS::Logs::LogGroup
-    UpdateReplacePolicy: Retain
     Properties:
       LogGroupName: !Sub /aws/lambda/${OrgIdLambdaFunctionName}
       RetentionInDays: 3653
