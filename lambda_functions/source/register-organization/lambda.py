@@ -186,14 +186,35 @@ def lambda_handler(event, context):
                                                         account_type=AWS_ACCOUNT_TYPE
                                                         )
                 logger.info('Response: {}'.format(response))
-                if response['status_code'] == 400:
-                    error = response['body']['errors'][0]['message']
-                    logger.info('Account Registration Failed with reason....{}'.format(error))
+                if response['status_code'] == 201:
+                    cs_account = response['body']['resources'][0]['intermediate_role_arn'].rsplit('::')[1]
                     response_d = {
-                        "reason": response['body']['errors'][0]['message']
+                        "cs_account_id": cs_account.rsplit(':')[0],
+                        "iam_role_name": response['body']['resources'][0]['iam_role_arn'].rsplit('/')[1],
+                        "intermediate_role_arn": response['body']['resources'][0]['intermediate_role_arn'],
+                        "cs_role_name": response['body']['resources'][0]['intermediate_role_arn'].rsplit('/')[1],
+                        "external_id": response['body']['resources'][0]['external_id']
                     }
+                    if not EXISTING_CLOUDTRAIL:
+                        response_d['cs_bucket_name'] = response['body']['resources'][0]['aws_cloudtrail_bucket_name']
+                    if FALCON_ACCOUNT_TYPE == "commercial":
+                        response_d['eventbus_name'] = response['body']['resources'][0]['eventbus_name']
+                        response_d['my_regions'] = regions
+                        response_d['ssm_regions'] = ssm_regions
+                    elif FALCON_ACCOUNT_TYPE == "govcloud" and AWS_ACCOUNT_TYPE == "govcloud" :
+                        response_d['eventbus_name'] = response['body']['resources'][0]['eventbus_name'].rsplit(',')[0]
+                        response_d['my_regions'] = regions
+                        response_d['ssm_regions'] = ssm_regions
+                    elif FALCON_ACCOUNT_TYPE == "govcloud" and AWS_ACCOUNT_TYPE == "commercial" :
+                        response_d['comm_gov_eb_regions'] = comm_gov_eb_regions
+                        response_d['my_regions'] = regions
+                        response_d['ssm_regions'] = ssm_regions
                     cfnresponse_send(event, context, SUCCESS, response_d, "CustomResourcePhysicalID")
-                elif response['status_code'] == 201:
+                elif 'already exists' in response['body']['errors'][0]['message']:
+                    logger.info(response['body']['errors'][0]['message'])
+                    logger.info('Getting existing registration data...')
+                    response = falcon.get_aws_account(organization_id=OrgId)
+                    logger.info('Existing Registration Response: {}'.format(response))
                     cs_account = response['body']['resources'][0]['intermediate_role_arn'].rsplit('::')[1]
                     response_d = {
                         "cs_account_id": cs_account.rsplit(':')[0],
@@ -218,7 +239,11 @@ def lambda_handler(event, context):
                         response_d['ssm_regions'] = ssm_regions
                     cfnresponse_send(event, context, SUCCESS, response_d, "CustomResourcePhysicalID")
                 else:
-                    response_d = response['body']
+                    error = response['body']['errors'][0]['message']
+                    logger.info('Account Registration Failed with reason....{}'.format(error))
+                    response_d = {
+                        "reason": response['body']['errors'][0]['message']
+                    }
                     cfnresponse_send(event, context, FAILED, response_d, "CustomResourcePhysicalID")
             elif event['RequestType'] in ['Update']:
                 response_d = {}
