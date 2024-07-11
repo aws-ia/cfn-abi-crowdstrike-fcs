@@ -33,15 +33,15 @@ CS_CLOUD = os.environ['cs_cloud']
 AWS_ACCOUNT_TYPE = os.environ['aws_account_type']
 FALCON_ACCOUNT_TYPE = os.environ['falcon_account_type']
 
-def get_secret(secret_name, secret_region):
+def get_secret():
     session = boto3.session.Session()
     client = session.client(
         service_name='secretsmanager',
-        region_name=secret_region
+        region_name=SECRET_STORE_REGION
     )
     try:
         get_secret_value_response = client.get_secret_value(
-            SecretId=secret_name
+            SecretId=SECRET_STORE_NAME
         )
     except ClientError as e:
         if e.response['Error']['Code'] == 'DecryptionFailureException':
@@ -70,7 +70,7 @@ def get_management_id():
         logger.error('This stack runs only on the management of the AWS Organization')
         return False
 
-def get_active_regions(AWS_REGION):
+def get_active_regions():
     session = boto3.session.Session()
     client = session.client(
         service_name='ec2',
@@ -149,10 +149,10 @@ def lambda_handler(event, context):
     logger.info('Got event {}'.format(event))
     logger.info('Context {}'.format(context))
     aws_account_id = context.invoked_function_arn.split(":")[4]
-    regions, comm_gov_eb_regions, ssm_regions = get_active_regions(AWS_REGION)
+    regions, comm_gov_eb_regions, ssm_regions = get_active_regions()
     OrgId = get_management_id()
     try:
-        secret_str = get_secret(SECRET_STORE_NAME, SECRET_STORE_REGION)
+        secret_str = get_secret()
         if secret_str:
             secrets_dict = json.loads(secret_str)
             FalconClientId = secrets_dict['FalconClientId']
