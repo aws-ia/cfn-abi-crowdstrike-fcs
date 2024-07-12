@@ -116,7 +116,7 @@ def get_active_regions():
         for region in my_regions:
             if region in supported_regions:
                 ssm_regions += [region]
-        return my_regions, ssm_regions, comm_gov_eb_regions
+        return my_regions, comm_gov_eb_regions, ssm_regions
     except Exception as e:
         return e
     
