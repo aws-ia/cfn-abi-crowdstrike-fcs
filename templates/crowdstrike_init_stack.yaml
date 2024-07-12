@@ -664,6 +664,8 @@ Resources:
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.cs_account_id
         - ParameterKey: CSEventBusName
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.eventbus_name
+        - ParameterKey: AWSAccountType
+          ParameterValue: !Ref AWSAccountType
       PermissionModel: SELF_MANAGED
       OperationPreferences:
         MaxConcurrentPercentage: 100
@@ -739,6 +741,8 @@ Resources:
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.cs_account_id
         - ParameterKey: CSEventBusName
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.eventbus_name
+        - ParameterKey: AWSAccountType
+          ParameterValue: !Ref AWSAccountType
       PermissionModel: SERVICE_MANAGED
       OperationPreferences:
         MaxConcurrentPercentage: 100
