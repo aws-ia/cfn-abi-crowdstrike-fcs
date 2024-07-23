@@ -202,7 +202,8 @@ def lambda_handler(event, context):
                         response_d['my_regions'] = regions
                         response_d['ssm_regions'] = ssm_regions
                     elif FALCON_ACCOUNT_TYPE == "govcloud" and AWS_ACCOUNT_TYPE == "govcloud" :
-                        response_d['eventbus_name'] = response['body']['resources'][0]['eventbus_name'].rsplit(',')[0]
+                        eventbus_arn = response['body']['resources'][0]['eventbus_name'].rsplit(',')[0]
+                        response_d['eventbus_name'] = eventbus_arn.rsplit('/')[1]
                         response_d['my_regions'] = regions
                         response_d['ssm_regions'] = ssm_regions
                     elif FALCON_ACCOUNT_TYPE == "govcloud" and AWS_ACCOUNT_TYPE == "commercial" :
@@ -213,7 +214,8 @@ def lambda_handler(event, context):
                 elif 'already exists' in response['body']['errors'][0]['message']:
                     logger.info(response['body']['errors'][0]['message'])
                     logger.info('Getting existing registration data...')
-                    response = falcon.get_aws_account(organization_id=OrgId)
+                    response = falcon.get_aws_account(organization_ids=OrgId,
+                                                      user_agent=useragent)
                     logger.info('Existing Registration Response: {}'.format(response))
                     cs_account = response['body']['resources'][0]['intermediate_role_arn'].rsplit('::')[1]
                     response_d = {
@@ -230,7 +232,8 @@ def lambda_handler(event, context):
                         response_d['my_regions'] = regions
                         response_d['ssm_regions'] = ssm_regions
                     elif FALCON_ACCOUNT_TYPE == "govcloud" and AWS_ACCOUNT_TYPE == "govcloud" :
-                        response_d['eventbus_name'] = response['body']['resources'][0]['eventbus_name'].rsplit(',')[0]
+                        eventbus_arn = response['body']['resources'][0]['eventbus_name'].rsplit(',')[0]
+                        response_d['eventbus_name'] = eventbus_arn.rsplit('/')[1]
                         response_d['my_regions'] = regions
                         response_d['ssm_regions'] = ssm_regions
                     elif FALCON_ACCOUNT_TYPE == "govcloud" and AWS_ACCOUNT_TYPE == "commercial" :
