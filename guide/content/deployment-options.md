@@ -11,5 +11,15 @@ The following deployment options are supported by this ABI solution:
 * Launch the [CloudFormation template in the AWS Management Console](/deployment-steps/index.html#launch-cfn).
 * Launch using [Customizations for AWS Control Tower (CfCT)](/deployment-steps/index.html#launch-cfct).
 
+####  Cloud types supported by this solution
+
+You may use this solution to register the following account types:
+
+* Register Commercial AWS Accounts with Commercial Falcon (us1, us2, eu1)
+* Register Commercial AWS Accounts with GovCloud Falcon (usgov1, usgov2)
+* Register GovCloud AWS Accounts with GovCloud Falcon (usgov1, usgov2)
+
+**Note:** When registering Commercial AWS with GovCloud Falcon, this solution **must be launched in us-east-1**
+
 
 **Next:** Choose [Predeployment steps](/pre-deployment-steps/index.html).
