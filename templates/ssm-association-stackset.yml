@@ -48,7 +48,7 @@ Resources:
             - '*'
       Parameters:
         AutomationAssumeRole:
-        - !Sub arn:aws:iam::${AWS::AccountId}:role/${AutomationAssumeRole}
+        - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${AutomationAssumeRole}
         Action:
         - !Ref Action
         SecretStorageMethod:

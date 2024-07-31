@@ -1,0 +1,849 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Setup script to enable CrowdStrike Falcon CSPM.",
+    "Parameters": {
+      "EnableIOA": {
+        "Type": "String",
+        "AllowedValues": [
+          "true",
+          "false"
+        ],
+        "Default": "true"
+      },
+      "ClientID": {
+        "Type": "String",
+        "Description": "Falcon Client ID",
+        "MinLength": "1",
+        "NoEcho": "true"
+      },
+      "ClientSecret": {
+        "Type": "String",
+        "Description": "Falcon Client Secret",
+        "MinLength": "1",
+        "NoEcho": "true"
+      },
+      "UseExistingCloudtrail": {
+        "Description": "When set to false, a CloudTrail resource is created which allows Horizon to consume non-mutating API events",
+        "Type": "String",
+        "AllowedValues": [
+          "true",
+          "false"
+        ],
+        "Default": "true"
+      },
+      "PermissionsBoundary": {
+        "Type": "String",
+        "Description": "The name of the policy used to set the permissions boundary for IAM roles",
+        "Default": ""
+      }
+    },
+    "Conditions": {
+      "ShouldCreateIOAResources": {
+        "Fn::Equals": [
+          true,
+          {
+            "Ref": "EnableIOA"
+          }
+        ]
+      },
+      "SetPermissionsBoundary": {
+        "Fn::Not": [{
+          "Fn::Equals" : [ {"Ref": "PermissionsBoundary"}, "" ]
+        }]
+      },
+      "ShouldCreateIOACloudTrailResource": {
+        "Fn::And": [
+          {
+            "Condition": "ShouldCreateIOAResources"
+          },
+          {
+            "Fn::Equals": [
+              false,
+              {
+                "Ref": "UseExistingCloudtrail"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "Resources": {
+      "CrowdStrikeEventBridgeRole": {
+        "Type": "AWS::IAM::Role",
+        "Condition": "ShouldCreateIOAResources",
+        "Properties": {
+          "PermissionsBoundary": { 
+            "Fn::If": [ 
+              "SetPermissionsBoundary", 
+              {"Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/${PermissionsBoundary}"}, 
+              {"Ref": "AWS::NoValue"}
+            ]
+          },
+          "RoleName": "CrowdStrikeCSPMEventBridge",
+          "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Action": "sts:AssumeRole",
+                "Principal": {
+                  "Service": "events.amazonaws.com"
+                },
+                "Effect": "Allow",
+                "Sid": ""
+              }
+            ]
+          },
+          "Policies": [
+            {
+              "PolicyName": "eventbridge-put-events",
+              "PolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Action": [
+                      "events:PutEvents"
+                    ],
+                    "Resource": "arn:aws:events:*:*:event-bus/default",
+                    "Effect": "Allow"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "CrowdStrikeLambdaRole": {
+        "Type": "AWS::IAM::Role",
+        "Condition": "ShouldCreateIOAResources",
+        "Properties": {
+          "PermissionsBoundary": { 
+            "Fn::If": [ 
+              "SetPermissionsBoundary", 
+              {"Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/${PermissionsBoundary}"}, 
+              {"Ref": "AWS::NoValue"}
+            ]
+          },
+          "RoleName": "CrowdStrikeCSPMLambda",
+          "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Action": "sts:AssumeRole",
+                "Principal": {
+                  "Service": "lambda.amazonaws.com"
+                },
+                "Effect": "Allow",
+                "Sid": ""
+              }
+            ]
+          },
+          "Policies": [
+            {
+              "PolicyName": "logging",
+              "PolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Action": [
+                      "s3:ListBucket",
+                      "s3:GetObject"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": [
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:aws:s3:::",
+                            {
+                              "Fn::Join": [
+                                "",
+                                [
+                                  {
+                                    "Fn::Join": [
+                                      "-",
+                                      [
+                                        "crowdstrike-s3",
+                                        {
+                                          "Fn::Select": [
+                                            0,
+                                            {
+                                              "Fn::Split": [
+                                                "-",
+                                                {
+                                                  "Fn::Select": [
+                                                    2,
+                                                    {
+                                                      "Fn::Split": [
+                                                        "/",
+                                                        {
+                                                          "Ref": "AWS::StackId"
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    ]
+                                  }
+                                ]
+                              ]
+                            }
+                          ]
+                        ]
+                      },
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            {
+                              "Fn::Join": [
+                                "",
+                                [
+                                  "arn:aws:s3:::",
+                                  {
+                                    "Fn::Join": [
+                                      "-",
+                                      [
+                                        "crowdstrike-s3",
+                                        {
+                                          "Fn::Select": [
+                                            0,
+                                            {
+                                              "Fn::Split": [
+                                                "-",
+                                                {
+                                                  "Fn::Select": [
+                                                    2,
+                                                    {
+                                                      "Fn::Split": [
+                                                        "/",
+                                                        {
+                                                          "Ref": "AWS::StackId"
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    ]
+                                  }
+                                ]
+                              ]
+                            },
+                            "/*"
+                          ]
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "Action": [
+                      "logs:PutLogEvents",
+                      "logs:CreateLogStream"
+                    ],
+                    "Resource": [
+                      "arn:aws:logs:*:*:log-group:/aws/lambda/cs-lambda-*",
+                      "arn:aws:logs:*:*:log-group:/aws/lambda/cs-lambda-*:log-stream:*"
+                    ],
+                    "Effect": "Allow"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "CrowdStrikeLambdaEventBridgeLogGroup": {
+        "Type": "AWS::Logs::LogGroup",
+        "Condition": "ShouldCreateIOAResources",
+        "Metadata": {
+          "checkov": {
+            "skip": [
+              {
+                "id": "CKV_AWS_158",
+                "comment": "Default encryption for AWS Cloudwatch Logs suffice"
+              }
+            ]
+          }
+        },
+        "Properties": {
+          "LogGroupName": "/aws/lambda/cs-lambda-eventbridge",
+          "RetentionInDays": 1
+        }
+      },
+      "CrowdStrikeLambdaEventBridge": {
+        "Type": "AWS::Lambda::Function",
+        "Condition": "ShouldCreateIOAResources",
+        "Metadata": {
+          "checkov": {
+            "skip": [
+              {
+                "id": "CKV_AWS_116",
+                "comment": "We do not require customer to create and manage DLQ"
+              },
+              {
+                "id": "CKV_AWS_173",
+                "comment": "This is supported by APICredentialsStorageMode parameter"
+              },
+              {
+                "id": "W89",
+                "comment": "We do not require customer to create and manage additional VPC"
+              }
+            ]
+          }
+        },
+        "Properties": {
+          "Architectures": [
+            "x86_64"
+          ],
+          "Code": {
+            "S3Bucket": {
+              "Fn::Sub": "cs-horizon-ioa-lambda-${AWS::Region}"
+            },
+            "S3Key": "aws/aws-lambda-eventbridge.zip"
+          },
+          "Description": "",
+          "Environment": {
+            "Variables": {
+              "CS_ADDRESS": "",
+              "CS_CLIENT_ID": {
+                "Ref": "ClientID"
+              },
+              "CS_CLIENT_SECRET": {
+                "Ref": "ClientSecret"
+              },
+              "CS_GOV_CLOUD": "true",
+              "CS_DEBUG_ENABLED": "false"
+            }
+          },
+          "FunctionName": "cs-lambda-eventbridge",
+          "Handler": "bootstrap",
+          "MemorySize": 128,
+          "PackageType": "Zip",
+          "Role": {
+            "Fn::GetAtt": [
+              "CrowdStrikeLambdaRole",
+              "Arn"
+            ]
+          },
+          "Runtime": "provided.al2"
+        },
+        "DependsOn": "CrowdStrikeLambdaEventBridgeLogGroup"
+      },
+      "CrowdStrikeLambdaEventBridgeAlias": {
+        "Type": "AWS::Lambda::Alias",
+        "Condition": "ShouldCreateIOAResources",
+        "Properties": {
+          "Description": "String",
+          "FunctionName": {
+            "Fn::GetAtt": [
+              "CrowdStrikeLambdaEventBridge",
+              "Arn"
+            ]
+          },
+          "FunctionVersion": "$LATEST",
+          "Name": "cs-lambda-eventbridge"
+        }
+      },
+      "CrowdStrikeLambdaEventBridgePermission": {
+        "Type": "AWS::Lambda::Permission",
+        "Condition": "ShouldCreateIOAResources",
+        "Properties": {
+          "FunctionName": {
+            "Ref": "CrowdStrikeLambdaEventBridgeAlias"
+          },
+          "Action": "lambda:InvokeFunction",
+          "Principal": "events.amazonaws.com",
+          "SourceArn": {
+            "Fn::Sub": "arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/cs-*"
+          }
+        }
+      },
+      "CrowdStrikeLambdaS3LogGroup": {
+        "Type": "AWS::Logs::LogGroup",
+        "Condition": "ShouldCreateIOACloudTrailResource",
+        "Metadata": {
+          "checkov": {
+            "skip": [
+              {
+                "id": "CKV_AWS_158",
+                "comment": "The default key aws/secretsmanager is sufficient to secure this resource"
+              }
+            ]
+          }
+        },
+        "Properties": {
+          "LogGroupName": "/aws/lambda/cs-lambda-s3",
+          "RetentionInDays": 1
+        }
+      },
+      "CrowdStrikeLambdaS3": {
+        "Type": "AWS::Lambda::Function",
+        "Condition": "ShouldCreateIOACloudTrailResource",
+        "Metadata": {
+          "checkov": {
+            "skip": [
+              {
+                "id": "CKV_AWS_116",
+                "comment": "We do not require customer to create and manage DLQ"
+              },
+              {
+                "id": "CKV_AWS_173",
+                "comment": "Env variables are not sensitive"
+              },
+              {
+                "id": "W89",
+                "comment": "We do not require customer to create and manage additional VPC"
+              }
+            ]
+          }
+        },
+        "Properties": {
+          "Architectures": [
+            "x86_64"
+          ],
+          "Code": {
+            "S3Bucket": {
+              "Fn::Sub": "cs-horizon-ioa-lambda-${AWS::Region}"
+            },
+            "S3Key": "aws/aws-lambda-s3.zip"
+          },
+          "Description": "",
+          "Environment": {
+            "Variables": {
+              "CS_ADDRESS": "",
+              "CS_CLIENT_ID": {
+                "Ref": "ClientID"
+              },
+              "CS_CLIENT_SECRET": {
+                "Ref": "ClientSecret"
+              },
+              "CS_GOV_CLOUD": "true",
+              "CS_DEBUG_ENABLED": "false"
+            }
+          },
+          "FunctionName": "cs-lambda-s3",
+          "Handler": "bootstrap",
+          "MemorySize": 128,
+          "PackageType": "Zip",
+          "Role": {
+            "Fn::GetAtt": [
+              "CrowdStrikeLambdaRole",
+              "Arn"
+            ]
+          },
+          "Runtime": "provided.al2"
+        },
+        "DependsOn": "CrowdStrikeLambdaS3LogGroup"
+      },
+      "CrowdStrikeLambdaS3Alias": {
+        "Type": "AWS::Lambda::Alias",
+        "Condition": "ShouldCreateIOACloudTrailResource",
+        "Properties": {
+          "Description": "String",
+          "FunctionName": {
+            "Fn::GetAtt": [
+              "CrowdStrikeLambdaS3",
+              "Arn"
+            ]
+          },
+          "FunctionVersion": "$LATEST",
+          "Name": "cs-lambda-s3"
+        }
+      },
+      "CrowdStrikeLambdaS3Permission": {
+        "Type": "AWS::Lambda::Permission",
+        "Condition": "ShouldCreateIOACloudTrailResource",
+        "Properties": {
+          "FunctionName": {
+            "Ref": "CrowdStrikeLambdaS3Alias"
+          },
+          "Action": "lambda:InvokeFunction",
+          "Principal": "s3.amazonaws.com",
+          "SourceArn": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:aws:s3:::",
+                {
+                  "Fn::Join": [
+                    "-",
+                    [
+                      "crowdstrike-s3",
+                      {
+                        "Fn::Select": [
+                          0,
+                          {
+                            "Fn::Split": [
+                              "-",
+                              {
+                                "Fn::Select": [
+                                  2,
+                                  {
+                                    "Fn::Split": [
+                                      "/",
+                                      {
+                                        "Ref": "AWS::StackId"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  ]
+                }
+              ]
+            ]
+          }
+        }
+      },
+      "CrowdStrikeS3Bucket": {
+        "Type": "AWS::S3::Bucket",
+        "Condition": "ShouldCreateIOACloudTrailResource",
+        "Metadata": {
+          "cfn-lint": {
+            "config": {
+                "ignore_checks": ["W3045"]
+            }
+          }
+        },
+        "Properties": {
+          "PublicAccessBlockConfiguration": {
+            "BlockPublicAcls" : "true",
+            "BlockPublicPolicy" : "true",
+            "IgnorePublicAcls" : "true",
+            "RestrictPublicBuckets" : "true"
+          },
+          "VersioningConfiguration": {
+            "Status" : "Enabled"
+          },
+          "BucketName": {
+            "Fn::Join": [
+              "-",
+              [
+                "crowdstrike-s3",
+                {
+                  "Fn::Select": [
+                    0,
+                    {
+                      "Fn::Split": [
+                        "-",
+                        {
+                          "Fn::Select": [
+                            2,
+                            {
+                              "Fn::Split": [
+                                "/",
+                                {
+                                  "Ref": "AWS::StackId"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            ]
+          },
+          "AccessControl": "Private",
+          "LifecycleConfiguration": {
+            "Rules": [
+              {
+                "Status": "Enabled",
+                "ExpirationInDays": 1
+              }
+            ]
+          },
+          "NotificationConfiguration": {
+            "LambdaConfigurations": [
+              {
+                "Event": "s3:ObjectCreated:*",
+                "Function": {
+                  "Ref": "CrowdStrikeLambdaS3Alias"
+                }
+              }
+            ]
+          }
+        },
+        "DependsOn": "CrowdStrikeLambdaS3Permission"
+      },
+      "CrowdStrikeS3BucketPolicy": {
+        "Type": "AWS::S3::BucketPolicy",
+        "Condition": "ShouldCreateIOACloudTrailResource",
+        "Properties": {
+          "Bucket": {
+            "Ref": "CrowdStrikeS3Bucket"
+          },
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "AWSCloudTrailAclCheck",
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "cloudtrail.amazonaws.com"
+                },
+                "Action": "s3:GetBucketAcl",
+                "Resource": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:s3:::",
+                      {
+                        "Ref": "CrowdStrikeS3Bucket"
+                      }
+                    ]
+                  ]
+                }
+              },
+              {
+                "Sid": "AWSCloudTrailWrite",
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "cloudtrail.amazonaws.com"
+                },
+                "Action": "s3:PutObject",
+                "Resource": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:s3:::",
+                      {
+                        "Ref": "CrowdStrikeS3Bucket"
+                      },
+                      "/*"
+                    ]
+                  ]
+                },
+                "Condition": {
+                  "StringEquals": {
+                    "s3:x-amz-acl": "bucket-owner-full-control"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "CrowdStrikeCloudTrail": {
+        "Type": "AWS::CloudTrail::Trail",
+        "Condition": "ShouldCreateIOACloudTrailResource",
+        "Metadata": {
+          "checkov": {
+            "skip": [
+              {
+                "id": "CKV_AWS_35",
+                "comment": "The default key aws/secretsmanager is sufficient to secure this resource"
+              }
+            ]
+          }
+        },
+        "Properties": {
+          "EnableLogFileValidation": "true",
+          "TrailName": "crowdstrike-cloudtrail",
+          "S3BucketName": {
+            "Ref": "CrowdStrikeS3Bucket"
+          },
+          "IncludeGlobalServiceEvents": true,
+          "IsLogging": true,
+          "IsMultiRegionTrail": true
+        }
+      },
+      "CrowdStrikeRegistrationRole": {
+        "Type": "AWS::IAM::Role",
+        "Condition": "ShouldCreateIOAResources",
+        "Properties": {
+          "PermissionsBoundary": { 
+            "Fn::If": [ 
+              "SetPermissionsBoundary", 
+              {"Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/${PermissionsBoundary}"}, 
+              {"Ref": "AWS::NoValue"}
+            ]
+          },
+          "RoleName": "CrowdStrikeCSPMRegistration",
+          "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Action": "sts:AssumeRole",
+                "Principal": {
+                  "Service": "lambda.amazonaws.com"
+                },
+                "Effect": "Allow",
+                "Sid": ""
+              }
+            ]
+          },
+          "Policies": [
+            {
+              "PolicyName": "registration",
+              "PolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Action": [
+                      "iam:CreateRole",
+                      "iam:DeleteRole",
+                      "iam:DeleteRolePolicy",
+                      "iam:PutRolePolicy",
+                      "iam:PassRole"
+                    ],
+                    "Resource": "arn:aws:iam::*:role/CrowdStrikeCSPMEventBridge",
+                    "Effect": "Allow"
+                  },
+                  {
+                    "Action": [
+                      "ec2:DescribeRegions",
+                      "events:PutPermission",
+                      "events:RemovePermission"
+                    ],
+                    "Resource": "*",
+                    "Effect": "Allow"
+                  },
+                  {
+                    "Action": [
+                      "events:PutRule",
+                      "events:DeleteRule",
+                      "events:PutTargets",
+                      "events:RemoveTargets"
+                    ],
+                    "Resource": [
+                      "arn:aws:events:*:*:event-bus/default",
+                      "arn:aws:events:*:*:rule/cs-*"
+                    ],
+                    "Effect": "Allow"
+                  },
+                  {
+                    "Action": [
+                      "logs:PutLogEvents",
+                      "logs:CreateLogStream"
+                    ],
+                    "Resource": [
+                      "arn:aws:logs:*:*:log-group:/aws/lambda/cs-lambda-*",
+                      "arn:aws:logs:*:*:log-group:/aws/lambda/cs-lambda-*:log-stream:*"
+                    ],
+                    "Effect": "Allow"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "CrowdStrikeLambdaRegistrationLogGroup": {
+        "Type": "AWS::Logs::LogGroup",
+        "Condition": "ShouldCreateIOAResources",
+        "Metadata": {
+          "checkov": {
+            "skip": [
+              {
+                "id": "CKV_AWS_158",
+                "comment": "The default key aws/secretsmanager is sufficient to secure this resource"
+              }
+            ]
+          }
+        },
+        "Properties": {
+          "LogGroupName": "/aws/lambda/cs-lambda-registration",
+          "RetentionInDays": 1
+        }
+      },
+      "CrowdStrikeLambdaRegistration": {
+        "Type": "AWS::Lambda::Function",
+        "Condition": "ShouldCreateIOAResources",
+        "Metadata": {
+          "checkov": {
+            "skip": [
+              {
+                "id": "CKV_AWS_116",
+                "comment": "We do not require customer to create and manage DLQ"
+              },
+              {
+                "id": "CKV_AWS_173",
+                "comment": "Env variables are not sensitive"
+              },
+              {
+                "id": "W89",
+                "comment": "We do not require customer to create and manage additional VPC"
+              }
+            ]
+          }
+        },
+        "Properties": {
+          "Architectures": [
+            "x86_64"
+          ],
+          "Code": {
+            "S3Bucket": {
+              "Fn::Sub": "cs-horizon-ioa-lambda-${AWS::Region}"
+            },
+            "S3Key": "aws/aws-lambda-registration.zip"
+          },
+          "Description": "",
+          "Timeout": 605,
+          "TracingConfig": {
+            "Mode": "Active"
+          },
+          "Environment": {
+            "Variables": {
+              "CS_CURRENT_ACCOUNT": {
+                "Ref": "AWS::AccountId"
+              },
+              "CS_DEBUG_ENABLED": "true",
+              "CS_GOV_COMMERCIAL": "true",
+              "CS_AWS_REGION": {
+                "Fn::Sub": "${AWS::Region}"
+              }
+            }
+          },
+          "FunctionName": "cs-lambda-registration",
+          "Handler": "bootstrap",
+          "MemorySize": 128,
+          "PackageType": "Zip",
+          "Role": {
+            "Fn::GetAtt": [
+              "CrowdStrikeRegistrationRole",
+              "Arn"
+            ]
+          },
+          "Runtime": "provided.al2"
+        },
+        "DependsOn": "CrowdStrikeLambdaRegistrationLogGroup"
+      },
+      "CrowdStrikeLambdaRegistrationInvoke": {
+        "Type": "AWS::CloudFormation::CustomResource",
+        "Version": "1.0",
+        "Condition": "ShouldCreateIOAResources",
+        "Properties": {
+          "ServiceToken": {
+            "Fn::GetAtt": [
+              "CrowdStrikeLambdaRegistration",
+              "Arn"
+            ]
+          },
+          "EventBus": {
+            "Fn::Sub": "arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default"
+          },
+          "LambdaAlias": {
+            "Ref": "CrowdStrikeLambdaEventBridgeAlias"
+          }
+        }
+      }
+    }
+  }

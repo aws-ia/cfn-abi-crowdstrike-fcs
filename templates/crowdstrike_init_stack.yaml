@@ -5,6 +5,15 @@ Description: "CrowdStrike Cloud Security Root Template. (abp-1kirFQBF75MfEQ3RbMQ
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
+      - Label: 
+          default: Account Type
+        Parameters:
+          - FalconAccountType
+          - AWSAccountType
+      - Label: 
+          default: Permissions Boundary
+        Parameters:
+          - PermissionsBoundary
       - Label:
           default: CrowdStrike Falcon API Key
         Parameters:
@@ -58,6 +67,10 @@ Metadata:
           - pLogArchiveAccountId
 
     ParameterLabels:
+      FalconAccountType:
+        default: Falcon Account Type
+      AWSAccountType:
+        default: AWS Account Type
       SourceS3BucketName:
         default: Source S3 Bucket Name
       S3BucketRegion:
@@ -112,14 +125,26 @@ Metadata:
         default: pSecurityAccountId
       pLogArchiveAccountId:
         default: pLogArchiveAccountId
-
-Conditions:
-  CreateIOAResources: !Equals [ !Ref 'EnableIOA', true ]
-  CreateTrail: !Equals [ !Ref 'CreateOrgTrail', true ]
-  ExcludeRegionsEmpty:  !Equals [!Ref 'ExcludeRegions', '']
-  CreateSSMAssociations: !Equals [ !Ref 'EnableSSMDistributor', true ]
+      PermissionsBoundary:
+        default: Permissions Boundary Policy Name
 
 Parameters:
+  PermissionsBoundary:
+    Type: String
+    Description: The name of the policy used to set the permissions boundary for IAM roles.
+    Default: ''
+  FalconAccountType:
+    Type: String
+    AllowedValues:
+      - 'commercial'
+      - 'govcloud'
+    Default: 'commercial'
+  AWSAccountType:
+    Type: String
+    AllowedValues:
+      - 'commercial'
+      - 'govcloud'
+    Default: 'commercial'
   FalconClientID:
     Description: Your Falcon OAuth2 Client ID.
     NoEcho: 'true'
@@ -131,7 +156,12 @@ Parameters:
   CSCloud:
     Type: String
     Default: us1
-    AllowedValues: [ "us1", "us2", "eu1" ]
+    AllowedValues: 
+      - 'us1'
+      - 'us2'
+      - 'eu1'
+      - 'usgov1'
+      - 'usgov2'
     Description: The Cloud your CID is hosted in
   EnableIOA:
     Type: String
@@ -168,7 +198,6 @@ Parameters:
     Description: SRA version to tag
     Type: String
   S3BucketRegion:
-    AllowedPattern: ^[a-z][a-z]-[a-z]*-[0-9]*$
     Type: String
     Default: us-east-1
   CreateOrgTrail:
@@ -276,6 +305,19 @@ Mappings:
     eu1: 
       BaseURL: "https://api.eu-1.crowdstrike.com"
 
+Conditions:
+  CreateIOAResources: !Equals [ !Ref 'EnableIOA', true ]
+  CreateTrail: !Equals [ !Ref 'CreateOrgTrail', true ]
+  ExcludeRegionsEmpty:  !Equals [!Ref 'ExcludeRegions', '']
+  CreateSSMAssociations: !Equals [ !Ref 'EnableSSMDistributor', true ]
+  IsCommercialIOA: !And [!Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', commercial ], !Equals [!Ref 'EnableIOA', true ]]
+  IsGovCloudIOA: !And [!Equals [ !Ref 'AWSAccountType', govcloud ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
+  IsCommToGovCloudIOA: !And [!Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
+  IsCommToGovCloudGov1: !And [!Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'CSCloud', 'usgov1' ]]
+  IsNotCommToGovCloud: !And [!Not [ !Equals [ !Ref 'AWSAccountType', commercial ]], !Not [!Equals [ !Ref 'FalconAccountType', govcloud ]]]
+  IsCommToGovCloud: !And [!Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', govcloud ]]
+  SetPermissionsBoundary: !Not [ !Equals [ !Ref PermissionsBoundary, '' ]]
+
 Resources:
   CloudTrailStack:
     Type: 'AWS::CloudFormation::Stack'
@@ -351,6 +393,8 @@ Resources:
           ParameterValue: !Ref FalconClientID
         - ParameterKey: FalconSecret
           ParameterValue: !Ref FalconSecret
+        - ParameterKey: PermissionsBoundary
+          ParameterValue: !Ref PermissionsBoundary
         - ParameterKey: BaseURL
           ParameterValue: !FindInMap
             - CloudMap
@@ -373,6 +417,7 @@ Resources:
 
 # Create CSPM Stack and StackSet
   CrowdStrikeCSPMStack:
+    Condition: IsNotCommToGovCloud
     Type: 'AWS::CloudFormation::Stack'
     Properties:
       Parameters:
@@ -385,9 +430,27 @@ Resources:
         APICredentialsStorageMode: !Ref APICredentialsStorageMode
         ClientID: !Ref FalconClientID
         ClientSecret: !Ref FalconSecret
+        PermissionsBoundary: !Ref PermissionsBoundary
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_v2.json
-
+  CrowdStrikeCommGovCSPMStack:
+    Condition: IsCommToGovCloud
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      Parameters:
+        RoleName: !GetAtt TriggerRegisterAccountLambda.iam_role_name
+        ExternalID: !GetAtt TriggerRegisterAccountLambda.external_id
+        CSRoleName: !GetAtt TriggerRegisterAccountLambda.cs_role_name
+        CSAccountNumber: !If [IsCommToGovCloudGov1, '287238819661', '188583992825']
+        EnableIOA: !Ref EnableIOA
+        EnableSensorManagement: !Ref EnableSensorManagement
+        APICredentialsStorageMode: !Ref APICredentialsStorageMode
+        ClientID: !Ref FalconClientID
+        ClientSecret: !Ref FalconSecret
+        PermissionsBoundary: !Ref PermissionsBoundary
+        CreateEventBridgeRole: 'false'
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_v2.json
   CrowdStrikeStackSet:
+    Condition: IsNotCommToGovCloud
     Type: 'AWS::CloudFormation::StackSet'
     Properties:
       StackSetName: "CrowdStrike-Cloud-Security-Stackset"
@@ -414,6 +477,55 @@ Resources:
           ParameterValue: !Ref FalconClientID
         - ParameterKey: ClientSecret
           ParameterValue: !Ref FalconSecret
+        - ParameterKey: PermissionsBoundary
+          ParameterValue: !Ref PermissionsBoundary
+      PermissionModel: SERVICE_MANAGED
+      AutoDeployment:
+        Enabled: true
+        RetainStacksOnAccountRemoval: true
+      OperationPreferences:
+        MaxConcurrentPercentage: 100
+        FailureTolerancePercentage: 50
+        RegionConcurrencyType: PARALLEL
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            OrganizationalUnitIds: !Ref ProvisionOU
+          Regions: 
+            - !Ref AWS::Region
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_v2.json
+  CrowdStrikeCommGovStackSet:
+    Condition: IsCommToGovCloud
+    Type: 'AWS::CloudFormation::StackSet'
+    Properties:
+      StackSetName: "CrowdStrike-Cloud-Security-Stackset"
+      Capabilities:
+        - CAPABILITY_IAM
+        - CAPABILITY_NAMED_IAM
+        - CAPABILITY_AUTO_EXPAND
+      Parameters:
+        - ParameterKey: RoleName
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.iam_role_name
+        - ParameterKey: ExternalID
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.external_id
+        - ParameterKey: CSRoleName
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.cs_role_name
+        - ParameterKey: CSAccountNumber
+          ParameterValue: !If [IsCommToGovCloudGov1, '287238819661', '188583992825']
+        - ParameterKey: EnableIOA
+          ParameterValue: !Ref EnableIOA
+        - ParameterKey: EnableSensorManagement
+          ParameterValue: !Ref EnableSensorManagement
+        - ParameterKey: APICredentialsStorageMode
+          ParameterValue: !Ref APICredentialsStorageMode
+        - ParameterKey: ClientID
+          ParameterValue: !Ref FalconClientID
+        - ParameterKey: ClientSecret
+          ParameterValue: !Ref FalconSecret
+        - ParameterKey: PermissionsBoundary
+          ParameterValue: !Ref PermissionsBoundary
+        - ParameterKey: CreateEventBridgeRole
+          ParameterValue: 'false'
       PermissionModel: SERVICE_MANAGED
       AutoDeployment:
         Enabled: true
@@ -435,6 +547,11 @@ Resources:
     Type: AWS::IAM::Role
     Condition: CreateIOAResources
     Properties:
+      PermissionsBoundary:
+        Fn::If:
+          - SetPermissionsBoundary
+          - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}'
+          - Ref: AWS::NoValue
       RoleName: !Ref StackSetAdminRole
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -469,6 +586,11 @@ Resources:
           - id: CKV_AWS_111
             comment: IAM PassRole action is constrained by resource ARN.
     Properties:
+      PermissionsBoundary:
+        Fn::If:
+          - SetPermissionsBoundary
+          - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}'
+          - Ref: AWS::NoValue
       RoleName: !Ref StackSetExecRole
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -504,9 +626,89 @@ Resources:
                 Resource: !Sub 'arn:${AWS::Partition}:s3:::cfn-abi-crowdstrike-fcs-*'
                 Effect: Allow
 
-  CrowdStrikeEbStackSet:
+  # Root IOA StackSets
+  CommCrowdStrikeRootEbStackSet:
     Type: 'AWS::CloudFormation::StackSet'
-    Condition: CreateIOAResources
+    Condition: IsCommercialIOA
+    Properties:
+      AdministrationRoleARN: !GetAtt StackSetAdministrationRole.Arn
+      ExecutionRoleName: !Ref StackSetExecutionRole
+      StackSetName: "CrowdStrike-Cloud-Security-Root-EB-Stackset"
+      Parameters:
+        - ParameterKey: CSAccountNumber
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.cs_account_id
+        - ParameterKey: CSEventBusName
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.eventbus_name
+      PermissionModel: SELF_MANAGED
+      OperationPreferences:
+        MaxConcurrentPercentage: 100
+        FailureTolerancePercentage: 50
+        RegionConcurrencyType: PARALLEL
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            Accounts:
+              - !Ref AWS::AccountId
+          Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_eb_v2.json
+
+  GovCrowdStrikeRootEbStackSet:
+    Type: 'AWS::CloudFormation::StackSet'
+    Condition: IsGovCloudIOA
+    Properties:
+      AdministrationRoleARN: !GetAtt StackSetAdministrationRole.Arn
+      ExecutionRoleName: !Ref StackSetExecutionRole
+      StackSetName: "CrowdStrike-Cloud-Security-Root-EB-Stackset"
+      Parameters:
+        - ParameterKey: CSAccountNumber
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.cs_account_id
+        - ParameterKey: CSEventBusName
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.eventbus_name
+        - ParameterKey: AWSAccountType
+          ParameterValue: !Ref AWSAccountType
+      PermissionModel: SELF_MANAGED
+      OperationPreferences:
+        MaxConcurrentPercentage: 100
+        FailureTolerancePercentage: 50
+        RegionConcurrencyType: PARALLEL
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            Accounts:
+              - !Ref AWS::AccountId
+          Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_eb_v2.json
+
+  CommGovCrowdStrikeRootEbStackSet:
+    Type: 'AWS::CloudFormation::StackSet'
+    Condition: IsCommToGovCloudIOA
+    Properties:
+      Capabilities:
+        - CAPABILITY_IAM
+        - CAPABILITY_NAMED_IAM
+      AdministrationRoleARN: !GetAtt StackSetAdministrationRole.Arn
+      ExecutionRoleName: !Ref StackSetExecutionRole
+      StackSetName: "CrowdStrike-Cloud-Security-Root-EB-Stackset"
+      Parameters:
+        - ParameterKey: DefaultEventBusRegion
+          ParameterValue: !Ref AWS::Region
+      PermissionModel: SELF_MANAGED
+      OperationPreferences:
+        MaxConcurrentPercentage: 100
+        FailureTolerancePercentage: 50
+        RegionConcurrencyType: PARALLEL
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            Accounts:
+              - !Ref AWS::AccountId
+          Regions: !GetAtt TriggerRegisterAccountLambda.comm_gov_eb_regions
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_eb_comm_gov.json
+  
+  # IOA StackSets
+  CommCrowdStrikeEbStackSet:
+    Type: 'AWS::CloudFormation::StackSet'
+    Condition: IsCommercialIOA
     Properties:
       StackSetName: "CrowdStrike-Cloud-Security-EB-Stackset"
       Parameters:
@@ -529,30 +731,89 @@ Resources:
           Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_eb_v2.json
 
-  CrowdStrikeRootEbStackSet:
+  GovCrowdStrikeEbStackSet:
     Type: 'AWS::CloudFormation::StackSet'
-    Condition: CreateIOAResources
+    Condition: IsGovCloudIOA
     Properties:
-      AdministrationRoleARN: !GetAtt StackSetAdministrationRole.Arn
-      ExecutionRoleName: !Ref StackSetExecutionRole
-      StackSetName: "CrowdStrike-Cloud-Security-Root-EB-Stackset"
+      StackSetName: "CrowdStrike-Cloud-Security-EB-Stackset"
       Parameters:
         - ParameterKey: CSAccountNumber
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.cs_account_id
         - ParameterKey: CSEventBusName
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.eventbus_name
-      PermissionModel: SELF_MANAGED
+        - ParameterKey: AWSAccountType
+          ParameterValue: !Ref AWSAccountType
+      PermissionModel: SERVICE_MANAGED
       OperationPreferences:
         MaxConcurrentPercentage: 100
         FailureTolerancePercentage: 50
         RegionConcurrencyType: PARALLEL
+      AutoDeployment: 
+        Enabled: true
+        RetainStacksOnAccountRemoval: true
       StackInstancesGroup:
         - DeploymentTargets:
             AccountFilterType: NONE
-            Accounts:
-              - !Ref AWS::AccountId
+            OrganizationalUnitIds: !Ref ProvisionOU
           Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_eb_v2.json
+
+  CommGovCrowdStrikeEbStackSet:
+    Type: 'AWS::CloudFormation::StackSet'
+    Condition: IsCommToGovCloudIOA
+    Properties:
+      Capabilities:
+        - CAPABILITY_IAM
+        - CAPABILITY_NAMED_IAM
+      StackSetName: "CrowdStrike-Cloud-Security-EB-Stackset"
+      Parameters:
+        - ParameterKey: DefaultEventBusRegion
+          ParameterValue: !Ref AWS::Region
+      PermissionModel: SERVICE_MANAGED
+      OperationPreferences:
+        MaxConcurrentPercentage: 100
+        FailureTolerancePercentage: 50
+        RegionConcurrencyType: PARALLEL
+      AutoDeployment: 
+        Enabled: true
+        RetainStacksOnAccountRemoval: true
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            OrganizationalUnitIds: !Ref ProvisionOU
+          Regions: !GetAtt TriggerRegisterAccountLambda.comm_gov_eb_regions
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_eb_comm_gov.json
+
+  CommGovCrowdStrikeIOAStackSet:
+    Type: 'AWS::CloudFormation::StackSet'
+    Condition: IsCommToGovCloudIOA
+    Properties:
+      Capabilities:
+        - CAPABILITY_IAM
+        - CAPABILITY_NAMED_IAM
+      StackSetName: "CrowdStrike-Cloud-Security-IOA-Stackset"
+      Parameters:
+        - ParameterKey: ClientID
+          ParameterValue: !Ref FalconClientID
+        - ParameterKey: ClientSecret
+          ParameterValue: !Ref FalconSecret
+        - ParameterKey: PermissionsBoundary
+          ParameterValue: !Ref PermissionsBoundary
+      PermissionModel: SERVICE_MANAGED
+      OperationPreferences:
+        MaxConcurrentPercentage: 100
+        FailureTolerancePercentage: 50
+        RegionConcurrencyType: PARALLEL
+      AutoDeployment: 
+        Enabled: true
+        RetainStacksOnAccountRemoval: true
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            OrganizationalUnitIds: !Ref ProvisionOU
+          Regions: 
+            - !Ref AWS::Region
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_ioa_comm_gov.json
 
   CrowdStrikeSecrets:
     Type: AWS::SecretsManager::Secret
@@ -579,6 +840,11 @@ Resources:
   LambdaCrowdStrikeRegistrationRole:
     Type: AWS::IAM::Role
     Properties:
+      PermissionsBoundary:
+        Fn::If:
+          - SetPermissionsBoundary
+          - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}'
+          - Ref: AWS::NoValue
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -634,8 +900,10 @@ Resources:
             - - !Ref SecretsManagerSecretName
               - !Ref 'AWS::StackName'
           exclude_regions: !If [ ExcludeRegionsEmpty, 'none', !Ref ExcludeRegions ]
-          aws_region: !Ref AWS::Region
           cs_cloud: !Ref CSCloud
+          aws_account_type: !Ref AWSAccountType
+          falcon_account_type: !Ref FalconAccountType
+          existing_cloudtrail: !If [ CreateTrail, 'False', 'True' ]
       Handler: lambda.lambda_handler
       MemorySize: 128
       Role: !GetAtt "LambdaCrowdStrikeRegistrationRole.Arn"
@@ -746,6 +1014,11 @@ Resources:
   CopyZipsRole:
     Type: AWS::IAM::Role
     Properties:
+      PermissionsBoundary:
+        Fn::If:
+          - SetPermissionsBoundary
+          - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}'
+          - Ref: AWS::NoValue
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -754,7 +1027,7 @@ Resources:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
       Path: /
       Policies:
         - PolicyName: lambda-copier
@@ -909,7 +1182,6 @@ Resources:
   OrgIdLambdaLogGroup:
     DeletionPolicy: Delete
     Type: AWS::Logs::LogGroup
-    UpdateReplacePolicy: Retain
     Properties:
       LogGroupName: !Sub /aws/lambda/${OrgIdLambdaFunctionName}
       RetentionInDays: 3653
@@ -924,6 +1196,11 @@ Resources:
           - id: W28
             reason: The role name is defined to identify automation resources
     Properties:
+      PermissionsBoundary:
+        Fn::If:
+          - SetPermissionsBoundary
+          - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}'
+          - Ref: AWS::NoValue
       RoleName: !Ref OrgIdLambdaRoleName
       Description: !Sub Role for '${OrgIdLambdaRoleName}' Lambda function
       AssumeRolePolicyDocument:
@@ -954,20 +1231,3 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${OrgIdLambdaFunctionName}:log-stream:*
-
-
-Outputs:
-  RoleName:
-    Value: !GetAtt TriggerRegisterAccountLambda.iam_role_name
-    Export:
-      Name: iamRoleName
-
-  ExternalId:
-    Value: !GetAtt TriggerRegisterAccountLambda.external_id
-    Export:
-      Name: externalId
-
-  EventbusName:
-    Value: !GetAtt TriggerRegisterAccountLambda.eventbus_name
-    Export:
-      Name: eventbusName
