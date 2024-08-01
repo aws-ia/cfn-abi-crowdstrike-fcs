@@ -21,6 +21,10 @@ Parameters:
     Type: String
     Description: The name of the policy used to set the permissions boundary for IAM roles.
     Default: ''
+  ReplicaRegions:
+    Type: CommaDelimitedList
+    Description: Regions to replicate Secret to enable SSM Associations.
+    Default: ''
 
 Conditions:
   SetPermissionsBoundary: !Not [ !Equals [ !Ref PermissionsBoundary, '' ] ]
@@ -31,6 +35,7 @@ Resources:
     Properties:
       Description: CrowdStrike Falcon Credentials for SSM Distributor
       Name: !Ref SecretsManagerSecretName
+      ReplicaRegions: !Ref ReplicaRegions
       SecretString:
         Fn::Join:
           - ''

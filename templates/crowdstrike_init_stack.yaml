@@ -395,6 +395,8 @@ Resources:
           ParameterValue: !Ref FalconSecret
         - ParameterKey: PermissionsBoundary
           ParameterValue: !Ref PermissionsBoundary
+        - ParameterKey: ReplicaRegions
+          ParameterValue: !GetAtt TriggerRegisterAccountLambda.ssm_regions
         - ParameterKey: BaseURL
           ParameterValue: !FindInMap
             - CloudMap
