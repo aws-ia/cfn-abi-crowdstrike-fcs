@@ -328,6 +328,7 @@ Conditions:
   SetPermissionsBoundary: !Not [ !Equals [ !Ref PermissionsBoundary, '' ]]
   IsDelegatedAdmin: !Equals [ !Ref 'DelegatedAdmin', true ]
   NotDelegatedAdminIOA: !And [ !Equals [ !Ref 'DelegatedAdmin', false ], !Equals [!Ref 'EnableIOA', true ]]
+  NotDelegatedAdminCommGovIOA: !And [!Equals [ !Ref 'DelegatedAdmin', false ], !Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
 
 Resources:
   CloudTrailStack:
@@ -721,6 +722,16 @@ Resources:
               - !Ref AWS::AccountId
           Regions: !GetAtt TriggerRegisterAccountLambda.comm_gov_eb_regions
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_eb_comm_gov.json
+
+  CommGovCrowdStrikeRootIOAStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Condition: NotDelegatedAdminCommGovIOA
+    Properties:
+      Parameters:
+        ClientID: !Ref FalconClientID
+        ClientSecret: !Ref FalconSecret
+        PermissionsBoundary: !Ref PermissionsBoundary
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_ioa_comm_gov.json
   
   # IOA StackSets
   CommCrowdStrikeEbStackSet:
