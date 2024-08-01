@@ -61,6 +61,7 @@ Metadata:
       - Label:
           default: Advanced Configuration Properties
         Parameters:
+          - DelegatedAdmin
           - pControlTower
           - pGovernedRegions
           - pSecurityAccountId
@@ -127,6 +128,8 @@ Metadata:
         default: pLogArchiveAccountId
       PermissionsBoundary:
         default: Permissions Boundary Policy Name
+      DelegatedAdmin:
+        default: Delegated Administrator Account
 
 Parameters:
   PermissionsBoundary:
@@ -295,6 +298,12 @@ Parameters:
     Default: ct-regions
     Description: AWS regions (comma separated) if not using AWS Control Tower (leave set to ct-regions for AWS Control Tower environments)
     Type: String
+  DelegatedAdmin:
+    AllowedValues: ['true', 'false']
+    Default: 'false'
+    Description:
+      Indicates whether this is a Delegated Administrator account.
+    Type: String
 
 Mappings: 
   CloudMap: 
@@ -317,6 +326,8 @@ Conditions:
   IsNotCommToGovCloud: !And [!Not [ !Equals [ !Ref 'AWSAccountType', commercial ]], !Not [!Equals [ !Ref 'FalconAccountType', govcloud ]]]
   IsCommToGovCloud: !And [!Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', govcloud ]]
   SetPermissionsBoundary: !Not [ !Equals [ !Ref PermissionsBoundary, '' ]]
+  IsDelegatedAdmin: !Equals [ !Ref 'DelegatedAdmin', true ]
+  NotDelegatedAdminIOA: !And [ !Equals [ !Ref 'DelegatedAdmin', false ], !Equals [!Ref 'EnableIOA', true ]]
 
 Resources:
   CloudTrailStack:
@@ -344,6 +355,7 @@ Resources:
       StackSetName: CrowdStrike-Cloud-SSM-Associations-Stackset
       Description: Create SSM State Manager Association to automatically manage Falcon Sensor installation across SSM Managed Instances
       PermissionModel: SERVICE_MANAGED
+      CallAs: !If [ IsDelegatedAdmin, 'DELEGATED_ADMIN', 'SELF' ]
       ManagedExecution:
         Active: true
       Parameters:
@@ -382,6 +394,7 @@ Resources:
       Capabilities:
        - CAPABILITY_NAMED_IAM
       PermissionModel: SERVICE_MANAGED
+      CallAs: !If [ IsDelegatedAdmin, 'DELEGATED_ADMIN', 'SELF' ]
       ManagedExecution:
         Active: true
       Parameters:
@@ -482,6 +495,7 @@ Resources:
         - ParameterKey: PermissionsBoundary
           ParameterValue: !Ref PermissionsBoundary
       PermissionModel: SERVICE_MANAGED
+      CallAs: !If [ IsDelegatedAdmin, 'DELEGATED_ADMIN', 'SELF' ]
       AutoDeployment:
         Enabled: true
         RetainStacksOnAccountRemoval: true
@@ -529,6 +543,7 @@ Resources:
         - ParameterKey: CreateEventBridgeRole
           ParameterValue: 'false'
       PermissionModel: SERVICE_MANAGED
+      CallAs: !If [ IsDelegatedAdmin, 'DELEGATED_ADMIN', 'SELF' ]
       AutoDeployment:
         Enabled: true
         RetainStacksOnAccountRemoval: true
@@ -631,7 +646,7 @@ Resources:
   # Root IOA StackSets
   CommCrowdStrikeRootEbStackSet:
     Type: 'AWS::CloudFormation::StackSet'
-    Condition: IsCommercialIOA
+    Condition: NotDelegatedAdminIOA
     Properties:
       AdministrationRoleARN: !GetAtt StackSetAdministrationRole.Arn
       ExecutionRoleName: !Ref StackSetExecutionRole
@@ -656,7 +671,7 @@ Resources:
 
   GovCrowdStrikeRootEbStackSet:
     Type: 'AWS::CloudFormation::StackSet'
-    Condition: IsGovCloudIOA
+    Condition: NotDelegatedAdminIOA
     Properties:
       AdministrationRoleARN: !GetAtt StackSetAdministrationRole.Arn
       ExecutionRoleName: !Ref StackSetExecutionRole
@@ -683,7 +698,7 @@ Resources:
 
   CommGovCrowdStrikeRootEbStackSet:
     Type: 'AWS::CloudFormation::StackSet'
-    Condition: IsCommToGovCloudIOA
+    Condition: NotDelegatedAdminIOA
     Properties:
       Capabilities:
         - CAPABILITY_IAM
@@ -719,6 +734,7 @@ Resources:
         - ParameterKey: CSEventBusName
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.eventbus_name
       PermissionModel: SERVICE_MANAGED
+      CallAs: !If [ IsDelegatedAdmin, 'DELEGATED_ADMIN', 'SELF' ]
       AutoDeployment:
         Enabled: true
         RetainStacksOnAccountRemoval: true
@@ -746,6 +762,7 @@ Resources:
         - ParameterKey: AWSAccountType
           ParameterValue: !Ref AWSAccountType
       PermissionModel: SERVICE_MANAGED
+      CallAs: !If [ IsDelegatedAdmin, 'DELEGATED_ADMIN', 'SELF' ]
       OperationPreferences:
         MaxConcurrentPercentage: 100
         FailureTolerancePercentage: 50
@@ -772,6 +789,7 @@ Resources:
         - ParameterKey: DefaultEventBusRegion
           ParameterValue: !Ref AWS::Region
       PermissionModel: SERVICE_MANAGED
+      CallAs: !If [ IsDelegatedAdmin, 'DELEGATED_ADMIN', 'SELF' ]
       OperationPreferences:
         MaxConcurrentPercentage: 100
         FailureTolerancePercentage: 50
@@ -802,6 +820,7 @@ Resources:
         - ParameterKey: PermissionsBoundary
           ParameterValue: !Ref PermissionsBoundary
       PermissionModel: SERVICE_MANAGED
+      CallAs: !If [ IsDelegatedAdmin, 'DELEGATED_ADMIN', 'SELF' ]
       OperationPreferences:
         MaxConcurrentPercentage: 100
         FailureTolerancePercentage: 50
