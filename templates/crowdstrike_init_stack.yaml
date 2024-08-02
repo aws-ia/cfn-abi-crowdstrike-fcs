@@ -331,6 +331,15 @@ Resources:
           ParameterValue: !Ref AutomationAssumeRole
         - ParameterKey: ApplyOnlyAtCronInterval
           ParameterValue: !Ref ApplyOnlyAtCronInterval
+        - ParameterKey: BaseURL
+          ParameterValue: !FindInMap
+            - CloudMap
+            - !Ref CSCloud
+            - BaseURL
+        - ParameterKey: FalconClientID
+          ParameterValue: !Ref FalconClientID
+        - ParameterKey: FalconSecret
+          ParameterValue: !Ref FalconSecret
       AutoDeployment:
         Enabled: true
         RetainStacksOnAccountRemoval: true
@@ -354,23 +363,10 @@ Resources:
       ManagedExecution:
         Active: true
       Parameters:
-        - ParameterKey: SecretsManagerSecretName
-          ParameterValue: !Ref SecretsManagerSecretName
         - ParameterKey: AutomationAssumeRole
           ParameterValue: !Ref AutomationAssumeRole
-        - ParameterKey: FalconClientID
-          ParameterValue: !Ref FalconClientID
-        - ParameterKey: FalconSecret
-          ParameterValue: !Ref FalconSecret
         - ParameterKey: PermissionsBoundary
           ParameterValue: !Ref PermissionsBoundary
-        - ParameterKey: ReplicaRegions
-          ParameterValue: !GetAtt TriggerRegisterAccountLambda.ssm_regions
-        - ParameterKey: BaseURL
-          ParameterValue: !FindInMap
-            - CloudMap
-            - !Ref CSCloud
-            - BaseURL
       AutoDeployment:
         Enabled: true
         RetainStacksOnAccountRemoval: true
