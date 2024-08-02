@@ -180,14 +180,6 @@ Parameters:
       Staging S3 bucket name prefix for the artifacts relevant to the solutions. (e.g., lambda zips, CloudFormation templates). The account
       and region are added to the prefix <bucket-name-prefix>-<account-id>-<region>. Example = staging-123456789012-us-east-1.
     Type: String
-  pRepoURL:
-    Default: "https://github.com/aws-samples/aws-security-reference-architecture-examples.git"
-    Description: AWS Security Reference Architecture examples repository URL
-    Type: String
-  pRepoBranch:
-    Default: "tags/v3.0.4"
-    Description: SRA version to tag
-    Type: String
   S3BucketRegion:
     Type: String
     Default: us-east-1
