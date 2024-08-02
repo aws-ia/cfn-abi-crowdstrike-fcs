@@ -62,10 +62,6 @@ Metadata:
           default: Advanced Configuration Properties
         Parameters:
           - DelegatedAdmin
-          - pControlTower
-          - pGovernedRegions
-          - pSecurityAccountId
-          - pLogArchiveAccountId
 
     ParameterLabels:
       FalconAccountType:
@@ -118,14 +114,6 @@ Metadata:
         default: Secrets Manager Secret Name
       APICredentialsStorageMode:
         default: API Credentials Storage Mode
-      pControlTower:
-        default: pControlTower
-      pGovernedRegions:
-        default: pGovernedRegions
-      pSecurityAccountId:
-        default: pSecurityAccountId
-      pLogArchiveAccountId:
-        default: pLogArchiveAccountId
       PermissionsBoundary:
         default: Permissions Boundary Policy Name
       DelegatedAdmin:
@@ -273,31 +261,6 @@ Parameters:
     Description: How Falcon API credentials are stored for Sensor Management. 'lambda' stores them in the lambda environment variables, 'secret' in an AWS secret.
     Default: 'secret'
     AllowedValues: ['lambda', 'secret']
-  pControlTower:
-    AllowedValues: ['true', 'false']
-    Default: 'true'
-    Description:
-      Indicates whether AWS Control Tower is deployed and being used for this AWS environment.
-    Type: String
-  pSecurityAccountId:
-    AllowedPattern: '^\d{12}$'
-    Default: 111111111111
-    ConstraintDescription: Must be 12 digits.
-    Description: AWS Account ID of the Security Tooling account (ignored for AWS Control Tower environments).
-    Type: String
-  pLogArchiveAccountId:
-    AllowedPattern: '^\d{12}$'
-    Default: 222222222222
-    ConstraintDescription: Must be 12 digits.
-    Description: AWS Account ID of the Log Archive account (ignored for AWS Control Tower environments).
-    Type: String
-  pGovernedRegions:
-    AllowedPattern: '^(ct-regions)|((\b(?<!@)(af-south-1|ap-east-1|ap-northeast-1|ap-northeast-2|ap-northeast-3|ap-south-1|ap-south-2|ap-southeast-1|ap-southeast-2|ap-southeast-3|ap-southeast-4|ca-central-1|cn-north-1|cn-northwest-1|eu-central-1|eu-central-2|eu-north-1|eu-south-1|eu-south-2|eu-west-1|eu-west-2|eu-west-3|me-central-1|me-south-1|sa-east-1|us-east-1|us-east-2|us-gov-east-1|us-gov-west-1|us-west-1|us-west-2)\b,{0,1})*)$'
-    ConstraintDescription:
-      For AWS Control Tower, set to ct-regions (default).  If not using AWS Control Tower, specify comma separated list of regions (e.g. us-west-2,us-east-1,ap-south-1) in lower case.
-    Default: ct-regions
-    Description: AWS regions (comma separated) if not using AWS Control Tower (leave set to ct-regions for AWS Control Tower environments)
-    Type: String
   DelegatedAdmin:
     AllowedValues: ['true', 'false']
     Default: 'false'
@@ -317,6 +280,7 @@ Mappings:
 Conditions:
   CreateIOAResources: !Equals [ !Ref 'EnableIOA', true ]
   CreateTrail: !Equals [ !Ref 'CreateOrgTrail', true ]
+  IsCommercialCreateTrail: !And [!Equals [ !Ref 'CreateOrgTrail', true ], !Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', commercial ], !Equals [!Ref 'EnableIOA', true ]]
   ExcludeRegionsEmpty:  !Equals [!Ref 'ExcludeRegions', '']
   CreateSSMAssociations: !Equals [ !Ref 'EnableSSMDistributor', true ]
   IsCommercialIOA: !And [!Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', commercial ], !Equals [!Ref 'EnableIOA', true ]]
@@ -331,22 +295,21 @@ Conditions:
   NotDelegatedAdminCommGovIOA: !And [!Equals [ !Ref 'DelegatedAdmin', false ], !Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
 
 Resources:
-  CloudTrailStack:
-    Type: 'AWS::CloudFormation::Stack'
-    Condition: CreateTrail
-    DeletionPolicy: Delete
-    UpdateReplacePolicy: Delete
+# Optional Organization Trail to enable Read Only IOAs
+  OrgCloudTrail:
+    Condition: IsCommercialCreateTrail
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_35
+            comment: We do not require customer to create and manage CMKs as a part of this solution
+    Type: AWS::CloudTrail::Trail
     Properties:
-      TemplateURL: !Sub >-
-        https://${SourceS3BucketName}.s3.${S3BucketRegion}.${AWS::URLSuffix}/${SourceS3BucketNamePrefix}/submodules/aws-security-reference-architecture-examples/aws_sra_examples/modules/cloudtrail-org-module/templates/sra-cloudtrail-org-module-main.yaml
-      Parameters:
-        pRepoURL: !Ref pRepoURL
-        pRepoBranch: !Ref pRepoBranch
-        pEnableDataEventsOnly: false
-        pControlTower: !Ref pControlTower
-        pGovernedRegions: !Ref pGovernedRegions
-        pSecurityAccountId: !Ref pSecurityAccountId
-        pLogArchiveAccountId: !Ref pLogArchiveAccountId
+      IsLogging: true
+      IsMultiRegionTrail: true
+      IsOrganizationTrail: true
+      S3BucketName: !GetAtt TriggerRegisterAccountLambda.cs_bucket_name
+      TrailName: cs-horizon-org-trail
 
 # Create SSM Distributor Associations
   AssociationStackSet:

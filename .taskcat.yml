@@ -76,10 +76,6 @@ tests:
       ProvisionOU: $[taskcat_ssm_/crowdstrike/provision-ou]
       CreateOrgTrail: "true"
       ExcludeRegions: $[taskcat_ssm_/crowdstrike/exclude_regions]
-      pControlTower: 'false'
-      pLogArchiveAccountId: $[taskcat_ssm_/nonct/log-archive-account-id]
-      pSecurityAccountId: $[taskcat_ssm_/nonct/audit-account-id]
-      pGovernedRegions: 'us-east-1,us-east-2'
     regions:
     - us-east-1
     template: templates/crowdstrike_init_stack.yaml
