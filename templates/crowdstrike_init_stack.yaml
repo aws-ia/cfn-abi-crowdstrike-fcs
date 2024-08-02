@@ -1174,13 +1174,6 @@ Resources:
         S3Bucket: !Ref StagingS3Bucket
         S3Key: !Sub ${SourceS3BucketNamePrefix}/lambda_functions/packages/cw-helper/lambda.zip
 
-  OrgIdLambdaLogGroup:
-    DeletionPolicy: Delete
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${OrgIdLambdaFunctionName}
-      RetentionInDays: 3653
-
   OrgIdLambdaRole:
     Type: AWS::IAM::Role
     Metadata:
