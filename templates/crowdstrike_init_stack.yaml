@@ -385,7 +385,8 @@ Conditions:
   IsCommToGovCloud: !And [!Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', govcloud ]]
   SetPermissionsBoundary: !Not [ !Equals [ !Ref PermissionsBoundary, '' ]]
   IsDelegatedAdmin: !Equals [ !Ref 'DelegatedAdmin', true ]
-  NotDelegatedAdminIOA: !And [ !Equals [ !Ref 'DelegatedAdmin', false ], !Equals [!Ref 'EnableIOA', true ]]
+  NotDelegatedAdminCommIOA: !And [ !Equals [ !Ref 'DelegatedAdmin', false ], !Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', commercial ], !Equals [!Ref 'EnableIOA', true ]]
+  NotDelegatedAdminGovIOA: !And [ !Equals [ !Ref 'DelegatedAdmin', false ], !Equals [ !Ref 'AWSAccountType', govcloud ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
   NotDelegatedAdminCommGovIOA: !And [!Equals [ !Ref 'DelegatedAdmin', false ], !Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
 
 Resources:
@@ -718,7 +719,7 @@ Resources:
   # Root IOA StackSets
   CommCrowdStrikeRootEbStackSet:
     Type: 'AWS::CloudFormation::StackSet'
-    Condition: NotDelegatedAdminIOA
+    Condition: NotDelegatedAdminCommIOA
     Properties:
       AdministrationRoleARN: !GetAtt StackSetAdministrationRole.Arn
       ExecutionRoleName: !Ref StackSetExecutionRole
@@ -743,7 +744,7 @@ Resources:
 
   GovCrowdStrikeRootEbStackSet:
     Type: 'AWS::CloudFormation::StackSet'
-    Condition: NotDelegatedAdminIOA
+    Condition: NotDelegatedAdminGovIOA
     Properties:
       AdministrationRoleARN: !GetAtt StackSetAdministrationRole.Arn
       ExecutionRoleName: !Ref StackSetExecutionRole
@@ -770,7 +771,7 @@ Resources:
 
   CommGovCrowdStrikeRootEbStackSet:
     Type: 'AWS::CloudFormation::StackSet'
-    Condition: NotDelegatedAdminIOA
+    Condition: NotDelegatedAdminCommGovIOA
     Properties:
       Capabilities:
         - CAPABILITY_IAM
