@@ -351,6 +351,14 @@ Parameters:
     Default: ct-regions
     Description: AWS regions (comma separated) if not using AWS Control Tower (leave set to ct-regions for AWS Control Tower environments)
     Type: String
+  pRepoURL:
+    Default: "https://github.com/aws-samples/aws-security-reference-architecture-examples.git"
+    Description: AWS Security Reference Architecture examples repository URL
+    Type: String
+  pRepoBranch:
+    Default: "tags/v3.0.4"
+    Description: SRA version to tag
+    Type: String
 
 
 Mappings: 
@@ -999,7 +1007,7 @@ Resources:
           cs_cloud: !Ref CSCloud
           aws_account_type: !Ref AWSAccountType
           falcon_account_type: !Ref FalconAccountType
-          existing_cloudtrail: !If [ CreateTrail, 'False', 'True' ]
+          existing_cloudtrail: !If [ CreateIOATrail, 'False', 'True' ]
       Handler: lambda.lambda_handler
       MemorySize: 128
       Role: !GetAtt "LambdaCrowdStrikeRegistrationRole.Arn"
