@@ -21,5 +21,11 @@ You may use this solution to register the following account types:
 
 **Note:** When registering Commercial AWS with GovCloud Falcon, this solution **must be launched in us-east-1**
 
+#### Optional CloudTrails
+
+This solution can deploy up to two CloudTrails for you AWS Organization.
+
+* Create Additional Organization CloudTrail: This optional trail will enable Read Only IOAs for your AWS Organization
+* Create Default Organization CloudTrail: This optional trail is required if you do not have an Organization CloudTrail enabled for you AWS Organization.
 
 **Next:** Choose [Predeployment steps](/pre-deployment-steps/index.html).

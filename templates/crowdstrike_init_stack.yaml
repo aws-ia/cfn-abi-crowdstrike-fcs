@@ -30,6 +30,11 @@ Metadata:
           - CreateIOAOrgTrail
           - ExcludeRegions
       - Label:
+          default: Sensor Management
+        Parameters:
+          - EnableSensorManagement
+          - APICredentialsStorageMode
+      - Label:
           default: Provision OUs
         Parameters:
           - ProvisionOU
@@ -48,11 +53,6 @@ Metadata:
           - SourceS3BucketName
           - S3BucketRegion
           - SourceS3BucketNamePrefix
-      - Label:
-          default: Sensor Management
-        Parameters:
-          - EnableSensorManagement
-          - APICredentialsStorageMode
       - Label:
           default: AWS Organization ID - Lambda Function Properties
         Parameters:
@@ -104,6 +104,12 @@ Metadata:
       ExcludeRegions:
         default: Exclude Prohibited Regions
 
+      # Sensor Management
+      EnableSensorManagement:
+        default: Enable Sensor Management
+      APICredentialsStorageMode:
+        default: API Credentials Storage Mode
+
       # Provision OUs
       ProvisionOU:
         default: The Organization Root ID or Organizational Unit (OU) IDs to Provision
@@ -129,12 +135,6 @@ Metadata:
         default: S3 Bucket Region
       SourceS3BucketNamePrefix:
         default: Source S3 Bucket Name Prefix
-
-      # Sensor Management
-      EnableSensorManagement:
-        default: Enable Sensor Management
-      APICredentialsStorageMode:
-        default: API Credentials Storage Mode
 
       # AWS Organization ID - Lambda Function Properties
       OrgIdLambdaFunctionName:
@@ -231,6 +231,20 @@ Parameters:
     Type: String
     Default: ''
 
+  # Sensor Management
+  EnableSensorManagement:
+    Type: String
+    Description: Enable Automatic Sensor Deployment via AWS SSM and/or Ansible.
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'true'
+  APICredentialsStorageMode:
+    Type: String
+    Description: How Falcon API credentials are stored for Sensor Management. 'lambda' stores them in the lambda environment variables, 'secret' in an AWS secret.
+    Default: 'secret'
+    AllowedValues: ['lambda', 'secret']
+
   # Provision OUs
   ProvisionOU:
     Type: CommaDelimitedList
@@ -281,20 +295,6 @@ Parameters:
       Staging S3 bucket name prefix for the artifacts relevant to the solutions. (e.g., lambda zips, CloudFormation templates). The account
       and region are added to the prefix <bucket-name-prefix>-<account-id>-<region>. Example = staging-123456789012-us-east-1.
     Type: String
-
-  # Sensor Management
-  EnableSensorManagement:
-    Type: String
-    Description: Enable Automatic Sensor Deployment via AWS SSM and/or Ansible.
-    AllowedValues:
-      - 'true'
-      - 'false'
-    Default: 'true'
-  APICredentialsStorageMode:
-    Type: String
-    Description: How Falcon API credentials are stored for Sensor Management. 'lambda' stores them in the lambda environment variables, 'secret' in an AWS secret.
-    Default: 'secret'
-    AllowedValues: ['lambda', 'secret']
   
   # AWS Organization ID - Lambda Function Properties
   OrgIdLambdaFunctionName:
