@@ -18,14 +18,14 @@ tests:
     regions:
     - us-east-1
     template: templates/crowdstrike_init_stack.yaml
-  cw-test-ct:
+  cw-test-trail:
     parameters:
       FalconClientID: $[taskcat_ssm_/crowdstrike/falcon_client_id]
       FalconSecret: $[taskcat_ssm_/crowdstrike/falcon_secret]
       SourceS3BucketName: $[taskcat_autobucket]
       S3BucketRegion: $[taskcat_current_region]
       ProvisionOU: $[taskcat_ssm_/crowdstrike/provision-ou]
-      CreateOrgTrail: "true"
+      CreateIOAOrgTrail: "true"
       ExcludeRegions: $[taskcat_ssm_/crowdstrike/exclude_regions]
     regions:
     - us-east-1
@@ -63,19 +63,36 @@ tests:
       ProvisionOU: $[taskcat_ssm_/crowdstrike/provision-ou]
       ExcludeRegions: $[taskcat_ssm_/crowdstrike/exclude_regions]
       EnableSSMDistributor: "true"
-      CreateOrgTrail: "true"
+      CreateIOAOrgTrail: "true"
+      CreateSRAOrgTrail: "true"
     regions:
     - us-east-1
     template: templates/crowdstrike_init_stack.yaml
-  cw-test-nonct:
+  cw-test-sra:
     parameters:
       FalconClientID: $[taskcat_ssm_/crowdstrike/falcon_client_id]
       FalconSecret: $[taskcat_ssm_/crowdstrike/falcon_secret]
       SourceS3BucketName: $[taskcat_autobucket]
       S3BucketRegion: $[taskcat_current_region]
       ProvisionOU: $[taskcat_ssm_/crowdstrike/provision-ou]
-      CreateOrgTrail: "true"
+      CreateSRAOrgTrail: "true"
       ExcludeRegions: $[taskcat_ssm_/crowdstrike/exclude_regions]
+    regions:
+    - us-east-1
+    template: templates/crowdstrike_init_stack.yaml
+  cw-test-sra-nonct:
+    parameters:
+      FalconClientID: $[taskcat_ssm_/crowdstrike/falcon_client_id]
+      FalconSecret: $[taskcat_ssm_/crowdstrike/falcon_secret]
+      SourceS3BucketName: $[taskcat_autobucket]
+      S3BucketRegion: $[taskcat_current_region]
+      ProvisionOU: $[taskcat_ssm_/crowdstrike/provision-ou]
+      CreateSRAOrgTrail: "true"
+      ExcludeRegions: $[taskcat_ssm_/crowdstrike/exclude_regions]
+      pControlTower: 'false'
+      pLogArchiveAccountId: $[taskcat_ssm_/nonct/log-archive-account-id]
+      pSecurityAccountId: $[taskcat_ssm_/nonct/audit-account-id]
+      pGovernedRegions: 'us-east-1,us-east-2'
     regions:
     - us-east-1
     template: templates/crowdstrike_init_stack.yaml
