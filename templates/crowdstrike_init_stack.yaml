@@ -419,6 +419,7 @@ Resources:
     Type: AWS::CloudTrail::Trail
     Properties:
       IsLogging: true
+      IncludeGlobalServiceEvents: true
       IsMultiRegionTrail: true
       IsOrganizationTrail: true
       S3BucketName: !GetAtt TriggerRegisterAccountLambda.cs_bucket_name
