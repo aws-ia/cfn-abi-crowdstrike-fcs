@@ -221,7 +221,7 @@ Parameters:
     Default: 'CrowdStrikeStackSetExecutionRole'
   CreateIOAOrgTrail:
     Type: String
-    Description: Optional Organization CloudTrail to enable ReadOnly IOAs.
+    Description: 'Output cs_bucket_name to set up Organization CloudTrail and enable ReadOnly IOAs.'
     AllowedValues:
       - 'true'
       - 'false'
@@ -407,23 +407,6 @@ Resources:
           pGovernedRegions: !Ref pGovernedRegions
           pSecurityAccountId: !Ref pSecurityAccountId
           pLogArchiveAccountId: !Ref pLogArchiveAccountId
-
-# Optional Additional Organization CloudTrail to enable Read Only IOAs
-  OrgCloudTrail:
-    Condition: IsCommercialCreateTrail
-    Metadata:
-      checkov:
-        skip:
-          - id: CKV_AWS_35
-            comment: We do not require customer to create and manage CMKs as a part of this solution
-    Type: AWS::CloudTrail::Trail
-    Properties:
-      IsLogging: true
-      IncludeGlobalServiceEvents: true
-      IsMultiRegionTrail: true
-      IsOrganizationTrail: true
-      S3BucketName: !GetAtt TriggerRegisterAccountLambda.cs_bucket_name
-      TrailName: cs-horizon-org-trail
 
 # Create SSM Distributor Associations
   AssociationStackSet:
@@ -1333,3 +1316,11 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${OrgIdLambdaFunctionName}:log-stream:*
+
+Outputs:
+  CSBucket:
+    Condition: CreateIOATrail
+    Description: Name of S3 Bucket for IOA CloudTrail Target
+    Value: !GetAtt TriggerRegisterAccountLambda.cs_bucket_name
+    Export:
+      Name: cs_bucket_name

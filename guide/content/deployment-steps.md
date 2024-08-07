@@ -26,7 +26,7 @@ description: Deployment steps.
             * **Enable IOA Scanning**: Whether to enable IOA Scanning.  Allowed vlaues include `true` or `false`.  Default is `true`
             * **StackSet Administration Role**: Name of StackSet Administration role.  Default is `AWSCloudFormationStackSetAdministrationRole`
             * **StackSet Execution Role**: Name of StackSet Execution role.  Default is `AWSCloudFormationStackSetExecutionRole`
-            * **Create Optional Organization CloudTrail**: Whether to create an additional CLoudTrail to enable ReadOnly IOAs.  Allowed values include `true` or `false`. The default is `false`
+            * **Create Optional Organization CloudTrail**: Whether you plan to create an additional CloudTrail to enable ReadOnly IOAs.  If `true` the CrowdStrike Bucket name (target for your CloudTrail) will be in the outputs and exports of this stack.  Allowed values include `true` or `false`. The default is `false`
             * **Exclude Prohibited Regions**: List of regions to exclude from deployment. Use this when SCPs cause stacksets to fail.  Eg. `[<region-1>,<region-2>,....]`
         * Sensor Management
             * **Enable Sensor Management**
