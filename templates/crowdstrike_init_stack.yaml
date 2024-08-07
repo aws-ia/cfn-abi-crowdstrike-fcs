@@ -374,7 +374,6 @@ Conditions:
   CreateIOAResources: !Equals [ !Ref 'EnableIOA', true ]
   CreateIOATrail: !Equals [ !Ref 'CreateIOAOrgTrail', true ]
   CreateOrgTrail: !Equals [ !Ref 'CreateSRAOrgTrail', true ]
-  IsCommercialCreateTrail: !And [!Equals [ !Ref 'CreateIOAOrgTrail', true ], !Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', commercial ], !Equals [!Ref 'EnableIOA', true ]]
   ExcludeRegionsEmpty:  !Equals [!Ref 'ExcludeRegions', '']
   CreateSSMAssociations: !Equals [ !Ref 'EnableSSMDistributor', true ]
   IsCommercialIOA: !And [!Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', commercial ], !Equals [!Ref 'EnableIOA', true ]]
