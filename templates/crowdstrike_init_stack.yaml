@@ -1322,4 +1322,4 @@ Outputs:
     Description: Name of S3 Bucket for IOA CloudTrail Target
     Value: !GetAtt TriggerRegisterAccountLambda.cs_bucket_name
     Export:
-      Name: cs_bucket_name
+      Name: cs-bucket-name
