@@ -3,20 +3,6 @@ Parameters:
   AutomationAssumeRole:
     Type: String
     Description: 'Name of the IAM role to create'
-  SecretsManagerSecretName:
-    Type: String
-    Description: 'The name of the secret used to store the Falcon ClientId, ClientSecret, and Cloud for the CrowdStrike APIs.'
-  FalconClientID:
-    Description: Your Falcon OAuth2 Client ID.
-    NoEcho: 'true'
-    Type: String
-  FalconSecret:
-    Description: Your Falcon OAuth2 API Secret.
-    NoEcho: 'true'
-    Type: String  
-  BaseURL:
-    Description: Your Falcon OAuth2 API Base URL.
-    Type: String
   PermissionsBoundary:
     Type: String
     Description: The name of the policy used to set the permissions boundary for IAM roles.
@@ -26,22 +12,6 @@ Conditions:
   SetPermissionsBoundary: !Not [ !Equals [ !Ref PermissionsBoundary, '' ] ]
 
 Resources:
-  CrowdStrikeSecrets:
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Description: CrowdStrike Falcon Credentials for SSM Distributor
-      Name: !Ref SecretsManagerSecretName
-      SecretString:
-        Fn::Join:
-          - ''
-          - - '{"ClientId":"'
-            - Ref: "FalconClientID"
-            - '","ClientSecret":"'
-            - Ref: "FalconSecret"
-            - '","Cloud": "'
-            - Ref: BaseURL
-            - '"}'
-            
   SSMAutomationRole:
     Type: 'AWS::IAM::Role'
     Properties:

@@ -26,8 +26,11 @@ description: Deployment steps.
             * **Enable IOA Scanning**: Whether to enable IOA Scanning.  Allowed vlaues include `true` or `false`.  Default is `true`
             * **StackSet Administration Role**: Name of StackSet Administration role.  Default is `AWSCloudFormationStackSetAdministrationRole`
             * **StackSet Execution Role**: Name of StackSet Execution role.  Default is `AWSCloudFormationStackSetExecutionRole`
-            * **Create Optional Organization CloudTrail**: Whether to create an additional CLoudTrail to enable ReadOnly IOAs.  Allowed values include `true` or `false`. The default is `false`
+            * **Create Optional Organization CloudTrail**: Whether you plan to create an additional CloudTrail to enable ReadOnly IOAs.  If `true` the CrowdStrike Bucket name (target for your CloudTrail) will be in the outputs and exports of this stack.  Allowed values include `true` or `false`. The default is `false`
             * **Exclude Prohibited Regions**: List of regions to exclude from deployment. Use this when SCPs cause stacksets to fail.  Eg. `[<region-1>,<region-2>,....]`
+        * Sensor Management
+            * **Enable Sensor Management**
+            * **API Credentials Storage Mode**
         * Provision OUs
             * **The Organization Root ID or Organizational Unit (OU) IDs to Provision**: Comma Delimited List of AWS OU(s) to provision. If you are provisioning the entire organization, please enter the Root OU `r-******`
         * Deploy Falcon Sensors with SSM Distributor
@@ -37,23 +40,21 @@ description: Deployment steps.
             * **Cron Schedule Expression**: If EnableSSMDistributor is `true`: Define the schedule or rate by which the SSM Automation runs. The default is `cron(0 0 */1 * * ? *)` (runs every hour)
             * **Max Errors Allowed**: If EnableSSMDistributor is `true`: The number or percent of errors that are allowed before the system stops sending requests to run the association on additional targets. The default is `10%`
             * **Max Concurrency Allowed**: If EnableSSMDistributor is `true`: The maximum number or percent of targets allowed to run the association at the same time. The default is `20%`
-        * Sensor Management
-            * **Enable Sensor Management**
-            * **API Credentials Storage Mode**
-    
-    * Use the default values for the following parameters:
         * AWS S3 Bucket
-            * **Source S3 Bucket Name**
-            * **S3 Bucket Region**
-            * **Source S3 Bucket Name Prefix**
+            * **Source S3 Bucket Name**: Name of the S3 Bucket for staging files.  The default is `aws-abi-${AWS::AccountId}-${AWS::Region}`
+            * **S3 Bucket Region**: Region of the S3 Bucket for staging files.
+            * **Source S3 Bucket Name Prefix**: Prefix of the S3 Bucket for sourcing files. Do not change the defult value.
         * AWS Organization ID - Lambda Function Properties
-            * **AWS Organization ID - Lambda Role Name**
-            * **AWS Organization ID - Lambda Function Name**
+            * **AWS Organization ID - Lambda Role Name**: Name of the Organization ID Lambda Function execution Role.  The default is `sra-sh-org-id-lambda`
+            * **AWS Organization ID - Lambda Function Name**: Name of the Organization ID Lambda Function.  The default is `crowdstrike-org-id`
         * Advanced Configuration Properties
-            * **pControlTower**
-            * **pGovernedRegions**
-            * **pSecurityAccountId**
-            * **pLogArchiveAccountId**
+            * **Delegated Administrator Account**: Indicates whether this is a Delegated Administrator account.  Allowed values include `true` or `false`.  Default is `false`
+        * Create Organization CloudTrail
+            * **Create Default Organization CloudTrail**: Create org-wide trail, bucket, and bucket policy to enable EventBridge event collection.  If you already have either an Organization CloudTrail or CloudTrails enabled in each account, please leave this parameter false.
+            * **Control Tower**: If Create Default Org Trail = true: Indicates whether AWS Control Tower is deployed and being used for this AWS environment.
+            * **Governed Regions**: If Create Default Org Trail = true: for AWS Control Tower, set to ct-regions (default).  If not using AWS Control Tower, specify comma separated list of regions (e.g. us-west-2,us-east-1,ap-south-1) in lower case.
+            * **Security Account Id**: If Create Default Org Trail = true: AWS Account ID of the Security Tooling account (ignored for AWS Control Tower environments).
+            * **Log Archive Account Id**: If Create Default Org Trail = true: AWS Account ID of the Log Archive account (ignored for AWS Control Tower environments).
 
 3. Select both of the following capabilities and choose **Submit** to launch the stack.
 

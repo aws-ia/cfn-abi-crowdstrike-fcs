@@ -34,10 +34,38 @@ Parameters:
   MaxConcurrency:
     Description: The maximum number of targets allowed to run the association at the same time. You can specify a number, for example 10, or a percentage of the target set, for example 10%. The default value is 100%, which means all targets run the association at the same time.
     Type: String
+  FalconClientID:
+    Description: Your Falcon OAuth2 Client ID.
+    NoEcho: 'true'
+    Type: String
+  FalconSecret:
+    Description: Your Falcon OAuth2 API Secret.
+    NoEcho: 'true'
+    Type: String  
+  BaseURL:
+    Description: Your Falcon OAuth2 API Base URL.
+    Type: String
 
 Resources:
+  CrowdStrikeSecrets:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: CrowdStrike Falcon Credentials for SSM Distributor
+      Name: !Ref SecretsManagerSecretName
+      SecretString:
+        Fn::Join:
+          - ''
+          - - '{"ClientId":"'
+            - Ref: "FalconClientID"
+            - '","ClientSecret":"'
+            - Ref: "FalconSecret"
+            - '","Cloud": "'
+            - Ref: BaseURL
+            - '"}'
+
   CrowdStrikeSSMAssociation:
     Type: AWS::SSM::Association
+    DependsOn: CrowdStrikeSecrets
     Properties: 
       Name: 'CrowdStrike-FalconSensorDeploy'
       AssociationName: 'crowdstrike-falcon-sensor-deploy'
