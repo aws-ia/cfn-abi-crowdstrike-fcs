@@ -20,7 +20,7 @@ Parameters:
   DocumentVersion:
     Description: The version of the SSM document to associate with the target.
     Type: String
-    Default: '$DEFAULT'
+    Default: '2'
     AllowedPattern: '([$]LATEST|[$]DEFAULT|^[1-9][0-9]*$)'
   ApplyOnlyAtCronInterval:
     Description: By default, when you create a new association, the system runs it immediately after it is created and then according to the schedule you specified. Specify true if you don't want an association to run immediately after you create it. .
