@@ -1,0 +1,21 @@
+apiVersion: falcon.crowdstrike.com/v1alpha1
+kind: FalconNodeSensor
+metadata:
+  labels:
+    crowdstrike.com/component: sample
+    crowdstrike.com/created-by: falcon-operator
+    crowdstrike.com/instance: falcon-node-sensor
+    crowdstrike.com/managed-by: kustomize
+    crowdstrike.com/name: falconnodesensor
+    crowdstrike.com/part-of: Falcon
+    crowdstrike.com/provider: crowdstrike
+  name: falcon-node-sensor
+spec:
+  node:
+    backend: BACKEND
+    image: NODE_SENSOR_URI:NODE_SENSOR_TAG
+  falcon:
+    cid: CID
+    trace: none
+    tags: 
+    - daemonset
