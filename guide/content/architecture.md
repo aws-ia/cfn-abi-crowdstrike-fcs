@@ -40,4 +40,22 @@ As shown in the diagram, the solution sets up the following:
     * IAM role that allows SSM Associations to retrive API Credentials from Secrets Manager.
     * SSM Associations to deploy Falcon Sensor via SSM Distributor Package against SSM-Managed instances.
 
+* If you enable EKS Protection:
+    * In the centralized account:
+        * IAM Role for EventBridge to trigger Lambda
+        * IAM Role for Lambda Execution
+        * IAM Role for CodeBuild Execution
+        * EventBus to receive cluster events
+        * EventBridge Rule to trigger Lambda
+        * Lambda functions to process cluster events and trigger Codebuild
+        * CodeBuild project to apply Falcon Operator to EKS Clusters
+        * Secret to store Falcon API key
+        * Optional ECR repositories if registry = ecr
+        * VPC, NAT, EIP for CodeBuild project
+    * In the child accounts:
+        * IAM Role for EventBridge to trigger Lambda
+        * IAM Role for Lambda Execution
+        * IAM Role for CodeBuild Execution
+        * EventBridge Rule to send cluster events to centralized EventBus
+
 **Next:** Choose [Deployment options](/deployment-options/index.html).

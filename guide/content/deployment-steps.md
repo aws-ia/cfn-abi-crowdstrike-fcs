@@ -56,6 +56,21 @@ description: Deployment steps.
             * **Governed Regions**: If Create Default Org Trail = true: for AWS Control Tower, set to ct-regions (default).  If not using AWS Control Tower, specify comma separated list of regions (e.g. us-west-2,us-east-1,ap-south-1) in lower case.
             * **Security Account Id**: If Create Default Org Trail = true: AWS Account ID of the Security Tooling account (ignored for AWS Control Tower environments).
             * **Log Archive Account Id**: If Create Default Org Trail = true: AWS Account ID of the Log Archive account (ignored for AWS Control Tower environments).
+        * EKS Protection
+            * **EKSProtection**: Enable CrowdStrike EKS Protection to automatically deploy Falcon Sensor against EKS Clusters. Allowed values include `true` or `false`.  Default is `false`
+            * **FalconCID**: Your CrowdStrike Falcon CID with checksum. (eg. ********************************-ab)
+            * **DockerAPIToken**: Your Falcon Docker API Token
+            * **OrganizationId**: Your AWS Organization ID (eg. o-********)
+            * **EventBusAccount**: The account to centralize EKS Protection resources.  This account must be the Organization Management Account or a Delegated Administrator.
+            * **EventBusName**: Name of the centralized EventBus.  Default is `crowdstrike-eks-eventbus`
+            * **EventBridgeRoleName**: Name of the EventBridge IAM role.  Default is `crowdstrike-eks-eventbridge-role`
+            * **EKSExecutionRoleName**: Name of the Target Execution IAM role.  Default is `crowdstrike-eks-execution-role`
+            * **CodeBuildRoleName**: Name of the CodeBuild IAM role.  Default is `crowdstrike-eks-codebuild-role`
+            * **CodeBuildProjectName**: Name of the CodeBuild Project.  Default is `crowdstrike-eks-codebuild`
+            * **KubernetesUserName**: Name of the Kubernetes UserName.  Default is `crowdstrike-eks`
+            * **Registry**: Source Falcon Image from CrowdStrike or mirror to ECR.  Allowed values are `crowdstrike` or `ecr`.  Default is `crowdstrike`
+            * **Backend**: kernel or bpf for Daemonset Sensor.  Allowed Values are `kernel` or `bpf`.  Default is `kernel`
+            * **EnableKAC**: Deploy Kubernetes Admission Controller (KAC).  For more info see https://falcon.crowdstrike.com/documentation/page/aa4fccee/container-security#s41cbec3
 
 3. Select both of the following capabilities and choose **Submit** to launch the stack.
 
