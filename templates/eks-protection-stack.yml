@@ -314,7 +314,7 @@ Resources:
           - !GetAtt NoIngressSecurityGroup.GroupId
         Subnets: 
           - !GetAtt PrivateSubnet1.SubnetId
-        VpcId: !GetAtt VPC.VpcId
+        VpcId: !GetAtt PrivateSubnet1.VpcId
       Artifacts:
         Type: NO_ARTIFACTS
       Name: !Ref CodeBuildProjectName
