@@ -6,13 +6,10 @@ description: Solution architecture.
 
 Deploying this ABI solution with default parameters builds the following architecture.
 
-![CSPM Architecture diagram](/images/cspm_architecture.png)
-
-![SSM Distributor Architecture diagram](/images/distributor_architecture.png)
-
-![Sensor Management Architecture diagram](/images/sensor_architecture.png)
-
-As shown in the diagram, the solution sets up the following:
+### CSPM Architecture
+![CSPM Architecture diagram](/images/cspm_architecture.png)  
+### Sensor Management (OneClick)
+![Sensor Management Architecture diagram](/images/sensor_architecture.png)  
 
 * In all current accounts in your AWS organization:
     * IAM role that allows CrowdStrike to perform read-only activities.
@@ -40,6 +37,15 @@ As shown in the diagram, the solution sets up the following:
     * IAM role that allows SSM Associations to retrive API Credentials from Secrets Manager.
     * SSM Associations to deploy Falcon Sensor via SSM Distributor Package against SSM-Managed instances.
 
+### SSM Distributor
+![SSM Distributor Architecture diagram](/images/distributor_architecture.png)  
+* In the child AWS accounts:
+    * Secrets Manager Secret to manage CrowdStrike API Credentials.
+    * IAM role that allows SSM Associations to retrive API Credentials from Secrets Manager.
+    * SSM Associations to deploy Falcon Sensor via SSM Distributor Package against SSM-Managed instances.
+
+### EKS Protection
+![EKS Protection Diagram](/images/eks-protect-diagram.png)  
 * If you enable EKS Protection:
     * In the centralized account:
         * IAM Role for EventBridge to trigger Lambda
