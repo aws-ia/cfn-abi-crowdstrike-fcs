@@ -204,27 +204,31 @@ def lambda_handler(event, context):
     logger.info('Context {}'.format(context))
     logger.info('Gathering Event Details...')
     response_d = {}
-    try:
-        active_regions = regions()
-        active_accounts = accounts()
-        for account in active_accounts:
-            account_id = account['Id']
-            for region in active_regions:
-                region_name = region["RegionName"]
-                session = new_session(account_id, region_name)
-                if session:
-                    for cluster_name in clusters(session, region_name):
+    if event["RequestType"] in ["Create"]:
+        try:
+            active_regions = regions()
+            active_accounts = accounts()
+            for account in active_accounts:
+                account_id = account['Id']
+                for region in active_regions:
+                    region_name = region["RegionName"]
+                    session = new_session(account_id, region_name)
+                    if session:
+                        for cluster_name in clusters(session, region_name):
 
-                        cluster_arn, auth_mode, public_endpoint = describe_cluster(session, region_name, cluster_name)
-                        if public_endpoint and 'API' in auth_mode:
-                            node_type = check_fargate(session, region_name, cluster_name)
-                            if node_type:
-                                start_build(cluster_name, cluster_arn, node_type, account_id, region_name)
-                        else:
-                            logger.info(f'Access denied for cluster {cluster_name}. Please verify that API Access and Public Endpoint are enabled')
-        response_d['status'] = "success"
-        cfnresponse_send(event, SUCCESS, response_d, "CustomResourcePhysicalID")
-    except botocore.exceptions.ClientError as error:
-        logger.error(error)
-        response_d['error'] = error
-        cfnresponse_send(event, SUCCESS, response_d, "CustomResourcePhysicalID")
+                            cluster_arn, auth_mode, public_endpoint = describe_cluster(session, region_name, cluster_name)
+                            if public_endpoint and 'API' in auth_mode:
+                                node_type = check_fargate(session, region_name, cluster_name)
+                                if node_type:
+                                    start_build(cluster_name, cluster_arn, node_type, account_id, region_name)
+                            else:
+                                logger.info(f'Access denied for cluster {cluster_name}. Please verify that API Access and Public Endpoint are enabled')
+            response_d['status'] = "success"
+            cfnresponse_send(event, SUCCESS, response_d, "CustomResourcePhysicalID")
+        except botocore.exceptions.ClientError as error:
+            logger.error(error)
+            response_d['error'] = error
+            cfnresponse_send(event, SUCCESS, response_d, "CustomResourcePhysicalID")
+    else:
+        response = {"Status": "Complete"}
+        cfnresponse_send(event, "SUCCESS", response, "CustomResourcePhysicalID")
