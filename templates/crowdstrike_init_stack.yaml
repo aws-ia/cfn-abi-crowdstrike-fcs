@@ -77,7 +77,6 @@ Metadata:
           - EKSProtection
           - FalconCID
           - DockerAPIToken
-          - OrganizationId
           - EventBusAccount
           - EventBusName
           - EventBridgeRoleName
@@ -185,8 +184,6 @@ Metadata:
         default: Falcon CID
       DockerAPIToken:
         default: Falcon Docker API Token
-      OrganizationId:
-        default: Your AWS Organization Id
       EventBusAccount:
         default: EKS Protection Account
       EventBusName:
@@ -427,9 +424,6 @@ Parameters:
     Type: String
     NoEcho: true
     Description: Your Falcon Docker API Token
-  OrganizationId:
-    Type: String
-    Description: Your AWS Organization ID (eg. o-********)
   EventBusAccount:
     Description: The account to centralize EKS Protection resources.  This account must be the Organization Management Account or a Delegated Administrator.
     Type: String
@@ -1196,7 +1190,7 @@ Resources:
               - !Sub arn:${AWS::Partition}:s3:::${StagingS3Bucket}/*
             Condition:
               StringNotEquals:
-                aws:PrincipalOrgID: !GetAtt OrgIdLambdaCustomResource.OrganizationId
+                aws:PrincipalOrgID: !GetAtt OrgIdLambdaCustomResource.organization_id
 
           - Sid: SecureTransport
             Effect: Deny
@@ -1390,6 +1384,7 @@ Resources:
       Environment:
         Variables:
           LOG_LEVEL: "INFO"
+          EVENTBUS_ACCOUNT: !Ref EventBusAccount
       Code:
         S3Bucket: !Ref StagingS3Bucket
         S3Key: !Sub ${SourceS3BucketNamePrefix}/lambda_functions/packages/cw-helper/lambda.zip
@@ -1536,7 +1531,7 @@ Resources:
         - ParameterKey: EventBusName
           ParameterValue: !Ref EventBusName
         - ParameterKey: OrganizationId
-          ParameterValue: !Ref OrganizationId
+          ParameterValue: !GetAtt OrgIdLambdaCustomResource.organization_id
         - ParameterKey: FalconClientId
           ParameterValue: !Ref FalconClientID
         - ParameterKey: FalconClientSecret
@@ -1569,6 +1564,8 @@ Resources:
             AccountFilterType: NONE
             Accounts: 
               - !Ref EventBusAccount
+            OrganizationalUnitIds:
+              - !GetAtt OrgIdLambdaCustomResource.eventbus_account_ou
           Regions:
             - !Ref AWS::Region
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/eks-protection-stack.yml
