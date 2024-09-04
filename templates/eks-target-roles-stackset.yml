@@ -64,8 +64,6 @@ Resources:
             - EIAMPolicyActionWildcard # Role has * to allow for future service monitoring without stack updates
       checkov:
         skip:
-          - id: CKV_AWS_109
-            comment: IAM PassRole action is constrained by resource ARN.
           - id: CKV_AWS_111
             comment: IAM PassRole action is constrained by resource ARN.
     Properties:

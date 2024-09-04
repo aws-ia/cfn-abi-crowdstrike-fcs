@@ -350,6 +350,8 @@ Resources:
     Type: AWS::ECR::Repository
     Condition: UseECR
     Properties:
+      ImageScanningConfiguration:
+        ScanOnPush: true
       EmptyOnDelete: true
       RepositoryName: crowdstrike/falcon-sensor
       RepositoryPolicyText:
@@ -373,6 +375,8 @@ Resources:
     Type: AWS::ECR::Repository
     Condition: UseECR
     Properties:
+      ImageScanningConfiguration:
+        ScanOnPush: true
       EmptyOnDelete: true
       RepositoryName: crowdstrike/kpagent
       RepositoryPolicyText:
@@ -423,7 +427,7 @@ Resources:
       VpcId: !Ref VPC
       AvailabilityZone: !Select [ 0, !GetAZs '' ]
       CidrBlock: !Ref PublicSubnet1CIDR
-      MapPublicIpOnLaunch: true
+      MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Public Subnet (AZ1)
@@ -434,7 +438,7 @@ Resources:
       VpcId: !Ref VPC
       AvailabilityZone: !Select [ 1, !GetAZs  '' ]
       CidrBlock: !Ref PublicSubnet2CIDR
-      MapPublicIpOnLaunch: true
+      MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Public Subnet (AZ2)
@@ -531,6 +535,9 @@ Resources:
   NoIngressSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: "no-ingress-sg"
       GroupDescription: "Security group with no ingress rule"
       VpcId: !Ref VPC
+      SecurityGroupEgress:
+      - IpProtocol: -1
+        CidrIp: 0.0.0.0/0
+        Description: "Allow all egress"
