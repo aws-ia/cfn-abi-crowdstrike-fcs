@@ -417,6 +417,7 @@ Parameters:
     Type: String
     AllowedValues: ['true', 'false']
     Description: Enable CrowdStrike EKS Protection to automatically deploy Falcon Sensor against EKS Clusters.
+    Default: 'false'
   FalconCID:
     Type: String
     Description: Your Falcon CID with checksum (eg. ********************************-**)
