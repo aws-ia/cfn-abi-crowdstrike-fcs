@@ -421,13 +421,16 @@ Parameters:
   FalconCID:
     Type: String
     Description: Your Falcon CID with checksum (eg. ********************************-**)
+    Default: "FalconCID"
   DockerAPIToken:
     Type: String
     NoEcho: true
     Description: Your Falcon Docker API Token
+    Default: "DockerAPIToken"
   EventBusAccount:
     Description: The account to centralize EKS Protection resources.  This account must be the Organization Management Account or a Delegated Administrator.
     Type: String
+    Default: "111111111111"
   EventBusName:
     Type: String
     Description: Name of the centralized EventBus
