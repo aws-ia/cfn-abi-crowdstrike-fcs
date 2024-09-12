@@ -180,7 +180,7 @@ def start_build(cluster_name, cluster_arn, node_type, account_id, region_name):
             ]
         )
         build_id = build.get('build', {}).get('id')
-        logger.info('Started build %s, buildId %s', PROJECT, build_id)
+        logger.info('Started build %s, buildId %s' % (PROJECT, build_id))
     except botocore.exceptions.ClientError as error:
         logger.error(error)
 
@@ -213,8 +213,8 @@ def cfnresponse_send(event, response_status, response_data, physical_resource_id
 
 def lambda_handler(event, context):
     """Function handler."""
-    logger.info('Got event %s', event)
-    logger.info('Context %s', context)
+    logger.info('Got event %s' % event)
+    logger.info('Context %s' % context)
     logger.info('Gathering Event Details...')
     response_d = {}
     if event["RequestType"] in ["Create"]:
@@ -241,7 +241,7 @@ def lambda_handler(event, context):
                             else:
                                 logger.info('Access denied for cluster %s. \
                                             Please verify that API Access and Public \
-                                            Endpoint are enabled', cluster_name)
+                                            Endpoint are enabled' % cluster_name)
             response_d['status'] = "success"
             cfnresponse_send(event, SUCCESS, response_d, "CustomResourcePhysicalID")
         except botocore.exceptions.ClientError as error:

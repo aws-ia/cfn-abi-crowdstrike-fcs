@@ -80,14 +80,14 @@ def start_build(region, cluster_name, cluster_arn, node_type, account_id, region
             ]
         )
         build_id = build.get('build', {}).get('id')
-        logger.info('Started build %s, buildId %s', PROJECT, build_id)
+        logger.info('Started build %s, buildId %s' % (PROJECT, build_id))
     except botocore.exceptions.ClientError as error:
         logger.error(error)
 
 def lambda_handler(event,context):
     """Function handler."""
-    logger.info('Got event %s', event)
-    logger.info('Context %s', context)
+    logger.info('Got event %s' % event)
+    logger.info('Context %s' % context)
     logger.info('Gathering Event Details...')
     region_name = event['region']
     account_id = event['detail']['userIdentity']['accountId']
@@ -116,6 +116,6 @@ def lambda_handler(event,context):
         if public_endpoint and 'API' in auth_mode:
             start_build(region_name, cluster_name, cluster_arn, node_type, account_id, region_name)
         else:
-            logger.info('API Access not enabled on cluster %s', cluster_name)
+            logger.info('API Access not enabled on cluster %s' % cluster_name)
     except botocore.exceptions.ClientError as error:
         logger.error(error)

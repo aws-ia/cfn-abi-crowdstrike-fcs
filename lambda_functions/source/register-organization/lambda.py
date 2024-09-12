@@ -24,7 +24,7 @@ FAILED = "FAILED"
 
 VERSION = "1.0.0"
 NAME = "crowdstrike-cloud-abi"
-USERAGENT = ("%s/%s", NAME, VERSION)
+USERAGENT = ("%s/%s" % (NAME, VERSION))
 
 SECRET_STORE_NAME = os.environ['secret_name']
 SECRET_STORE_REGION = os.environ['secret_region']
@@ -144,8 +144,8 @@ def cfnresponse_send(event, response_status, response_data, physical_resource_id
 
 def lambda_handler(event, context):
     """Function handler"""
-    logger.info('Got event %s', event)
-    logger.info('Context %s', context)
+    logger.info('Got event %s' % event)
+    logger.info('Context %s' % context)
     aws_account_id = context.invoked_function_arn.split(":")[4]
     regions, comm_gov_eb_regions, ssm_regions = get_active_regions()
     org_id = get_management_id()
@@ -161,7 +161,7 @@ def lambda_handler(event, context):
                                     user_agent=USERAGENT
                                     )
             if event['RequestType'] in ['Create']:
-                logger.info('Event = %s', event)
+                logger.info('Event = %s' % event)
                 if EXISTING_CLOUDTRAIL:
                     response = falcon.create_aws_account(account_id=aws_account_id,
                                                         organization_id=org_id,
@@ -183,7 +183,7 @@ def lambda_handler(event, context):
                                                         is_master=True,
                                                         account_type=AWS_ACCOUNT_TYPE
                                                         )
-                logger.info('Response: %s', response)
+                logger.info('Response: %s' % response)
                 if response['status_code'] == 201:
                     cs_account = response['body']['resources'][0]['intermediate_role_arn'].rsplit('::')[1]
                     response_d = {
@@ -214,7 +214,7 @@ def lambda_handler(event, context):
                     logger.info('Getting existing registration data...')
                     response = falcon.get_aws_account(organization_ids=org_id,
                                                       user_agent=USERAGENT)
-                    logger.info('Existing Registration Response: %s', response)
+                    logger.info('Existing Registration Response: %s' % response)
                     cs_account = response['body']['resources'][0]['intermediate_role_arn'].rsplit('::')[1]
                     response_d = {
                         "cs_account_id": cs_account.rsplit(':')[0],
@@ -241,22 +241,22 @@ def lambda_handler(event, context):
                     cfnresponse_send(event, SUCCESS, response_d, "CustomResourcePhysicalID")
                 else:
                     error = response['body']['errors'][0]['message']
-                    logger.info('Account Registration Failed with reason....%s', error)
+                    logger.info('Account Registration Failed with reason....%s' % error)
                     response_d = {
                         "reason": response['body']['errors'][0]['message']
                     }
                     cfnresponse_send(event, FAILED, response_d, "CustomResourcePhysicalID")
             elif event['RequestType'] in ['Update']:
                 response_d = {}
-                logger.info('Event = %s', event['RequestType'])
+                logger.info('Event = %s' % event['RequestType'])
                 cfnresponse_send(event, SUCCESS, response_d, "CustomResourcePhysicalID")
             elif event['RequestType'] in ['Delete']:
-                logger.info('Event = %s', event['RequestType'])
+                logger.info('Event = %s' % event['RequestType'])
                 response = falcon.delete_aws_account(organization_ids=org_id,
                                                     user_agent=USERAGENT
                                                     )
                 cfnresponse_send(event, 'SUCCESS', response['body'], "CustomResourcePhysicalID")
     except Exception as err:  # noqa: E722
         # We can't communicate with the endpoint
-        logger.info('Registration Failed %s', err)
+        logger.info('Registration Failed %s' % err)
         cfnresponse_send(event, FAILED, err, "CustomResourcePhysicalID")
