@@ -65,7 +65,7 @@ Resources:
       checkov:
         skip:
           - id: CKV_AWS_111
-            comment: IAM PassRole action is constrained by resource ARN.
+            comment: constraints must be suppressed due to resource arns only known at execution
     Properties:
       RoleName: !Ref EKSExecutionRoleName
       PermissionsBoundary:
