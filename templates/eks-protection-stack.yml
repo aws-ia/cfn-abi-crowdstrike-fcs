@@ -320,7 +320,7 @@ Resources:
       Name: !Ref CodeBuildProjectName
       ServiceRole: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CodeBuildRoleName}
       Source: 
-        Location: !Sub '${StagingS3Bucket}/${SourceS3BucketNamePrefix}/codebuild/codebuild.zip'
+        Location: !Sub '${StagingS3Bucket}/${SourceS3BucketNamePrefix}/lambda_functions/packages/codebuild/lambda.zip'
         Type: S3
       TimeoutInMinutes: 90
       Visibility: PRIVATE
