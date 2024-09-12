@@ -1425,7 +1425,9 @@ Resources:
             Statement:
               - Sid: OrganizationRead
                 Effect: Allow
-                Action: organizations:DescribeOrganization
+                Action:
+                  - organizations:DescribeOrganization
+                  - organizations:ListParents
                 Resource: '*'
         - PolicyName: CloudWatchLogGroup
           PolicyDocument:

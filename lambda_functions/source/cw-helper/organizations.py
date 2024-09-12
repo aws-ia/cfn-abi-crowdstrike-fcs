@@ -41,8 +41,8 @@ def lambda_handler(event, context):
         context: runtime information
     """
     try:
-        organization_id, eventbus_account_ou = get_org_id()
         data_dict = {}
+        organization_id, eventbus_account_ou = get_org_id()
         data_dict['organization_id'] = organization_id
         data_dict['eventbus_account_ou'] = eventbus_account_ou
         cfnresponse.send(event, context, cfnresponse.SUCCESS, data, data_dict)
