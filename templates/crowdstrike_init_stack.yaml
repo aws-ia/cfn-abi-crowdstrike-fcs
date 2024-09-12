@@ -1221,7 +1221,7 @@ Resources:
         - templates/crowdstrike_init_stack.yaml
         - lambda_functions/packages/eks-existing-clusters/lambda.zip
         - lambda_functions/packages/eks-new-clusters/lambda.zip
-        - codebuild/codebuild.zip
+        - lambda_functions/packages/codebuild/codebuild.zip
 
   CopyZipsRole:
     Type: AWS::IAM::Role

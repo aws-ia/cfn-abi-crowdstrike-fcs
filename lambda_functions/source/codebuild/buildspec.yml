@@ -1,0 +1,34 @@
+version: 0.2
+
+phases:
+  install:
+    on-failure: ABORT
+    commands:
+    - echo "Installing Prerequisites"
+    - apt-get -qq update
+    - apt-get -qq install -y python3
+    - apt-get -qq install -y python3-pip
+    - pip3 install boto3 --quiet
+    - pip3 install botocore --quiet
+    - curl -O https://s3.us-west-2.amazonaws.com/amazon-eks/1.28.5/2024-01-04/bin/linux/amd64/kubectl
+    - chmod +x ./kubectl
+    - mkdir -p $HOME/bin && cp ./kubectl $HOME/bin/kubectl && export PATH=$HOME/bin:$PATH
+    - curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash 
+    - helm repo add crowdstrike https://crowdstrike.github.io/falcon-helm && helm repo update
+    - ARCH=amd64
+    - PLATFORM=$(uname -s)_$ARCH
+    - curl -sLO "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$PLATFORM.tar.gz"
+    - tar -xzf eksctl_$PLATFORM.tar.gz -C /tmp && rm eksctl_$PLATFORM.tar.gz
+    - mv /tmp/eksctl /usr/local/bin
+  pre_build:
+    on-failure: ABORT
+    commands:
+    - python3 setup_cluster.py
+    - chmod +x setup_images.sh && ./setup_images.sh
+    - . /root/.bashrc
+    - chmod +x setup_manifests.sh && ./setup_manifests.sh
+  build:
+    on-failure: ABORT
+    commands:
+    - chmod +x install_sensor_$NODE_TYPE.sh
+    - ./install_sensor_$NODE_TYPE.sh
