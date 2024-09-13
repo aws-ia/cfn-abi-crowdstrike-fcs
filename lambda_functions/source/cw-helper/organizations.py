@@ -59,8 +59,8 @@ def lambda_handler(event, context):
         if EKS_PROTECTION == "true":
             eventbus_account_ou = get_parents()
             data_dict['eventbus_account_ou'] = eventbus_account_ou
-        cfnresponse.send(event, context, cfnresponse.SUCCESS, data, data_dict)
+        cfnresponse.send(event, context, cfnresponse.SUCCESS, data_dict, data_dict["organization_id"])
     except Exception:
         LOGGER.exception("Unexpected!")
         reason = f"See the details in CloudWatch Log Stream: '{context.log_group_name}'"
-        cfnresponse.send(event, context, cfnresponse.FAILED, {}, data_dict, reason=reason)
+        cfnresponse.send(event, context, cfnresponse.FAILED, {}, data_dict reason=reason)
