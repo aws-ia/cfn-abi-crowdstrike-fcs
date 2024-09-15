@@ -63,4 +63,4 @@ def lambda_handler(event, context):
     except Exception:
         LOGGER.exception("Unexpected!")
         reason = f"See the details in CloudWatch Log Stream: '{context.log_group_name}'"
-        cfnresponse.send(event, context, cfnresponse.FAILED, {}, data_dict reason=reason)
+        cfnresponse.send(event, context, cfnresponse.FAILED, {}, data_dict, reason=reason)
