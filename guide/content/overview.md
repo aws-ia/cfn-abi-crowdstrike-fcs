@@ -17,6 +17,6 @@ Get started using Cloud Security by registering your cloud accounts. When regist
 
 ### AWS Marketplace listing
 
-[CrowdStrike Falcon Cloud Security](https://aws.amazon.com/marketplace/pp/prodview-l6ti2ml2i2g6y?ref_=esp&feature_=FeaturedProducts)
+[CrowdStrike Falcon Cloud Security](https://aws.amazon.com/marketplace/pp/prodview-a5zs3lfvcxrui)
 
 **Next:** Choose [Terminologies](/terminologies/index.html).
