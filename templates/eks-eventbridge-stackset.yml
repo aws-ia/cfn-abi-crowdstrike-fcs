@@ -1,0 +1,35 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  EventBusRegion:
+    Type: String
+  EventBusAccount:
+    Type: String
+  EventBusName:
+    Type: String
+  EventBridgeRoleName:
+    Type: String
+
+Resources:
+  EKSRule:
+    Type: AWS::Events::Rule
+    Properties: 
+      Description: "Invoke CrowdStrike EKS Lambda when clusters or Fargate profiles are created."
+      EventPattern: 
+        source: 
+          - "aws.eks"
+        detail-type: 
+          - "AWS API Call via CloudTrail"
+        detail: 
+          eventSource: 
+            - "eks.amazonaws.com"
+          eventName:
+            - "CreateCluster"
+            - "CreateFargateProfile"
+      State: "ENABLED"
+      Name: crowdstrike-eks-rule
+      Targets:
+        - Arn: !Sub arn:${AWS::Partition}:events:${EventBusRegion}:${EventBusAccount}:event-bus/${EventBusName}
+          Id: "CrowdStrikeEKSEventBus"
+          RoleArn: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${EventBridgeRoleName}

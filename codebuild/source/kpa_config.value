@@ -1,0 +1,10 @@
+image:
+  repository: KPA_URI
+  tag: KPA_TAG
+crowdstrikeConfig:
+  clientID: FALCON_CLIENT_ID
+  clientSecret: FALCON_CLIENT_SECRET
+  clusterName: CLUSTER_ARN
+  env: CROWDSTRIKE_CLOUD
+  cid: CID_LOWER
+  dockerAPIToken: DOCKER_API_TOKEN

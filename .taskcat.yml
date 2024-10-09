@@ -18,6 +18,20 @@ tests:
     regions:
     - us-east-1
     template: templates/crowdstrike_init_stack.yaml
+  cw-eks-test:
+    parameters:
+      FalconClientID: $[taskcat_ssm_/crowdstrike/falcon_client_id]
+      FalconSecret: $[taskcat_ssm_/crowdstrike/falcon_secret]
+      DockerAPIToken: $[taskcat_ssm_/crowdstrike/falcon_docker_api_token]
+      FalconCID: $[taskcat_ssm_/crowdstrike/falcon_cod]
+      EventBusAccount: $[taskcat_ssm_/crowdstrike/eventbus_account]
+      SourceS3BucketName: $[taskcat_autobucket]
+      S3BucketRegion: $[taskcat_current_region]
+      ProvisionOU: $[taskcat_ssm_/crowdstrike/provision-ou]
+      ExcludeRegions: $[taskcat_ssm_/crowdstrike/exclude_regions]
+    regions:
+    - us-east-1
+    template: templates/crowdstrike_init_stack.yaml
   cw-test-trail:
     parameters:
       FalconClientID: $[taskcat_ssm_/crowdstrike/falcon_client_id]

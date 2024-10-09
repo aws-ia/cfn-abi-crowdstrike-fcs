@@ -1,0 +1,237 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  CodeBuildProjectName:
+    Type: String
+    Default: "crowdstrike-eks-codebuild"
+  CodeBuildRoleName:
+    Type: String
+    Default: "crowdstrike-eks-codebuild-role"
+  EventBridgeRoleName:
+    Type: String
+    Default: "crowdstrike-eks-eventbridge-role"
+  EKSExecutionRoleName:
+    Type: String
+    Default: "crowdstrike-eks-execution-role"
+  StagingS3Bucket:
+    Type: String
+  EventBusName:
+    Type: String
+    Default: "crowdstrike-eks-eventbus"
+  PermissionsBoundary:
+    Type: String
+    Description: The name of the policy used to set the permissions boundary for IAM roles.
+    Default: ''
+
+Conditions:
+  SetPermissionsBoundary: !Not [ !Equals [ !Ref PermissionsBoundary, '' ] ]
+
+Resources:
+  EKSEventBridgeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref EventBridgeRoleName
+      PermissionsBoundary:
+        Fn::If:
+          - SetPermissionsBoundary
+          - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}'
+          - Ref: AWS::NoValue
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: events.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: crowdstrike-eks-eb-role
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action: events:PutEvents
+            Resource: !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/${EventBusName}
+
+  EKSExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Ref EKSExecutionRoleName
+      PermissionsBoundary:
+        Fn::If:
+          - SetPermissionsBoundary
+          - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}'
+          - Ref: AWS::NoValue
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+      Policies:
+        - PolicyName: crowdstrike-eks-execution-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - organizations:ListAccounts
+                Resource: '*'
+              - Effect: Allow
+                Action: 
+                  - ec2:DescribeRegions
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - codebuild:StartBuild
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:codebuild:*:${AWS::AccountId}:project/${CodeBuildProjectName}'
+              - Effect: Allow
+                Action:
+                  - sts:AssumeRole
+                Resource:
+                  - !Sub arn:${AWS::Partition}:iam::*:role/${EKSExecutionRoleName}
+
+  EKSCodeBuildRole:
+    Type: 'AWS::IAM::Role'
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResource # Role has * to allow for future service monitoring without stack updates
+            - EIAMPolicyActionWildcard # Role has * to allow for future service monitoring without stack updates
+      checkov:
+        skip:
+          - id: CKV_AWS_109
+            comment: IAM PassRole action is constrained by resource ARN.
+          - id: CKV_AWS_111
+            comment: IAM PassRole action is constrained by resource ARN.
+    Properties:
+      RoleName: !Ref CodeBuildRoleName
+      PermissionsBoundary:
+        Fn::If:
+          - SetPermissionsBoundary
+          - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}'
+          - Ref: AWS::NoValue
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: codebuild-base-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${CodeBuildProjectName}'
+                  - !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${CodeBuildProjectName}:*'
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:GetBucketAcl
+                  - s3:GetBucketLocation
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:s3:::codepipeline-${AWS::Region}-*'
+              - Effect: Allow
+                Action:
+                  - codebuild:CreateReportGroup
+                  - codebuild:CreateReport
+                  - codebuild:UpdateReport
+                  - codebuild:BatchPutTestCases
+                  - codebuild:BatchPutCodeCoverages
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:report-group/${CodeBuildProjectName}-*'
+        - PolicyName: codebuild-s3-readonly-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:s3:::${StagingS3Bucket}/buildspec.yml'
+                  - !Sub 'arn:${AWS::Partition}:s3:::${StagingS3Bucket}/*'
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                  - s3:GetBucketAcl
+                  - s3:GetBucketLocation
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:s3:::${StagingS3Bucket}'
+        - PolicyName: codebuild-eks-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - eks:DescribeFargateProfile
+                  - eks:ListAccessEntries
+                  - eks:ListAssociatedAccessPolicies
+                  - eks:DescribeNodegroup
+                  - eks:ListIdentityProviderConfigs
+                  - eks:ListNodegroups
+                  - eks:DescribeAccessEntry
+                  - eks:ListFargateProfiles
+                  - eks:DescribeIdentityProviderConfig
+                  - eks:DescribeUpdate
+                  - eks:AccessKubernetesApi
+                  - eks:DescribeCluster
+                  - eks:ListClusters
+                  - eks:ListAccessPolicies
+                  - eks:AssociateIdentityProviderConfig
+                  - eks:AssociateAccessPolicy
+                  - eks:DisassociateAccessPolicy
+                  - ecr:GetAuthorizationToken
+                  - ecr:ListImages
+                  - ecr:InitiateLayerUpload
+                  - ecr:CreateRepository
+                  - ecr:CompleteLayerUpload
+                  - ecr:PutImage
+                  - iam:CreateOpenIDConnectProvider
+                  - iam:GetOpenIDConnectProvider
+                  - ec2:CreateNetworkInterface
+                  - ec2:CreateNetworkInterfacePermission
+                  - ec2:DeleteNetworkInterface
+                  - ec2:DescribeDhcpOptions
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                  - ec2:DescribeSubnets
+                  - ec2:DescribeSecurityGroups
+                  - ec2:DescribeVpcs
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - eks:UpdateAccessEntry
+                  - eks:CreateAccessEntry
+                  - eks:DeleteAccessEntry
+                Resource: 
+                  - !Sub 'arn:${AWS::Partition}:eks:*:*:cluster/*'
+                  - !Sub 'arn:${AWS::Partition}:eks:*:*:access-entry/*/${CodeBuildRoleName}/${AWS::AccountId}/$/*'
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:crowdstrike-eks-secret-*'
+              - Effect: Allow
+                Action:
+                  - sts:AssumeRole
+                Resource:
+                  - !Sub arn:${AWS::Partition}:iam::*:role/${EKSExecutionRoleName}
