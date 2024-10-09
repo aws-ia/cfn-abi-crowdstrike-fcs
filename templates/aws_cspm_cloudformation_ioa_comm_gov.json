@@ -518,6 +518,14 @@
             "config": {
                 "ignore_checks": ["W3045"]
             }
+          },
+          "checkov": {
+            "skip": [
+              {
+                "id": "CKV_AWS_18",
+                "comment": "S3 access logs intentionally not enabled"
+              }
+            ]
           }
         },
         "Properties": {
