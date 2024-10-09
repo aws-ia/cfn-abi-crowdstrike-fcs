@@ -311,7 +311,7 @@
             },
             "S3Key": "aws/aws-lambda-eventbridge.zip"
           },
-          "Description": "",
+          "Description": "CrowdStrike IOA Lambda",
           "Environment": {
             "Variables": {
               "CS_ADDRESS": "",
@@ -417,7 +417,7 @@
             },
             "S3Key": "aws/aws-lambda-s3.zip"
           },
-          "Description": "",
+          "Description": "CrowdStrike IOA Lambda",
           "Environment": {
             "Variables": {
               "CS_ADDRESS": "",
@@ -803,7 +803,7 @@
             },
             "S3Key": "aws/aws-lambda-registration.zip"
           },
-          "Description": "",
+          "Description": "CrowdStrike IOA Lambda",
           "Timeout": 605,
           "TracingConfig": {
             "Mode": "Active"
