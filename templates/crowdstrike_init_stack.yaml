@@ -434,7 +434,7 @@ Resources:
         - ParameterKey: SecretStorageMethod
           ParameterValue: 'SecretsManager'
         - ParameterKey: Action
-          ParameterValue: 'install'
+          ParameterValue: 'Install'
         - ParameterKey: ScheduleExpression
           ParameterValue: !Ref ScheduleExpression
         - ParameterKey: MaxErrors
