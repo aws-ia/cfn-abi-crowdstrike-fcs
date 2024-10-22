@@ -1312,14 +1312,14 @@ Resources:
                   print(('key = %s' %key))
                   s3.copy_object(CopySource=copy_source, Bucket=dest_bucket,
                       Key=key)
-          def bucket_exists():
+          def bucket_exists(bucket):
               s3 = boto3.client('s3')
               buckets = s3.list_buckets()
-              for bucket in buckets['Buckets']:
+              if bucket in buckets['Buckets']:
                   return True
           def delete_objects(bucket, prefix, objects):
               s3 = boto3.client('s3')
-              if bucket_exists():
+              if bucket_exists(bucket):
                   objects = {'Objects': [{'Key': prefix + o} for o in objects]}
                   s3.delete_objects(Bucket=bucket, Delete=objects)
           def timeout(event, context):
