@@ -1,0 +1,113 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  EKSExecutionRoleName:
+    Type: String
+    Default: "crowdstrike-eks-execution-role"
+  EventBridgeRoleName:
+    Type: String
+    Default: "crowdstrike-eks-eventbridge-role"
+  EventBusAccount:
+    Type: String
+  EventBusName:
+    Type: String
+    Default: "crowdstrike-eks-eventbus"
+  CodeBuildRoleName:
+    Type: String
+    Default: "crowdstrike-eks-codebuild-role"
+  PermissionsBoundary:
+    Type: String
+    Description: The name of the policy used to set the permissions boundary for IAM roles.
+    Default: ''
+
+Conditions:
+  SetPermissionsBoundary: !Not [ !Equals [ !Ref PermissionsBoundary, '' ] ]
+
+Resources:
+  EventBridgeRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Ref EventBridgeRoleName
+      PermissionsBoundary:
+        Fn::If:
+          - SetPermissionsBoundary
+          - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}'
+          - Ref: AWS::NoValue
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: crowdstrike-eks-eventbridge-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - events:PutEvents
+                Resource:
+                  - !Sub arn:${AWS::Partition}:events:${AWS::Region}:${EventBusAccount}:event-bus/${EventBusName}
+  
+  EKSExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResource # Role has * to allow for future service monitoring without stack updates
+            - EIAMPolicyActionWildcard # Role has * to allow for future service monitoring without stack updates
+      checkov:
+        skip:
+          - id: CKV_AWS_111
+            comment: constraints must be suppressed due to resource arns only known at execution
+    Properties:
+      RoleName: !Ref EKSExecutionRoleName
+      PermissionsBoundary:
+        Fn::If:
+          - SetPermissionsBoundary
+          - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}'
+          - Ref: AWS::NoValue
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: 
+                - !Sub arn:${AWS::Partition}:iam::${EventBusAccount}:role/${EKSExecutionRoleName}
+                - !Sub arn:${AWS::Partition}:sts::${EventBusAccount}:role/${CodeBuildRoleName}
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: crowdstrike-eks-execution-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - eks:DescribeCluster
+                  - eks:ListClusters
+                  - eks:ListFargateProfiles
+                  - ec2:DescribeRegions
+                  - eks:UpdateClusterConfig
+                  - eks:DescribeUpdate
+                  - eks:AssociateAccessPolicy
+                Resource: '*'
+              - Effect: Allow
+                Action: 
+                  - ec2:DescribeRegions
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - eks:UpdateAccessEntry
+                  - eks:CreateAccessEntry
+                  - eks:DeleteAccessEntry
+                  - eks:DescribeAccessEntry
+                Resource: 
+                  - !Sub 'arn:${AWS::Partition}:eks:*:${AWS::AccountId}:cluster/*'
+                  - !Sub 'arn:${AWS::Partition}:eks:*:${AWS::AccountId}:access-entry/*/${CodeBuildRoleName}/${EventBusAccount}/$/*'

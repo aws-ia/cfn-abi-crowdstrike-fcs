@@ -311,7 +311,7 @@
             },
             "S3Key": "aws/aws-lambda-eventbridge.zip"
           },
-          "Description": "",
+          "Description": "CrowdStrike IOA Lambda",
           "Environment": {
             "Variables": {
               "CS_ADDRESS": "",
@@ -417,7 +417,7 @@
             },
             "S3Key": "aws/aws-lambda-s3.zip"
           },
-          "Description": "",
+          "Description": "CrowdStrike IOA Lambda",
           "Environment": {
             "Variables": {
               "CS_ADDRESS": "",
@@ -518,6 +518,14 @@
             "config": {
                 "ignore_checks": ["W3045"]
             }
+          },
+          "checkov": {
+            "skip": [
+              {
+                "id": "CKV_AWS_18",
+                "comment": "S3 access logs intentionally not enabled"
+              }
+            ]
           }
         },
         "Properties": {
@@ -795,7 +803,7 @@
             },
             "S3Key": "aws/aws-lambda-registration.zip"
           },
-          "Description": "",
+          "Description": "CrowdStrike IOA Lambda",
           "Timeout": 605,
           "TracingConfig": {
             "Mode": "Active"

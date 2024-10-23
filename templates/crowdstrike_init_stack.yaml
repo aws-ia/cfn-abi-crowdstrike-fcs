@@ -71,6 +71,22 @@ Metadata:
           - pGovernedRegions
           - pSecurityAccountId
           - pLogArchiveAccountId
+      - Label:
+          default: EKS Protection
+        Parameters:
+          - EKSProtection
+          - FalconCID
+          - DockerAPIToken
+          - EventBusAccount
+          - EventBusName
+          - EventBridgeRoleName
+          - EKSExecutionRoleName
+          - CodeBuildRoleName
+          - CodeBuildProjectName
+          - KubernetesUserName
+          - Registry
+          - Backend
+          - EnableKAC
 
     ParameterLabels:
       # Account Type
@@ -160,6 +176,34 @@ Metadata:
         default: Security Account Id
       pLogArchiveAccountId:
         default: LogArchive Account Id
+
+      # EKS Protection
+      EKSProtection:
+        default: Enable EKS Protection
+      FalconCID:
+        default: Falcon CID
+      DockerAPIToken:
+        default: Falcon Docker API Token
+      EventBusAccount:
+        default: EKS Protection Account
+      EventBusName:
+        default: Name of EventBus
+      EventBridgeRoleName:
+        default: Name of EventBridge Role
+      EKSExecutionRoleName:
+        default: Name of Execution Role
+      CodeBuildProjectName:
+        default: CodeBuild Project Name
+      CodeBuildRoleName:
+        default: CodeBuild Role Name
+      KubernetesUserName:
+        default: Kubernetes User Name
+      Registry:
+        default: Registry
+      Backend:
+        default: Backend
+      EnableKAC:
+        default: Enable Kubernetes Admission Controller
 
 Parameters:
   # Account Type
@@ -368,6 +412,70 @@ Parameters:
     Description: SRA version to tag
     Type: String
 
+  # EKS Protection
+  EKSProtection:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Description: Enable CrowdStrike EKS Protection to automatically deploy Falcon Sensor against EKS Clusters.
+    Default: 'false'
+  FalconCID:
+    Type: String
+    Description: Your Falcon CID with checksum (eg. ********************************-**)
+    Default: "FalconCID"
+  DockerAPIToken:
+    Type: String
+    NoEcho: true
+    Description: Your Falcon Docker API Token
+    Default: "DockerAPIToken"
+  EventBusAccount:
+    Description: The account to centralize EKS Protection resources.  This account must be the Organization Management Account or a Delegated Administrator.
+    Type: String
+    Default: "111111111111"
+  EventBusName:
+    Type: String
+    Description: Name of the centralized EventBus
+    Default: crowdstrike-eks-eventbus
+  EventBridgeRoleName:
+    Type: String
+    Description: Name of the EventBridge IAM role
+    Default: crowdstrike-eks-eventbridge-role
+  EKSExecutionRoleName:
+    Type: String
+    Description: Name of the Target Execution IAM role
+    Default: crowdstrike-eks-execution-role
+  CodeBuildProjectName:
+    Type: String
+    Description: Name of the CodeBuild Project
+    Default: crowdstrike-eks-codebuild
+  CodeBuildRoleName:
+    Type: String
+    Description: Name of the CodeBuild IAM role
+    Default: crowdstrike-eks-codebuild-role
+  KubernetesUserName:
+    Type: String
+    Description: Name of the Kubernetes UserName
+    Default: crowdstrike-eks
+  Registry:
+    Type: String
+    Description: Source Falcon Image from CrowdStrike or mirror to ECR
+    AllowedValues:
+      - 'crowdstrike'
+      - 'ecr'
+    Default: crowdstrike
+  Backend:
+    Type: String
+    Description: kernel or bpf for Daemonset Sensor
+    AllowedValues:
+      - 'kernel'
+      - 'bpf'
+    Default: kernel
+  EnableKAC:
+    Type: String
+    Description: Deploy Kubernetes Admission Controller (KAC).  For more info see https://falcon.crowdstrike.com/documentation/page/aa4fccee/container-security#s41cbec3
+    AllowedValues:
+      - true
+      - false
+    Default: true
 
 Mappings: 
   CloudMap: 
@@ -395,6 +503,7 @@ Conditions:
   NotDelegatedAdminCommIOA: !And [ !Equals [ !Ref 'DelegatedAdmin', false ], !Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', commercial ], !Equals [!Ref 'EnableIOA', true ]]
   NotDelegatedAdminGovIOA: !And [ !Equals [ !Ref 'DelegatedAdmin', false ], !Equals [ !Ref 'AWSAccountType', govcloud ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
   NotDelegatedAdminCommGovIOA: !And [!Equals [ !Ref 'DelegatedAdmin', false ], !Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
+  EnableEKSProtection: !Equals [ !Ref 'EKSProtection', true ]
 
 Resources:
 # Optional Default Organization CloudTrail
@@ -1085,7 +1194,7 @@ Resources:
               - !Sub arn:${AWS::Partition}:s3:::${StagingS3Bucket}/*
             Condition:
               StringNotEquals:
-                aws:PrincipalOrgID: !GetAtt OrgIdLambdaCustomResource.OrganizationId
+                aws:PrincipalOrgID: !GetAtt OrgIdLambdaCustomResource.organization_id
 
           - Sid: SecureTransport
             Effect: Deny
@@ -1110,6 +1219,9 @@ Resources:
         - lambda_functions/packages/register-organization/lambda.zip
         - lambda_functions/packages/cw-helper/lambda.zip
         - templates/crowdstrike_init_stack.yaml
+        - lambda_functions/packages/eks-existing-clusters/lambda.zip
+        - lambda_functions/packages/eks-new-clusters/lambda.zip
+        - lambda_functions/packages/codebuild/lambda.zip
 
   CopyZipsRole:
     Type: AWS::IAM::Role
@@ -1276,6 +1388,8 @@ Resources:
       Environment:
         Variables:
           LOG_LEVEL: "INFO"
+          EVENTBUS_ACCOUNT: !Ref EventBusAccount
+          EKS_PROTECTION: !Ref EKSProtection
       Code:
         S3Bucket: !Ref StagingS3Bucket
         S3Key: !Sub ${SourceS3BucketNamePrefix}/lambda_functions/packages/cw-helper/lambda.zip
@@ -1312,7 +1426,9 @@ Resources:
             Statement:
               - Sid: OrganizationRead
                 Effect: Allow
-                Action: organizations:DescribeOrganization
+                Action:
+                  - organizations:DescribeOrganization
+                  - organizations:ListParents
                 Resource: '*'
         - PolicyName: CloudWatchLogGroup
           PolicyDocument:
@@ -1325,6 +1441,171 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${OrgIdLambdaFunctionName}:log-stream:*
+
+  # EKS Protection
+  RootRolesStackSet:
+    Condition: EnableEKSProtection
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: crowdstrike-eks-protection-root-roles
+      Capabilities:
+        - CAPABILITY_NAMED_IAM
+      AdministrationRoleARN: !GetAtt StackSetAdministrationRole.Arn
+      ExecutionRoleName: !Ref StackSetExecRole
+      Parameters:
+        - ParameterKey: CodeBuildProjectName
+          ParameterValue: !Ref CodeBuildProjectName
+        - ParameterKey: CodeBuildRoleName
+          ParameterValue: !Ref CodeBuildRoleName
+        - ParameterKey: EventBridgeRoleName
+          ParameterValue: !Ref EventBridgeRoleName
+        - ParameterKey: EKSExecutionRoleName
+          ParameterValue: !Ref EKSExecutionRoleName
+        - ParameterKey: StagingS3Bucket
+          ParameterValue: !Ref StagingS3Bucket
+        - ParameterKey: EventBusName
+          ParameterValue: !Ref EventBusName
+        - ParameterKey: PermissionsBoundary
+          ParameterValue: !Ref PermissionsBoundary
+      PermissionModel: SELF_MANAGED
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            Accounts: 
+              - !Ref EventBusAccount
+          Regions:
+            - !Ref AWS::Region
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/eks-root-roles.yml
+  
+  EKSTargetRolesStackSet:
+    Condition: EnableEKSProtection
+    DependsOn: RootRolesStackSet
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: crowdstrike-eks-protection-target-roles
+      Capabilities:
+        - CAPABILITY_NAMED_IAM
+      Parameters:
+        - ParameterKey: EKSExecutionRoleName
+          ParameterValue: !Ref EKSExecutionRoleName
+        - ParameterKey: EventBridgeRoleName
+          ParameterValue: !Ref EventBridgeRoleName
+        - ParameterKey: EventBusAccount
+          ParameterValue: !Ref EventBusAccount
+        - ParameterKey: EventBusName
+          ParameterValue: !Ref EventBusName
+        - ParameterKey: CodeBuildRoleName
+          ParameterValue: !Ref CodeBuildRoleName
+        - ParameterKey: PermissionsBoundary
+          ParameterValue: !Ref PermissionsBoundary
+      PermissionModel: SERVICE_MANAGED
+      AutoDeployment:
+        Enabled: true
+        RetainStacksOnAccountRemoval: false
+      OperationPreferences:
+        MaxConcurrentPercentage: 100
+        FailureTolerancePercentage: 50
+        RegionConcurrencyType: PARALLEL
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            OrganizationalUnitIds: !Ref ProvisionOU
+          Regions:
+            - !Ref AWS::Region
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/eks-target-roles-stackset.yml
+
+  RootEKSProtectionStackSet:
+    Condition: EnableEKSProtection
+    DependsOn: EKSTargetRolesStackSet
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: crowdstrike-eks-protection-root-protection
+      Capabilities:
+        - CAPABILITY_NAMED_IAM
+      AdministrationRoleARN: !GetAtt StackSetAdministrationRole.Arn
+      ExecutionRoleName: !Ref StackSetExecRole
+      Parameters:
+        - ParameterKey: StagingS3Bucket
+          ParameterValue: !Ref StagingS3Bucket
+        - ParameterKey: Backend
+          ParameterValue: !Ref Backend
+        - ParameterKey: Registry
+          ParameterValue: !Ref Registry
+        - ParameterKey: EnableKAC
+          ParameterValue: !Ref EnableKAC
+        - ParameterKey: CrowdStrikeCloud
+          ParameterValue: !Ref CSCloud
+        - ParameterKey: EventBusName
+          ParameterValue: !Ref EventBusName
+        - ParameterKey: OrganizationId
+          ParameterValue: !GetAtt OrgIdLambdaCustomResource.organization_id
+        - ParameterKey: FalconClientId
+          ParameterValue: !Ref FalconClientID
+        - ParameterKey: FalconClientSecret
+          ParameterValue: !Ref FalconSecret
+        - ParameterKey: KubernetesUserName
+          ParameterValue: !Ref KubernetesUserName
+        - ParameterKey: FalconCID
+          ParameterValue: !Ref FalconCID
+        - ParameterKey: DockerAPIToken
+          ParameterValue: !Ref DockerAPIToken
+        - ParameterKey: EKSExecutionRoleName
+          ParameterValue: !Ref EKSExecutionRoleName
+        - ParameterKey: CodeBuildProjectName
+          ParameterValue: !Ref CodeBuildProjectName
+        - ParameterKey: CodeBuildRoleName
+          ParameterValue: !Ref CodeBuildRoleName
+        - ParameterKey: VpcCIDR
+          ParameterValue: '10.192.0.0/16'
+        - ParameterKey: PublicSubnet1CIDR
+          ParameterValue: '10.192.10.0/24'
+        - ParameterKey: PublicSubnet2CIDR
+          ParameterValue: '10.192.11.0/24'
+        - ParameterKey: PrivateSubnet1CIDR
+          ParameterValue: '10.192.20.0/24'
+        - ParameterKey: PrivateSubnet2CIDR
+          ParameterValue: '10.192.21.0/24'
+      PermissionModel: SELF_MANAGED
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            Accounts: 
+              - !Ref EventBusAccount
+            OrganizationalUnitIds:
+              - !GetAtt OrgIdLambdaCustomResource.eventbus_account_ou
+          Regions:
+            - !Ref AWS::Region
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/eks-protection-stack.yml
+
+  EKSEventBridgeStackSet:
+    Condition: EnableEKSProtection
+    DependsOn: RootEKSProtectionStackSet
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: crowdstrike-eks-protection-eventbridge
+      Parameters:
+        - ParameterKey: EventBusName
+          ParameterValue: !Ref EventBusName
+        - ParameterKey: EventBusAccount
+          ParameterValue: !Ref EventBusAccount
+        - ParameterKey: EventBusRegion
+          ParameterValue: !Ref AWS::Region
+        - ParameterKey: EventBridgeRoleName
+          ParameterValue: !Ref EventBridgeRoleName
+      PermissionModel: SERVICE_MANAGED
+      AutoDeployment:
+        Enabled: true
+        RetainStacksOnAccountRemoval: true
+      OperationPreferences:
+        MaxConcurrentPercentage: 100
+        FailureTolerancePercentage: 50
+        RegionConcurrencyType: PARALLEL
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            OrganizationalUnitIds: !Ref ProvisionOU
+          Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/eks-eventbridge-stackset.yml
 
 Outputs:
   CSBucket:

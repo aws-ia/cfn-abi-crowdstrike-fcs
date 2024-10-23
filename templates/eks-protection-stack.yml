@@ -1,0 +1,543 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  StagingS3Bucket:
+    Type: String
+  Backend:
+    Type: String
+    Description: kernel or bpf for Daemonset Sensor
+    AllowedValues:
+      - 'kernel'
+      - 'bpf'
+    Default: 'kernel'
+  Registry:
+    Type: String
+    Description: Source Falcon Image from CrowdStrike or mirror to ECR
+    AllowedValues:
+      - 'crowdstrike'
+      - 'ecr'
+    Default: 'crowdstrike'
+  EnableKAC:
+    Type: String
+    Description: Deploy Kubernetes Admission Controller (KAC).  For more info see https://falcon.crowdstrike.com/documentation/page/aa4fccee/container-security#s41cbec3
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'true'
+  CrowdStrikeCloud:
+    Type: String
+    Description: Cloud for your Falcon CID (eg. us-1, us-2 or eu-1)
+    AllowedValues:
+      - 'us-1'
+      - 'us-2'
+      - 'eu-1'
+    Default: 'us-1'
+  EventBusName:
+    Type: String
+    Default: "crowdstrike-eks-eventbus"
+  OrganizationId:
+    Type: String
+  FalconClientId:
+    Type: String
+    NoEcho: true
+  FalconClientSecret:
+    Type: String
+    NoEcho: true
+  KubernetesUserName:
+    Type: String
+    Default: crowdstrike-eks
+  FalconCID:
+    Type: String
+  DockerAPIToken:
+    Type: String
+    NoEcho: true
+  EKSExecutionRoleName:
+    Type: String
+    Default: crowdstrike-eks-execution-role
+  CodeBuildProjectName:
+    Type: String
+    Default: crowdstrike-eks-codebuild
+  CodeBuildRoleName:
+    Type: String
+    Default: crowdstrike-eks-codebuild-role
+  EnvironmentName:
+    Description: An environment name that is prefixed to resource names
+    Type: String
+    Default: crowdstrike-eks
+  VpcCIDR:
+    Description: Please enter the IP range (CIDR notation) for this VPC
+    Type: String
+    Default: 10.192.0.0/16
+  PublicSubnet1CIDR:
+    Description: Please enter the IP range (CIDR notation) for the public subnet in the first Availability Zone
+    Type: String
+    Default: 10.192.10.0/24
+  PublicSubnet2CIDR:
+    Description: Please enter the IP range (CIDR notation) for the public subnet in the second Availability Zone
+    Type: String
+    Default: 10.192.11.0/24
+  PrivateSubnet1CIDR:
+    Description: Please enter the IP range (CIDR notation) for the private subnet in the first Availability Zone
+    Type: String
+    Default: 10.192.20.0/24
+  PrivateSubnet2CIDR:
+    Description: Please enter the IP range (CIDR notation) for the private subnet in the second Availability Zone
+    Type: String
+    Default: 10.192.21.0/24
+  SourceS3BucketNamePrefix:
+    Description:
+      Staging S3 bucket name prefix for the artifacts relevant to the solutions. (e.g., lambda zips, CloudFormation templates). The account
+      and region are added to the prefix <bucket-name-prefix>-<account-id>-<region>. Example = staging-123456789012-us-east-1.
+    Type: String
+
+Conditions:
+  UseECR: !Equals [ !Ref 'Registry', 'ecr' ]
+
+Resources:
+  # EventBridge Resources to Invoke Lambda
+  EKSEventBus: 
+    Type: AWS::Events::EventBus
+    Properties: 
+        Name: !Ref EventBusName
+        Policy: !Sub |
+          {
+            "Version": "2012-10-17",
+            "Statement": [{
+              "Sid": "AllowAllAccountsFromOrganizationToPutEvents",
+              "Effect": "Allow",
+              "Principal": "*",
+              "Action": "events:PutEvents",
+              "Resource": "arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/${EventBusName}",
+              "Condition": {
+                "StringEquals": {
+                  "aws:PrincipalOrgID": "${OrganizationId}"
+                }
+              }
+            }]
+          }
+  EKSRule: 
+    Type: AWS::Events::Rule
+    Properties: 
+      Description: "EventRule"
+      EventBusName: !GetAtt EKSEventBus.Arn
+      EventPattern: 
+        source: 
+          - "aws.eks"
+        detail-type: 
+          - "AWS API Call via CloudTrail"
+        detail: 
+          eventSource: 
+            - "eks.amazonaws.com"
+          eventName:
+            - "CreateCluster"
+            - "CreateFargateProfile"
+      State: "ENABLED"
+      Name: crowdstrike-eks-rule
+      Targets: 
+        - Arn: !GetAtt EKSLambda.Arn
+          Id: "CrowdStrikeEKSFunction"
+
+  # Lambda Function to process event, check for EKS API Access and StartBuild
+  EKSLambda:
+    Type: AWS::Lambda::Function
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W89
+            reason: Lambda custom resource only run during stack lifecycle events.
+          - id: W92
+            reason: Lambda custom resource only run during stack lifecycle events.
+      checkov:
+        skip:
+          - id: CKV_AWS_115
+            comment: Lambda does not need reserved concurrent executions.
+          - id: CKV_AWS_116
+            comment: DLQ not needed, as Lambda function only triggered by CloudFormation events.
+          - id: CKV_AWS_117
+            comment: Lambda does not need to communicate with VPC resources.
+          - id: CKV_AWS_173
+            comment: Environment variables are not sensitive.
+    Properties:
+      Environment:
+        Variables:
+          project_name: !Ref CodeBuildProjectName
+          artifact_bucket: !Ref StagingS3Bucket
+          lambda_switch_role: !Ref EKSExecutionRoleName
+      Handler: lambda_function.lambda_handler
+      MemorySize: 128
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${EKSExecutionRoleName}
+      Runtime: python3.11
+      Timeout: 300
+      FunctionName: crowdstrike-abi-eks-events-function
+      Code:
+        S3Bucket: !Ref StagingS3Bucket
+        S3Key: !Sub ${SourceS3BucketNamePrefix}/lambda_functions/packages/eks-new-clusters/lambda.zip
+  EKSInvokeLambdaPermission: 
+    Type: AWS::Lambda::Permission
+    Properties: 
+      FunctionName: !Ref EKSLambda
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt EKSRule.Arn
+  ExistingEKSLambda:
+    Type: AWS::Lambda::Function
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W89
+            reason: Lambda custom resource only run during stack lifecycle events.
+          - id: W92
+            reason: Lambda custom resource only run during stack lifecycle events.
+      checkov:
+        skip:
+          - id: CKV_AWS_115
+            comment: Lambda does not need reserved concurrent executions.
+          - id: CKV_AWS_116
+            comment: DLQ not needed, as Lambda function only triggered by CloudFormation events.
+          - id: CKV_AWS_117
+            comment: Lambda does not need to communicate with VPC resources.
+          - id: CKV_AWS_173
+            comment: Environment variables are not sensitive.
+    Properties:
+      Environment:
+        Variables:
+          project_name: !Ref CodeBuildProjectName
+          artifact_bucket: !Ref StagingS3Bucket
+          lambda_switch_role: !Ref EKSExecutionRoleName
+      Handler: lambda_function.lambda_handler
+      MemorySize: 128
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${EKSExecutionRoleName}
+      Runtime: python3.11
+      Timeout: 300
+      FunctionName: crowdstrike-abi-eks-init-function
+      Code:
+        S3Bucket: !Ref StagingS3Bucket
+        S3Key: !Sub ${SourceS3BucketNamePrefix}/lambda_functions/packages/eks-existing-clusters/lambda.zip
+  # Trigger Lambda Function
+  TriggerExistingEKSLambda:
+    Type: 'Custom::TriggerLambda'
+    DependsOn:
+      - SMFalconAPIKey
+    Properties:
+      ServiceToken: !GetAtt
+        - ExistingEKSLambda
+        - Arn
+
+  # CodeBuild Project to deploy Falcon Operator and Sensor
+  EKSCodeBuild:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Description: "Triggered by CrowdStrike EKS Lambda to provision Falcon Operator and Sensor"
+      Environment: 
+        ComputeType: BUILD_GENERAL1_SMALL
+        EnvironmentVariables:
+          - Name: FALCON_CLIENT_ID
+            Value: !Sub
+              - '${arn}:client_id'
+              - { arn: !Ref SMFalconAPIKey }
+            Type: SECRETS_MANAGER
+          - Name: FALCON_CLIENT_SECRET
+            Value: !Sub
+              - '${arn}:client_secret'
+              - { arn: !Ref SMFalconAPIKey }
+            Type: SECRETS_MANAGER
+          - Name: CS_CLOUD
+            Value: !Sub
+              - '${arn}:cs_cloud'
+              - { arn: !Ref SMFalconAPIKey }
+            Type: SECRETS_MANAGER
+          - Name: DOCKER_API_TOKEN
+            Value: !Sub
+              - '${arn}:docker_api_token'
+              - { arn: !Ref SMFalconAPIKey }
+            Type: SECRETS_MANAGER
+          - Name: PRINCIPAL_ARN
+            Type: PLAINTEXT
+            Value: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CodeBuildRoleName}
+          - Name: S3_BUCKET
+            Type: PLAINTEXT
+            Value: !Ref StagingS3Bucket
+          - Name: USERNAME
+            Type: PLAINTEXT
+            Value: !Ref KubernetesUserName
+          - Name: CLUSTER
+            Type: PLAINTEXT
+            Value: lambda
+          - Name: CLUSTER_ARN
+            Type: PLAINTEXT
+            Value: lambda
+          - Name: NODE_TYPE
+            Type: PLAINTEXT
+            Value: lambda
+          - Name: CID
+            Type: PLAINTEXT
+            Value: !Ref FalconCID
+          - Name: ENABLE_KAC
+            Type: PLAINTEXT
+            Value: !Ref EnableKAC
+          - Name: REGISTRY
+            Type: PLAINTEXT
+            Value: !Ref Registry
+          - Name: CROWDSTRIKE_CLOUD
+            Type: PLAINTEXT
+            Value: !Ref CrowdStrikeCloud
+          - Name: BACKEND
+            Type: PLAINTEXT
+            Value: !Ref Backend
+          - Name: IMAGE_REGION
+            Type: PLAINTEXT
+            Value: !If [ UseECR, !Ref AWS::Region, 'CrowdStrike' ]
+          - Name: NODE_SENSOR_REPO
+            Type: PLAINTEXT
+            Value: !If [ UseECR, !Ref NodeSensorRepo, 'CrowdStrike' ]
+          - Name: NODE_SENSOR_URI
+            Type: PLAINTEXT
+            Value: !If [ UseECR, !GetAtt NodeSensorRepo.RepositoryUri, 'CrowdStrike' ]
+          - Name: ACCOUNT_ID
+            Type: PLAINTEXT
+            Value: lambda
+          - Name: REGION
+            Type: PLAINTEXT
+            Value: lambda
+          - Name: SWITCH_ROLE
+            Type: PLAINTEXT
+            Value: !Ref EKSExecutionRoleName
+          - Name: NAT_IP
+            Type: PLAINTEXT
+            Value: !GetAtt NatGatewayEIP.PublicIp
+        Image: aws/codebuild/standard:7.0
+        PrivilegedMode: true
+        Type: LINUX_CONTAINER
+      VpcConfig:
+        SecurityGroupIds: 
+          - !GetAtt NoIngressSecurityGroup.GroupId
+        Subnets: 
+          - !GetAtt PrivateSubnet1.SubnetId
+        VpcId: !GetAtt PrivateSubnet1.VpcId
+      Artifacts:
+        Type: NO_ARTIFACTS
+      Name: !Ref CodeBuildProjectName
+      ServiceRole: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CodeBuildRoleName}
+      Source: 
+        Location: !Sub '${StagingS3Bucket}/${SourceS3BucketNamePrefix}/lambda_functions/packages/codebuild/lambda.zip'
+        Type: S3
+      TimeoutInMinutes: 90
+      Visibility: PRIVATE
+
+# Secret
+  SMFalconAPIKey:
+    Type: AWS::SecretsManager::Secret
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_149
+            comment: The default key aws/secretsmanager is sufficient to secure this resource
+    Properties:
+      Name: crowdstrike-eks-secret
+      Description: 'Client ID and Secret for the Falcon API'
+      SecretString: !Sub |
+        {
+          "client_id": "${FalconClientId}",
+          "client_secret": "${FalconClientSecret}",
+          "cid": "${FalconCID}",
+          "cs_cloud":"${CrowdStrikeCloud}",
+          "docker_api_token":"${DockerAPIToken}"
+        }
+
+ # Create ECR Repositories for Falcon Images
+  NodeSensorRepo:
+    Type: AWS::ECR::Repository
+    Condition: UseECR
+    Properties:
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      EmptyOnDelete: true
+      RepositoryName: crowdstrike/falcon-sensor
+      RepositoryPolicyText:
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Sid: AllowPushPull
+            Effect: Allow
+            Principal: 
+              AWS: 
+                - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CodeBuildRoleName}
+            Action: 
+              - "ecr:GetDownloadUrlForLayer"
+              - "ecr:BatchGetImage"
+              - "ecr:BatchCheckLayerAvailability"
+              - "ecr:PutImage"
+              - "ecr:InitiateLayerUpload"
+              - "ecr:UploadLayerPart"
+              - "ecr:CompleteLayerUpload"
+  KPAgentRepo:
+    Type: AWS::ECR::Repository
+    Condition: UseECR
+    Properties:
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      EmptyOnDelete: true
+      RepositoryName: crowdstrike/kpagent
+      RepositoryPolicyText:
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Sid: AllowPushPull
+            Effect: Allow
+            Principal: 
+              AWS: 
+                - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CodeBuildRoleName}
+            Action: 
+              - "ecr:GetDownloadUrlForLayer"
+              - "ecr:BatchGetImage"
+              - "ecr:BatchCheckLayerAvailability"
+              - "ecr:PutImage"
+              - "ecr:InitiateLayerUpload"
+              - "ecr:UploadLayerPart"
+              - "ecr:CompleteLayerUpload"
+
+  # Network
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Ref EnvironmentName
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Ref EnvironmentName
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: !Ref PublicSubnet1CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Public Subnet (AZ1)
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 1, !GetAZs  '' ]
+      CidrBlock: !Ref PublicSubnet2CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Public Subnet (AZ2)
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 0, !GetAZs  '' ]
+      CidrBlock: !Ref PrivateSubnet1CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Private Subnet (AZ1)
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 1, !GetAZs  '' ]
+      CidrBlock: !Ref PrivateSubnet2CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Private Subnet (AZ2)
+
+  NatGatewayEIP:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGatewayEIP.AllocationId
+      SubnetId: !Ref PublicSubnet1
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Public Routes
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet1
+
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet2
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Private Routes (AZ1)
+
+  DefaultPrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+
+  PrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnet1
+
+  PrivateSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnet2
+
+  NoIngressSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Security group with no ingress rule"
+      VpcId: !Ref VPC
+      SecurityGroupEgress:
+      - IpProtocol: -1
+        CidrIp: 0.0.0.0/0
+        Description: "Allow all egress"
