@@ -1454,7 +1454,7 @@ Resources:
   
   EKSTargetRolesStackSet:
     Condition: EnableEKSProtection
-    DependsOn: RootRolesStackSet
+    DependsOn: RootRolesStack
     Type: AWS::CloudFormation::StackSet
     Properties:
       StackSetName: crowdstrike-eks-protection-target-roles
@@ -1526,7 +1526,7 @@ Resources:
 
   EKSEventBridgeStackSet:
     Condition: EnableEKSProtection
-    DependsOn: RootEKSProtectionStackSet
+    DependsOn: RootEKSProtectionStack
     Type: AWS::CloudFormation::StackSet
     Properties:
       StackSetName: crowdstrike-eks-protection-eventbridge
