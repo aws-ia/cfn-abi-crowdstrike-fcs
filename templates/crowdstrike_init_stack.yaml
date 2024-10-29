@@ -474,10 +474,13 @@ Mappings:
   CloudMap: 
     us1: 
       BaseURL: "https://api.crowdstrike.com"
+      CrowdStrikeCloud: us-1
     us2: 
       BaseURL: "https://api.us-2.crowdstrike.com"
+      CrowdStrikeCloud: us-2
     eu1: 
       BaseURL: "https://api.eu-1.crowdstrike.com"
+      CrowdStrikeCloud: eu-1
 
 Conditions:
   CreateIOAResources: !Equals [ !Ref 'EnableIOA', true ]
