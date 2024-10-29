@@ -1436,39 +1436,21 @@ Resources:
                 Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${OrgIdLambdaFunctionName}:log-stream:*
 
   # EKS Protection
-  RootRolesStackSet:
+  RootRolesStack:
+    Type: 'AWS::CloudFormation::Stack'
     Condition: EnableEKSProtection
-    Type: AWS::CloudFormation::StackSet
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
-      StackSetName: crowdstrike-eks-protection-root-roles
-      Capabilities:
-        - CAPABILITY_NAMED_IAM
-      AdministrationRoleARN: !GetAtt StackSetAdministrationRole.Arn
-      ExecutionRoleName: !Ref StackSetExecRole
-      Parameters:
-        - ParameterKey: CodeBuildProjectName
-          ParameterValue: !Ref CodeBuildProjectName
-        - ParameterKey: CodeBuildRoleName
-          ParameterValue: !Ref CodeBuildRoleName
-        - ParameterKey: EventBridgeRoleName
-          ParameterValue: !Ref EventBridgeRoleName
-        - ParameterKey: EKSExecutionRoleName
-          ParameterValue: !Ref EKSExecutionRoleName
-        - ParameterKey: StagingS3Bucket
-          ParameterValue: !Ref StagingS3Bucket
-        - ParameterKey: EventBusName
-          ParameterValue: !Ref EventBusName
-        - ParameterKey: PermissionsBoundary
-          ParameterValue: !Ref PermissionsBoundary
-      PermissionModel: SELF_MANAGED
-      StackInstancesGroup:
-        - DeploymentTargets:
-            AccountFilterType: NONE
-            Accounts: 
-              - !Ref EventBusAccount
-          Regions:
-            - !Ref AWS::Region
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/eks-root-roles.yml
+      Parameters:
+        CodeBuildProjectName: !Ref CodeBuildProjectName
+        CodeBuildRoleName: !Ref CodeBuildRoleName
+        EventBridgeRoleName: !Ref EventBridgeRoleName
+        EKSExecutionRoleName: !Ref EKSExecutionRoleName
+        StagingS3Bucket: !Ref StagingS3Bucket
+        EventBusName: !Ref EventBusName
+        PermissionsBoundary: !Ref PermissionsBoundary
   
   EKSTargetRolesStackSet:
     Condition: EnableEKSProtection
@@ -1508,68 +1490,39 @@ Resources:
             - !Ref AWS::Region
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/eks-target-roles-stackset.yml
 
-  RootEKSProtectionStackSet:
+  RootEKSProtectionStack:
+    Type: 'AWS::CloudFormation::Stack'
     Condition: EnableEKSProtection
     DependsOn: EKSTargetRolesStackSet
-    Type: AWS::CloudFormation::StackSet
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
-      StackSetName: crowdstrike-eks-protection-root-protection
-      Capabilities:
-        - CAPABILITY_NAMED_IAM
-      AdministrationRoleARN: !GetAtt StackSetAdministrationRole.Arn
-      ExecutionRoleName: !Ref StackSetExecRole
-      Parameters:
-        - ParameterKey: StagingS3Bucket
-          ParameterValue: !Ref StagingS3Bucket
-        - ParameterKey: Backend
-          ParameterValue: !Ref Backend
-        - ParameterKey: Registry
-          ParameterValue: !Ref Registry
-        - ParameterKey: EnableKAC
-          ParameterValue: !Ref EnableKAC
-        - ParameterKey: CrowdStrikeCloud
-          ParameterValue: !Ref CSCloud
-        - ParameterKey: EventBusName
-          ParameterValue: !Ref EventBusName
-        - ParameterKey: OrganizationId
-          ParameterValue: !GetAtt OrgIdLambdaCustomResource.organization_id
-        - ParameterKey: FalconClientId
-          ParameterValue: !Ref FalconClientID
-        - ParameterKey: FalconClientSecret
-          ParameterValue: !Ref FalconSecret
-        - ParameterKey: KubernetesUserName
-          ParameterValue: !Ref KubernetesUserName
-        - ParameterKey: FalconCID
-          ParameterValue: !Ref FalconCID
-        - ParameterKey: DockerAPIToken
-          ParameterValue: !Ref DockerAPIToken
-        - ParameterKey: EKSExecutionRoleName
-          ParameterValue: !Ref EKSExecutionRoleName
-        - ParameterKey: CodeBuildProjectName
-          ParameterValue: !Ref CodeBuildProjectName
-        - ParameterKey: CodeBuildRoleName
-          ParameterValue: !Ref CodeBuildRoleName
-        - ParameterKey: VpcCIDR
-          ParameterValue: '10.192.0.0/16'
-        - ParameterKey: PublicSubnet1CIDR
-          ParameterValue: '10.192.10.0/24'
-        - ParameterKey: PublicSubnet2CIDR
-          ParameterValue: '10.192.11.0/24'
-        - ParameterKey: PrivateSubnet1CIDR
-          ParameterValue: '10.192.20.0/24'
-        - ParameterKey: PrivateSubnet2CIDR
-          ParameterValue: '10.192.21.0/24'
-      PermissionModel: SELF_MANAGED
-      StackInstancesGroup:
-        - DeploymentTargets:
-            AccountFilterType: NONE
-            Accounts: 
-              - !Ref EventBusAccount
-            OrganizationalUnitIds:
-              - !GetAtt OrgIdLambdaCustomResource.eventbus_account_ou
-          Regions:
-            - !Ref AWS::Region
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/eks-protection-stack.yml
+      Parameters:
+        StagingS3Bucket: !Ref StagingS3Bucket
+        Backend: !Ref Backend
+        Registry: !Ref Registry
+        EnableKAC: !Ref EnableKAC
+        CrowdStrikeCloud: !FindInMap
+          - CloudMap
+          - !Ref CSCloud
+          - CrowdStrikeCloud
+        EventBusName: !Ref EventBusName
+        OrganizationId: !GetAtt OrgIdLambdaCustomResource.organization_id
+        FalconClientId: !Ref FalconClientID
+        FalconClientSecret: !Ref FalconSecret
+        KubernetesUserName: !Ref KubernetesUserName
+        FalconCID: !Ref FalconCID
+        DockerAPIToken: !Ref DockerAPIToken
+        EKSExecutionRoleName: !Ref EKSExecutionRoleName
+        CodeBuildProjectName: !Ref CodeBuildProjectName
+        CodeBuildRoleName: !Ref CodeBuildRoleName
+        SourceS3BucketNamePrefix: !Ref SourceS3BucketNamePrefix
+        VpcCIDR: '10.192.0.0/16'
+        PublicSubnet1CIDR: '10.192.10.0/24'
+        PublicSubnet2CIDR: '10.192.11.0/24'
+        PrivateSubnet1CIDR: '10.192.20.0/24'
+        PrivateSubnet2CIDR: '10.192.21.0/24'
 
   EKSEventBridgeStackSet:
     Condition: EnableEKSProtection
