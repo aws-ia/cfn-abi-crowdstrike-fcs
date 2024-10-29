@@ -61,7 +61,6 @@ description: Deployment steps.
             * **FalconCID**: Your CrowdStrike Falcon CID with checksum. (eg. ********************************-ab)
             * **DockerAPIToken**: Your Falcon Docker API Token
             * **OrganizationId**: Your AWS Organization ID (eg. o-********)
-            * **EventBusAccount**: The account to centralize EKS Protection resources.  This account must be the Organization Management Account or a Delegated Administrator.
             * **EventBusName**: Name of the centralized EventBus.  Default is `crowdstrike-eks-eventbus`
             * **EventBridgeRoleName**: Name of the EventBridge IAM role.  Default is `crowdstrike-eks-eventbridge-role`
             * **EKSExecutionRoleName**: Name of the Target Execution IAM role.  Default is `crowdstrike-eks-execution-role`
