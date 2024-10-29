@@ -77,7 +77,6 @@ Metadata:
           - EKSProtection
           - FalconCID
           - DockerAPIToken
-          - EventBusAccount
           - EventBusName
           - EventBridgeRoleName
           - EKSExecutionRoleName
@@ -184,8 +183,6 @@ Metadata:
         default: Falcon CID
       DockerAPIToken:
         default: Falcon Docker API Token
-      EventBusAccount:
-        default: EKS Protection Account
       EventBusName:
         default: Name of EventBus
       EventBridgeRoleName:
@@ -427,10 +424,6 @@ Parameters:
     NoEcho: true
     Description: Your Falcon Docker API Token
     Default: "DockerAPIToken"
-  EventBusAccount:
-    Description: The account to centralize EKS Protection resources.  This account must be the Organization Management Account or a Delegated Administrator.
-    Type: String
-    Default: "111111111111"
   EventBusName:
     Type: String
     Description: Name of the centralized EventBus
@@ -1388,7 +1381,7 @@ Resources:
       Environment:
         Variables:
           LOG_LEVEL: "INFO"
-          EVENTBUS_ACCOUNT: !Ref EventBusAccount
+          EVENTBUS_ACCOUNT: !Ref AWS::AccountId
           EKS_PROTECTION: !Ref EKSProtection
       Code:
         S3Bucket: !Ref StagingS3Bucket
@@ -1491,7 +1484,7 @@ Resources:
         - ParameterKey: EventBridgeRoleName
           ParameterValue: !Ref EventBridgeRoleName
         - ParameterKey: EventBusAccount
-          ParameterValue: !Ref EventBusAccount
+          ParameterValue: !Ref AWS::AccountId
         - ParameterKey: EventBusName
           ParameterValue: !Ref EventBusName
         - ParameterKey: CodeBuildRoleName
@@ -1587,7 +1580,7 @@ Resources:
         - ParameterKey: EventBusName
           ParameterValue: !Ref EventBusName
         - ParameterKey: EventBusAccount
-          ParameterValue: !Ref EventBusAccount
+          ParameterValue: !Ref AWS::AccountId
         - ParameterKey: EventBusRegion
           ParameterValue: !Ref AWS::Region
         - ParameterKey: EventBridgeRoleName
