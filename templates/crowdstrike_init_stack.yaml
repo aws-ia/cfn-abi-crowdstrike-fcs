@@ -1492,6 +1492,7 @@ Resources:
         - ParameterKey: PermissionsBoundary
           ParameterValue: !Ref PermissionsBoundary
       PermissionModel: SERVICE_MANAGED
+      CallAs: !If [ IsDelegatedAdmin, 'DELEGATED_ADMIN', 'SELF' ]
       AutoDeployment:
         Enabled: true
         RetainStacksOnAccountRemoval: false
@@ -1586,6 +1587,7 @@ Resources:
         - ParameterKey: EventBridgeRoleName
           ParameterValue: !Ref EventBridgeRoleName
       PermissionModel: SERVICE_MANAGED
+      CallAs: !If [ IsDelegatedAdmin, 'DELEGATED_ADMIN', 'SELF' ]
       AutoDeployment:
         Enabled: true
         RetainStacksOnAccountRemoval: true
