@@ -167,6 +167,8 @@ def lambda_handler(event, context):
                                                         organization_id=org_id,
                                                         behavior_assessment_enabled=True,
                                                         sensor_management_enabled=True,
+                                                        dspm_enabled=True,
+                                                        dspm_role='CrowdStrikeDSPMIntegrationRole',
                                                         use_existing_cloudtrail=EXISTING_CLOUDTRAIL,
                                                         user_agent=USERAGENT,
                                                         is_master=True,
@@ -177,6 +179,8 @@ def lambda_handler(event, context):
                                                         organization_id=org_id,
                                                         behavior_assessment_enabled=True,
                                                         sensor_management_enabled=True,
+                                                        dspm_enabled=True,
+                                                        dspm_role='CrowdStrikeDSPMIntegrationRole',
                                                         use_existing_cloudtrail=EXISTING_CLOUDTRAIL,
                                                         cloudtrail_region=AWS_REGION,
                                                         user_agent=USERAGENT,
@@ -191,7 +195,8 @@ def lambda_handler(event, context):
                         "iam_role_name": response['body']['resources'][0]['iam_role_arn'].rsplit('/')[1],
                         "intermediate_role_arn": response['body']['resources'][0]['intermediate_role_arn'],
                         "cs_role_name": response['body']['resources'][0]['intermediate_role_arn'].rsplit('/')[1],
-                        "external_id": response['body']['resources'][0]['external_id']
+                        "external_id": response['body']['resources'][0]['external_id'],
+                        "dspm_role_arn": response['body']['resources'][0]['dspm_role_arn']
                     }
                     if not EXISTING_CLOUDTRAIL:
                         response_d['cs_bucket_name'] = response['body']['resources'][0]['aws_cloudtrail_bucket_name']
@@ -221,7 +226,8 @@ def lambda_handler(event, context):
                         "iam_role_name": response['body']['resources'][0]['iam_role_arn'].rsplit('/')[1],
                         "intermediate_role_arn": response['body']['resources'][0]['intermediate_role_arn'],
                         "cs_role_name": response['body']['resources'][0]['intermediate_role_arn'].rsplit('/')[1],
-                        "external_id": response['body']['resources'][0]['external_id']
+                        "external_id": response['body']['resources'][0]['external_id'],
+                        "dspm_role_arn": response['body']['resources'][0]['dspm_role_arn']
                     }
                     if not EXISTING_CLOUDTRAIL:
                         response_d['cs_bucket_name'] = response['body']['resources'][0]['aws_cloudtrail_bucket_name']
