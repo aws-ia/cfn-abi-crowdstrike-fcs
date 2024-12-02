@@ -46,9 +46,9 @@ Mappings:
       Key: CrowdStrikeDeploymentRegions
     LogicalTag:
       Name: CrowdStrikeLogicalId
-  Lambda:
-    CloudformationTemplateURL:
-      Value: https://cs-prod-cloudconnect-templates.s3.amazonaws.com/aws_cspm_cloudformation_dspm_env.yaml
+  # Lambda:
+  #   CloudformationTemplateURL:
+  #     Value: https://cs-prod-cloudconnect-templates.s3.amazonaws.com/aws_cspm_cloudformation_dspm_env.yaml
 
 Resources:
   # Creates instance profile. Attached as IAM role to EC2 instance, used for data scan
@@ -968,4 +968,4 @@ Resources:
       SourceRegion: !Ref "AWS::Region"
       AccountId: AWS::AccountId
       SecretId: "CrowdStrikeClientSecret"
-      CloudformationTemplateURL: !FindInMap [Lambda, CloudformationTemplateURL, Value]
+      CloudformationTemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_dspm_env.yml
