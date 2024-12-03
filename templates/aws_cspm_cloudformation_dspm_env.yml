@@ -75,8 +75,8 @@ Conditions:
     !Equals [ !Ref CreateNatGateway, "no" ]
   CreateVPC:
     !Equals ["yes", !Ref CreateVPC]
-  NotCreateVPC:
-    !Equals ["no", !Ref CreateVPC]
+  # NotCreateVPC:
+  #   !Equals ["no", !Ref CreateVPC]
   CreateVPCAndCreateNatGateway:
     !And [!Condition CreateVPC, !Condition CreateNatGateway]
   CreateVPCAndNotCreateNatGateway:
@@ -338,37 +338,47 @@ Resources:
           FromPort: '5432'
           ToPort: '5432'
           SourceSecurityGroupId: !Ref EC2SecurityGroup
+          Description: 'DB Security Group Ingress'
         - IpProtocol: tcp
           FromPort: '3306'
           ToPort: '3306'
           SourceSecurityGroupId: !Ref EC2SecurityGroup
+          Description: 'DB Security Group Ingress'
         - IpProtocol: tcp
           FromPort: '1521'
           ToPort: '1523'
+          SourceSecurityGroupId: !Ref EC2SecurityGroup
+          Description: 'DB Security Group Ingress'
         - IpProtocol: tcp
           FromPort: '1433'
           ToPort: '1433'
           SourceSecurityGroupId: !Ref EC2SecurityGroup
+          Description: 'DB Security Group Ingress'
         - IpProtocol: tcp
           FromPort: '27017'
           ToPort: '27017'
           SourceSecurityGroupId: !Ref EC2SecurityGroup
+          Description: 'DB Security Group Ingress'
         - IpProtocol: tcp
           FromPort: '6379'
           ToPort: '6379'
           SourceSecurityGroupId: !Ref EC2SecurityGroup
+          Description: 'DB Security Group Ingress'
         - IpProtocol: tcp
           FromPort: '9042'
           ToPort: '9042'
           SourceSecurityGroupId: !Ref EC2SecurityGroup
+          Description: 'DB Security Group Ingress'
         - IpProtocol: tcp
           FromPort: '9200'
           ToPort: '9200'
           SourceSecurityGroupId: !Ref EC2SecurityGroup
+          Description: 'DB Security Group Ingress'
         - IpProtocol: tcp
           FromPort: '5439'
           ToPort: '5439'
           SourceSecurityGroupId: !Ref EC2SecurityGroup
+          Description: 'DB Security Group Ingress'
   CrowdStrikeKMSKey:
     Type: AWS::KMS::Key
     Properties:

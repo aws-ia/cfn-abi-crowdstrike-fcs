@@ -347,8 +347,8 @@ Resources:
                   - ec2:RunInstances
                 Effect: Allow
                 Resource:
-                  - !Sub "arn:aws:ec2:*::image/*"
-                  - !Sub "arn:aws:ec2:*::snapshot/*"
+                  - "arn:aws:ec2:*::image/*"
+                  - "arn:aws:ec2:*::snapshot/*"
                   - !Sub "arn:aws:ec2:*:${AWS::AccountId}:volume/*"
                   - !Sub "arn:aws:ec2:*:${AWS::AccountId}:network-interface/*"
                   - !Sub "arn:aws:ec2:*:${AWS::AccountId}:security-group/*"
@@ -1036,7 +1036,6 @@ Resources:
     DependsOn:
       - CrowdStrikeAWSIntegrationRole
       - CrowdStrikeAWSScannerRole
-      - CreateEnvironmentLambda
     Properties:
       ServiceToken: !GetAtt CreateEnvironmentLambda.Arn
       RoleName: !Ref DSPMRoleName
