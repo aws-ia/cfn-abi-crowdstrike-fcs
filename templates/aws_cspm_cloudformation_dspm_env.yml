@@ -165,6 +165,12 @@ Resources:
         - Key: !FindInMap [ TagMap, LogicalTag, Name ]
           Value: RedshiftSubnetGroup
   PublicSubnet:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - W1028 # CreateVPCAndCreateNatGateway cannot be true while CreateVPC is false
+            - W1030 # Ref will resolve to VPCID per Parameter
     Condition: CreateVPCAndCreateNatGateway
     Type: AWS::EC2::Subnet
     Properties:
@@ -180,6 +186,12 @@ Resources:
         - Key: !FindInMap [ TagMap, CrowdStrikeTag, Name ]
           Value: !FindInMap [ TagMap, CrowdStrikeTag, Value ]
   PrivateSubnet:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - W1028 # CreateVPCAndCreateNatGateway cannot be true while CreateVPC is false
+            - W1030 # Ref will resolve to VPCID per Parameter
     Type: AWS::EC2::Subnet
     Condition: CreateVPC
     Properties:
@@ -197,6 +209,12 @@ Resources:
         - Key: !FindInMap [ TagMap, LogicalTag, Name ]
           Value: PrivateSubnet
   PublicRouteTable:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - W1028 # CreateVPCAndCreateNatGateway cannot be true while CreateVPC is false
+            - W1030 # Ref will resolve to VPCID per Parameter
     Condition: CreateVPCAndCreateNatGateway
     Type: AWS::EC2::RouteTable
     Properties:
@@ -207,6 +225,12 @@ Resources:
         - Key: !FindInMap [ TagMap, CrowdStrikeTag, Name ]
           Value: !FindInMap [ TagMap, CrowdStrikeTag, Value ]
   PublicRoute1:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - W1028 # CreateVPCAndCreateNatGateway cannot be true while CreateVPC is false
+            - W1030 # Ref will resolve to VPCID per Parameter
     Condition: CreateVPCAndCreateNatGateway
     Type: AWS::EC2::Route
     DependsOn: AttachGateway
@@ -215,6 +239,12 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref CreatedInternetGateway
   PrivateRouteTable:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - W1028 # CreateVPCAndCreateNatGateway cannot be true while CreateVPC is false
+            - W1030 # Ref will resolve to VPCID per Parameter
     Type: AWS::EC2::RouteTable
     Condition: CreateVPC
     Properties:
@@ -308,6 +338,11 @@ Resources:
                 "ec2:Vpc": !If [ CreateVPC, !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:vpc/${CreatedVPC}", !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:vpc/${VPC}" ]
 
   EC2SecurityGroup:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - W1030 # Ref will resolve to VPCID per Parameter
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupName: !Sub EC2SecurityGroup-${AWS::StackName}
@@ -321,6 +356,11 @@ Resources:
         - Key: !FindInMap [ TagMap, LogicalTag, Name ]
           Value: EC2SecurityGroup
   DBSecurityGroup:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - W1030 # Ref will resolve to VPCID per Parameter
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupName: !Sub DBSecurityGroup-${AWS::StackName}

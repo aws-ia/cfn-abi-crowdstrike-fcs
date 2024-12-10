@@ -60,7 +60,7 @@ Resources:
           - id: CKV_AWS_149
             comment: The default key aws/secretsmanager is sufficient to secure this resource
     Properties:
-      Name:  "CrowdStrikeClientSecret"
+      Name:  "CrowdStrikeDSPMClientSecret"
       SecretString: !Sub |
         {
           "ClientId": "${ClientID}",
@@ -71,12 +71,13 @@ Resources:
           Value: !FindInMap [ TagMap, CrowdStrikeTag, Value ]
         - Key: !FindInMap [ TagMap, LogicalTag, Name ]
           Value: ClientSecrets
+  # Creates instance profile. Attached as IAM role to EC2 instance, used for data scan
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     DependsOn:
       - CrowdStrikeAWSScannerRole
     Properties:
-      InstanceProfileName: CrowdStrikeScannerRoleProfile
+      InstanceProfileName: CrowdStrikeDSPMScannerRoleProfile
       Path: /
       Roles:
         - !Ref ScannerRoleName
@@ -530,7 +531,7 @@ Resources:
           - id: CKV_AWS_108
             comment: Read only permissions required for integration to function.
     Properties:
-      RoleName: "DSPMcloudformationServiceRole"
+      RoleName: "CrowdStrikeDSPMCloudformationServiceRole"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -541,7 +542,7 @@ Resources:
             Action:
               - "sts:AssumeRole"
       Policies:
-        - PolicyName: createVpcsAndBatch
+        - PolicyName: createDSPMEnvironmentResources
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -721,6 +722,7 @@ Resources:
           - id: CKV_AWS_173
             comment: Environment variables are not sensitive.
     Properties:
+      FunctionName: CrowdStrikeDSPMCreateEnvironmentLambda
       Description: Lambda function for the implementation of nested stacks
       Handler: index.lambda_handler
       MemorySize: 128
@@ -921,7 +923,7 @@ Resources:
               if tag['Key'] == event['ResourceProperties']['RegionsTagKey']:
                 deployment_regions = tag['Value']
             if deployment_regions is None:
-              raise Exception(f"No {event['ResourceProperties']['RegionsTagKey']} tag found on role {event['ResourceProperties']['CloudformationRoleName']}")
+              raise Exception(f"No {event['ResourceProperties']['RegionsTagKey']} tag found on client secret")
             return deployment_regions
           
           
@@ -1040,11 +1042,10 @@ Resources:
       ServiceToken: !GetAtt CreateEnvironmentLambda.Arn
       RoleName: !Ref DSPMRoleName
       ScannerRoleName: !Ref ScannerRoleName
-      CloudformationRoleName: "DSPMcloudformationServiceRole"
       CloudformationRole: !GetAtt CloudformationServiceRole.Arn
       RegionsTagKey: !FindInMap [TagMap, DeploymentRegions, Key]
       Regions: !Ref DSPMRegions
       SourceRegion: !Ref "AWS::Region"
       AccountId: AWS::AccountId
-      SecretId: "CrowdStrikeClientSecret"
+      SecretId: !Ref ClientSecrets
       CloudformationTemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_dspm_env.yml
