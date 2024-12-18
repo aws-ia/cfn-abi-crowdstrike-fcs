@@ -29,4 +29,7 @@ For troubleshooting common ABI issues, refer to the [ABI Reference Guide](https:
 2. Check the CodeBuild Execution logs for ```crowdstrike-eks-codebuild```.
 3. Check the Falcon Operator logs on the cluster.  See [Operator Troubleshooting](https://github.com/CrowdStrike/falcon-operator/blob/main/docs/install_guide.md).
 
+#### DSPM
+See falcon documentation for detailed troubleshooting information [here](https://falcon.crowdstrike.com/documentation/page/efd9a6d9/troubleshooting-and-maintenance-for-aws-accounts#j47ce12b).
+
 **Next:** Choose [Feedback](/feedback/index.html).
