@@ -705,6 +705,10 @@ Resources:
   CreateEnvironmentLambda:
     Type: AWS::Lambda::Function
     Metadata:
+      cfn-lint:
+        config:
+          ignore_checks: 
+            - W2531 # Engineering planning on upgrading this function soon
       cfn_nag:
         rules_to_suppress:
           - id: W89
