@@ -15,7 +15,21 @@
       "DefaultEventBusRegion": {
         "Type": "String",
         "Default": "us-east-1"
+      },
+      "AWSAccountType": {
+        "Type": "String",
+        "Default": "commercial"
       }
+    },
+    "Conditions": {
+      "IsGovCloud": {
+        "Fn::Equals": [
+            {
+                "Ref": "AWSAccountType"
+            },
+            "govcloud"
+        ]
+    }
     },
     "Resources": {
       "CrowdStrikeEventBusRule": {
@@ -52,10 +66,14 @@
           "Targets": [
             {
               "Arn": {
-                "Fn::Sub": "arn:aws:events:${DefaultEventBusRegion}:${CSAccountNumber}:event-bus/${CSEventBusName}"
+                "Fn::If" : [
+                  "IsGovCloud",
+                  {"Fn::Sub": "arn:${AWS::Partition}:events:${AWS::Region}:${CSAccountNumber}:event-bus/${CSEventBusName}"},
+                  {"Fn::Sub": "arn:${AWS::Partition}:events:${DefaultEventBusRegion}:${CSAccountNumber}:event-bus/${CSEventBusName}"}
+                ]
               },
               "RoleArn": {
-                "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/CrowdStrikeCSPMEventBridge"
+                "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/CrowdStrikeCSPMEventBridge"
               },
               "Id": "CrowdStrikeCentralizeEvents"
             }
@@ -117,10 +135,14 @@
           "Targets": [
             {
               "Arn": {
-                "Fn::Sub": "arn:aws:events:${DefaultEventBusRegion}:${CSAccountNumber}:event-bus/${CSEventBusName}"
+                "Fn::If" : [
+                  "IsGovCloud",
+                  {"Fn::Sub": "arn:${AWS::Partition}:events:${AWS::Region}:${CSAccountNumber}:event-bus/${CSEventBusName}"},
+                  {"Fn::Sub": "arn:${AWS::Partition}:events:${DefaultEventBusRegion}:${CSAccountNumber}:event-bus/${CSEventBusName}"}
+                ]
               },
               "RoleArn": {
-                "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/CrowdStrikeCSPMEventBridge"
+                "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/CrowdStrikeCSPMEventBridge"
               },
               "Id": "CrowdStrikeCentralizeEvents"
             }

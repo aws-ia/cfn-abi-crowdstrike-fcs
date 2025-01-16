@@ -3,42 +3,24 @@ Parameters:
   AutomationAssumeRole:
     Type: String
     Description: 'Name of the IAM role to create'
-  SecretsManagerSecretName:
+  PermissionsBoundary:
     Type: String
-    Description: 'The name of the secret used to store the Falcon ClientId, ClientSecret, and Cloud for the CrowdStrike APIs.'
-  FalconClientID:
-    Description: Your Falcon OAuth2 Client ID.
-    NoEcho: 'true'
-    Type: String
-  FalconSecret:
-    Description: Your Falcon OAuth2 API Secret.
-    NoEcho: 'true'
-    Type: String  
-  BaseURL:
-    Description: Your Falcon OAuth2 API Base URL.
-    Type: String
+    Description: The name of the policy used to set the permissions boundary for IAM roles.
+    Default: ''
+
+Conditions:
+  SetPermissionsBoundary: !Not [ !Equals [ !Ref PermissionsBoundary, '' ] ]
 
 Resources:
-  CrowdStrikeSecrets:
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Description: CrowdStrike Falcon Credentials for SSM Distributor
-      Name: !Ref SecretsManagerSecretName
-      SecretString:
-        Fn::Join:
-          - ''
-          - - '{"ClientId":"'
-            - Ref: "FalconClientID"
-            - '","ClientSecret":"'
-            - Ref: "FalconSecret"
-            - '","Cloud": "'
-            - Ref: BaseURL
-            - '"}'
-            
   SSMAutomationRole:
     Type: 'AWS::IAM::Role'
     Properties:
       RoleName: !Ref AutomationAssumeRole
+      PermissionsBoundary:
+        Fn::If:
+          - SetPermissionsBoundary
+          - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}'
+          - Ref: AWS::NoValue
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -47,5 +29,5 @@ Resources:
               Service: 'ssm.amazonaws.com'
             Action: 'sts:AssumeRole'
       ManagedPolicyArns:
-        - 'arn:aws:iam::aws:policy/service-role/AmazonSSMAutomationRole'
-        - 'arn:aws:iam::aws:policy/SecretsManagerReadWrite'
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonSSMAutomationRole'
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/SecretsManagerReadWrite'

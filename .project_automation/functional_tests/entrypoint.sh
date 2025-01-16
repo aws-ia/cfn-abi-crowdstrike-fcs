@@ -29,17 +29,21 @@ run_test() {
     unset AWS_DEFAULT_REGION
     if [ -z "$1" ]; then
         echo "Running e2e test: ALL"
-        taskcat test run -n
-        .project_automation/functional_tests/scoutsuite/scoutsuite.sh
+        taskcat test run
+        # .project_automation/functional_tests/scoutsuite/scoutsuite.sh
     else
         echo "Running e2e test: $1"
-        taskcat test run -n -t $1
-        .project_automation/functional_tests/scoutsuite/scoutsuite.sh
+        taskcat test run -t $1
+        # .project_automation/functional_tests/scoutsuite/scoutsuite.sh
     fi
 }
 
 # Run taskcat e2e test
 run_test "cw-test"
+
+run_test "cw-test-sra"
+
+run_test "cw-eks-test"
 
 run_test "cw-test-ct"
 

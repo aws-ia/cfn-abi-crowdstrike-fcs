@@ -11,3 +11,5 @@ This guide is for customers who are building a CrowdStrike Cloud Security integr
 ABI is a differentiation program that validates AWS Partner solutions that have automated their integrations with relevant AWS foundational services such as identity, management, security, and operations. It helps customers find and deploy a validated partner solution that addresses specific customer use cases while providing deep visibility and control of AWS native service integration.
 
 Choose [Overview](/overview/index.html).
+
+Code for this solution is maintained in [GitHub](https://github.com/aws-ia/cfn-abi-crowdstrike-fcs).

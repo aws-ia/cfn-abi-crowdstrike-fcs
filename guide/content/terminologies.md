@@ -18,5 +18,6 @@ description: Terminolgies used in this guide.
 * **Indicator of misconfiguration (IOM):** A configuration setting that doesn’t follow recommended security guidelines and might become a security vulnerability in a cloud environment. In CrowdStrike Cloud Security, IOMs are labeled as findings.
 * **Registration:** Enroll your AWS account ID with the CrowdStrike Cloud Security service.
 * **Sensor Management:** Enable 1-click sensor deployment to quickly and easily deploy the Falcon sensor to your cloud workloads. Use the Deployment dashboard to discover unmanaged AWS hosts and unregistered AWS accounts and to kick start workflows to register your cloud accounts and automate sensor deployments.
-* **SSM Distributor:** Install the Falcon sensor on instances across your AWS accounts using AWS SSM State Manager Associations
+* **SSM Distributor:** Install the Falcon sensor on instances across your AWS accounts using AWS SSM State Manager Associations.  
+
 **Next:** Choose [Cost and licenses](/costandlicenses/index.html).
