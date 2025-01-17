@@ -30,6 +30,7 @@ SECRET_STORE_NAME = os.environ['secret_name']
 SECRET_STORE_REGION = os.environ['secret_region']
 EXCLUDE_REGIONS = os.environ['exclude_regions']
 EXISTING_CLOUDTRAIL = eval(os.environ['existing_cloudtrail'])
+ENABLE_DSPM = eval(os.environ['enable_dspm'])
 AWS_REGION = os.environ['AWS_REGION']
 CS_CLOUD = os.environ['cs_cloud']
 AWS_ACCOUNT_TYPE = os.environ['aws_account_type']
@@ -163,30 +164,41 @@ def lambda_handler(event, context):
             if event['RequestType'] in ['Create']:
                 logger.info('Event = %s' % event)
                 if EXISTING_CLOUDTRAIL:
-                    response = falcon.create_aws_account(account_id=aws_account_id,
-                                                        organization_id=org_id,
-                                                        behavior_assessment_enabled=True,
-                                                        sensor_management_enabled=True,
-                                                        dspm_enabled=True,
-                                                        dspm_role='CrowdStrikeDSPMIntegrationRole',
-                                                        use_existing_cloudtrail=EXISTING_CLOUDTRAIL,
-                                                        user_agent=USERAGENT,
-                                                        is_master=True,
-                                                        account_type=AWS_ACCOUNT_TYPE
-                                                        )
+                    payload = {
+                        "resources": [
+                            {
+                                "account_id": aws_account_id,
+                                "account_type": AWS_ACCOUNT_TYPE,
+                                "behavior_assessment_enabled": True,
+                                "dspm_enabled": ENABLE_DSPM,
+                                "dspm_role": 'CrowdStrikeDSPMIntegrationRole',
+                                "is_master": True,
+                                'organization_id': org_id,
+                                "sensor_management_enabled": True,
+                                "use_existing_cloudtrail": EXISTING_CLOUDTRAIL,
+                                "user_agent": USERAGENT
+                            }
+                        ]
+                    }
                 else:
-                    response = falcon.create_aws_account(account_id=aws_account_id,
-                                                        organization_id=org_id,
-                                                        behavior_assessment_enabled=True,
-                                                        sensor_management_enabled=True,
-                                                        dspm_enabled=True,
-                                                        dspm_role='CrowdStrikeDSPMIntegrationRole',
-                                                        use_existing_cloudtrail=EXISTING_CLOUDTRAIL,
-                                                        cloudtrail_region=AWS_REGION,
-                                                        user_agent=USERAGENT,
-                                                        is_master=True,
-                                                        account_type=AWS_ACCOUNT_TYPE
-                                                        )
+                    payload = {
+                        "resources": [
+                            {
+                                "account_id": aws_account_id,
+                                "account_type": AWS_ACCOUNT_TYPE,
+                                "behavior_assessment_enabled": True,
+                                "cloudtrail_region": AWS_REGION,
+                                "dspm_enabled": ENABLE_DSPM,
+                                "dspm_role": 'CrowdStrikeDSPMIntegrationRole',
+                                "is_master": True,
+                                'organization_id': org_id,
+                                "sensor_management_enabled": True,
+                                "use_existing_cloudtrail": EXISTING_CLOUDTRAIL,
+                                "user_agent": USERAGENT
+                            }
+                        ]
+                    }
+                response = falcon.create_aws_account(body=payload)
                 logger.info('Response: %s' % response)
                 if response['status_code'] == 201:
                     cs_account = response['body']['resources'][0]['intermediate_role_arn'].rsplit('::')[1]

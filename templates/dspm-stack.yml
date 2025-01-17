@@ -633,6 +633,7 @@ Resources:
           - id: CKV_AWS_108
             comment: Read only permissions required for integration to function.
     Properties:
+      RoleName: "DSPMLambdaRole"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -701,6 +702,11 @@ Resources:
                   - secretsmanager:TagResource
                   - secretsmanager:DescribeSecret
                 Resource: "*"
+              - Sid: s3permissions
+                Effect: Allow
+                Action:
+                  - s3:*
+                Resource: "*"
 
   CreateEnvironmentLambda:
     Type: AWS::Lambda::Function
@@ -730,7 +736,7 @@ Resources:
       Description: Lambda function for the implementation of nested stacks
       Handler: index.lambda_handler
       MemorySize: 128
-      Runtime: python3.8
+      Runtime: python3.12
       Role: !GetAtt 'CustomResourceRole.Arn'
       Timeout: 900
       Code:
