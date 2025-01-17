@@ -71,6 +71,8 @@ Metadata:
           - pGovernedRegions
           - pSecurityAccountId
           - pLogArchiveAccountId
+          - pRepoURL
+          - pRepoBranch
       - Label:
           default: EKS Protection
         Parameters:
@@ -180,6 +182,10 @@ Metadata:
         default: Security Account Id
       pLogArchiveAccountId:
         default: LogArchive Account Id
+      pRepoURL:
+        default: SRA Repo URL
+      pRepoBranch:
+        default: SRA Repo Branch
 
       # EKS Protection
       EKSProtection:
@@ -1134,6 +1140,7 @@ Resources:
           aws_account_type: !Ref AWSAccountType
           falcon_account_type: !Ref FalconAccountType
           existing_cloudtrail: !If [ CreateIOATrail, 'False', 'True' ]
+          enable_dspm: !If [ CreateDSPMResources, 'True', 'True' ]
       Handler: lambda.lambda_handler
       MemorySize: 128
       Role: !GetAtt "LambdaCrowdStrikeRegistrationRole.Arn"
@@ -1598,6 +1605,44 @@ Resources:
           CSAccountNumber: !GetAtt TriggerRegisterAccountLambda.cs_account_id
           ExternalID: !GetAtt TriggerRegisterAccountLambda.external_id
           DSPMRegions: !Ref DSPMRegions
+
+  DSPMStackSet:
+      Type: 'AWS::CloudFormation::StackSet'
+      Condition: CreateDSPMResources
+      Properties:
+        StackSetName: crowdstrike-dspm-stackset
+        Capabilities:
+          - CAPABILITY_NAMED_IAM
+        Parameters:
+          - ParameterKey: ClientID
+            ParameterValue: !Ref FalconClientID
+          - ParameterKey: ClientSecret
+            ParameterValue: !Ref FalconSecret
+          - ParameterKey: CSRoleName
+            ParameterValue: "CrowdStrikeCSPMConnector"
+          - ParameterKey: CSAccountNumber
+            ParameterValue: !GetAtt TriggerRegisterAccountLambda.cs_account_id
+          - ParameterKey: ExternalID
+            ParameterValue: !GetAtt TriggerRegisterAccountLambda.external_id
+          - ParameterKey: DSPMRegions
+            ParameterValue: !Ref DSPMRegions
+        PermissionModel: SERVICE_MANAGED
+        CallAs: !If [ IsDelegatedAdmin, 'DELEGATED_ADMIN', 'SELF' ]
+        AutoDeployment:
+          Enabled: true
+          RetainStacksOnAccountRemoval: true
+        OperationPreferences:
+          MaxConcurrentPercentage: 100
+          FailureTolerancePercentage: 50
+          RegionConcurrencyType: PARALLEL
+        StackInstancesGroup:
+          - DeploymentTargets:
+              AccountFilterType: NONE
+              OrganizationalUnitIds: !Ref ProvisionOU
+            Regions:
+              - !Ref AWS::Region
+        TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/dspm-stack.yml
+        
 
 Outputs:
   CSBucket:
