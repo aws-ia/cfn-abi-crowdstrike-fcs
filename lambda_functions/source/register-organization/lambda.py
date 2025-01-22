@@ -22,7 +22,7 @@ logger.setLevel(logging.INFO)
 SUCCESS = "SUCCESS"
 FAILED = "FAILED"
 
-VERSION = "1.1.1"
+VERSION = "1.2.0"
 NAME = "crowdstrike-cloud-abi"
 USERAGENT = ("%s/%s" % (NAME, VERSION))
 
