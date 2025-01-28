@@ -815,9 +815,6 @@
                 "comment": "We do not require customer to create and manage additional VPC"
               }
             ]
-          },
-          "cfn_nag": {
-            ""
           }
         },
         "Properties": {
