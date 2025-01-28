@@ -85,6 +85,11 @@ Conditions:
 Resources:
   CreatedVPC:
     Type: AWS::EC2::VPC
+    Metadata:
+      cfn_nag:
+          rules_to_suppress:
+            - id: W60
+              reason: Leaving FlowLog disabled to remain at parity with product templates
     Condition: CreateVPC
     Properties:
       CidrBlock: 10.0.0.0/16
@@ -343,9 +348,12 @@ Resources:
         config:
           ignore_checks:
             - W1030 # Ref will resolve to VPCID per Parameter
+      cfn_nag:
+        rules_to_suppress:
+          - id: F1000
+            reason: Leaving egress implicit to remain at parity with product templates
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: !Sub EC2SecurityGroup-${AWS::StackName}
       GroupDescription: CrowdStrike
       VpcId: !If [ CreateVPC, !Ref CreatedVPC, !Ref VPC ]
       Tags:
@@ -361,9 +369,14 @@ Resources:
         config:
           ignore_checks:
             - W1030 # Ref will resolve to VPCID per Parameter
+      cfn_nag:
+        rules_to_suppress:
+          - id: W27
+            reason: Range necessary for functionality
+          - id: F1000
+            reason: Leaving egress implicit to remain at parity with product templates
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: !Sub DBSecurityGroup-${AWS::StackName}
       GroupDescription: Security group attached to RDS instance to allow EC2 instances with specific security groups attached to connect to the database
       VpcId: !If [ CreateVPC, !Ref CreatedVPC, !Ref VPC ]
       Tags:

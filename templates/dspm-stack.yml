@@ -59,6 +59,10 @@ Resources:
         skip:
           - id: CKV_AWS_149
             comment: The default key aws/secretsmanager is sufficient to secure this resource
+      cfn_nag:
+        rules_to_suppress:
+          - id: W77
+            reason: The default key aws/secretsmanager is sufficient to secure this resource
     Properties:
       Name:  "CrowdStrikeDSPMClientSecret"
       SecretString: !Sub |
@@ -97,6 +101,16 @@ Resources:
             comment: IAM PassRole action is constrained by resource ARN.
           - id: CKV_AWS_108
             comment: Read only permissions required for integration to function.
+      cfn_nag:
+        rules_to_suppress:
+          - id: W11
+            reason: Wildcard necessary for undefined ARNs
+          - id: F3
+            reason: Wildcard necessary for undefined ARNs
+          - id: W28
+            reason: Leaving explicit RoleName to remain at parity with product templates
+          - id: W76
+            reason: false positive
     Properties:
       RoleName: !Ref DSPMRoleName
       Path: /
@@ -417,6 +431,14 @@ Resources:
             comment: Read only permissions required for integration to function.
           - id: CKV_AWS_107
             comment: Read only permissions required for integration to function.
+      cfn_nag:
+        rules_to_suppress:
+          - id: W11
+            reason: Wildcard necessary for undefined ARNs
+          - id: F3
+            reason: Wildcard necessary for undefined ARNs
+          - id: W28
+            reason: Leaving explicit RoleName to remain at parity with product templates
     Properties:
       RoleName: !Ref ScannerRoleName
       Path: /
@@ -530,6 +552,14 @@ Resources:
             comment: IAM PassRole action is constrained by resource ARN.
           - id: CKV_AWS_108
             comment: Read only permissions required for integration to function.
+      cfn_nag:
+        rules_to_suppress:
+          - id: W11
+            reason: Wildcard necessary for undefined ARNs
+          - id: F3
+            reason: Wildcard necessary for undefined ARNs
+          - id: W28
+            reason: Leaving explicit RoleName to remain at parity with product templates
     Properties:
       RoleName: "CrowdStrikeDSPMCloudformationServiceRole"
       AssumeRolePolicyDocument:
@@ -632,6 +662,14 @@ Resources:
             comment: IAM PassRole action is constrained by resource ARN.
           - id: CKV_AWS_108
             comment: Read only permissions required for integration to function.
+      cfn_nag:
+        rules_to_suppress:
+          - id: W11
+            reason: Wildcard necessary for undefined ARNs
+          - id: F3
+            reason: Wildcard necessary for undefined ARNs
+          - id: W28
+            reason: Leaving explicit RoleName to remain at parity with product templates
     Properties:
       RoleName: "DSPMLambdaRole"
       AssumeRolePolicyDocument:
@@ -731,6 +769,8 @@ Resources:
             comment: Lambda does not need to communicate with VPC resources.
           - id: CKV_AWS_173
             comment: Environment variables are not sensitive.
+          - id: CKV_SECRET_6
+            comment: False Positive, no secret
     Properties:
       FunctionName: CrowdStrikeDSPMCreateEnvironmentLambda
       Description: Lambda function for the implementation of nested stacks

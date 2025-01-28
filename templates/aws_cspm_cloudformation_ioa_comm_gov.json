@@ -295,6 +295,14 @@
                 "comment": "This is supported by APICredentialsStorageMode parameter"
               },
               {
+                "id": "CKV_AWS_117",
+                "comment": "We do not require customer to create and manage additional VPC"
+              },
+              {
+                "id": "CKV_AWS_115",
+                "comment": "Lambda does not need reserved concurrent executions."
+              },
+              {
                 "id": "W89",
                 "comment": "We do not require customer to create and manage additional VPC"
               }
@@ -399,6 +407,14 @@
               {
                 "id": "CKV_AWS_173",
                 "comment": "Env variables are not sensitive"
+              },
+              {
+                "id": "CKV_AWS_117",
+                "comment": "We do not require customer to create and manage additional VPC"
+              },
+              {
+                "id": "CKV_AWS_115",
+                "comment": "Lambda does not need reserved concurrent executions."
               },
               {
                 "id": "W89",
@@ -787,10 +803,21 @@
                 "comment": "Env variables are not sensitive"
               },
               {
+                "id": "CKV_AWS_117",
+                "comment": "We do not require customer to create and manage additional VPC"
+              },
+              {
+                "id": "CKV_AWS_115",
+                "comment": "Lambda does not need reserved concurrent executions."
+              },
+              {
                 "id": "W89",
                 "comment": "We do not require customer to create and manage additional VPC"
               }
             ]
+          },
+          "cfn_nag": {
+            ""
           }
         },
         "Properties": {
