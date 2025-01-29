@@ -496,6 +496,15 @@ Parameters:
     Default: us-east-1
     MinLength: "1"
 
+  # ECR Registry Connection
+  ConnectECR:
+    Type: String
+    Description: Connect ECR Registries with Falcon Registry Image Assessment
+    AllowedValues:
+      - true
+      - false
+    Default: false
+
 Mappings: 
   CloudMap: 
     us1: 
@@ -527,6 +536,7 @@ Conditions:
   NotDelegatedAdminCommGovIOA: !And [!Equals [ !Ref 'DelegatedAdmin', false ], !Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
   EnableEKSProtection: !Equals [ !Ref 'EKSProtection', true ]
   CreateDSPMResources: !Equals [ !Ref 'EnableDSPM', true ]
+  CreateECRResources: !Equals [ !Ref 'ConnectECR', true ]
 
 Resources:
 # Optional Default Organization CloudTrail
@@ -546,6 +556,33 @@ Resources:
           pGovernedRegions: !Ref pGovernedRegions
           pSecurityAccountId: !Ref pSecurityAccountId
           pLogArchiveAccountId: !Ref pLogArchiveAccountId
+
+# Register ECR Registries
+  ECRStackSet:
+    Type: 'AWS::CloudFormation::StackSet'
+    Condition: CreateECRResources
+    Properties:
+      StackSetName: CrowdStrike-Cloud-ECR-Registration-Stackset
+      Description: Connect ECR registries so you can run image assessment on your container images
+      PermissionModel: SERVICE_MANAGED
+      CallAs: !If [ IsDelegatedAdmin, 'DELEGATED_ADMIN', 'SELF' ]
+      ManagedExecution:
+        Active: true
+      Parameters:
+        - ParameterKey: SecretsManagerSecretName
+          ParameterValue: !Ref SecretsManagerSecretName
+        - ParameterKey: PermissionsBoundary
+          ParameterValue: !Ref PermissionsBoundary
+      AutoDeployment:
+        Enabled: true
+        RetainStacksOnAccountRemoval: true
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            OrganizationalUnitIds: !Ref ProvisionOU
+          Regions:
+            - !Ref {AWS::Region}
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/ecr-registration-stackset.yml
 
 # Create SSM Distributor Associations
   AssociationStackSet:
