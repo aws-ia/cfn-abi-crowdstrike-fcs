@@ -61,4 +61,13 @@ This is accoomplished by
 5. Lambda function to be triggered by CreateCluster and invoke codebuild against new clusters.
 6. CodeBuild project to update access entries, pull CrowdStrike images and deploy Falcon Operator/Sensor.
 
+### DSPM
+Data security posture management (DSPM) identifies which of your Amazon S3 buckets contain sensitive data, such as personal information and credit card info. DSPM scans a sample of the data in all S3 buckets in your registered AWS environments every 3 months to discover and classify the data in those S3 buckets, making it easier to prioritize your security efforts.
+
+When DSPM performs a scan, it creates a data scanner using a c6a.2xlarge Amazon EC2 instance in the Amazon Virtual Private Cloud (VPC) that was created in your AWS account when you enabled DSPM. The data scanner discovers and classifies a sample of the data in the S3 buckets in your account and sends only classification labels and tags to CrowdStrike. Your data never leaves your environment. 
+
+1. VPC in each region to run Data Scanner instance
+2. IAM Role with trust to DSPM service to create Ec2 Instance at scan time
+3. Leat privilege permissions applied to Ec2 to allow for S3 Scanning
+
 **Next:** Choose [Architecture](/architecture/index.html).
