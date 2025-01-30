@@ -14,7 +14,7 @@ description: Terminolgies used in this guide.
 * **CrowdStrike API client:** CrowdStrike Falcon API client authentication credentials for interaction with CrowdStike APIs via OAuth 2.0 token. Includes an API client ID and API client secret.
 * **CrowdStrike event bus:** The AWS event bus in CrowdStrike's environment for receiving events and providing the data to CrowdStrike Cloud Security service.
 * **CSPM policies:** A set of rules defined to detect misconfigurations of the cloud resources (IOMs) or to detect suspicious behavior patterns (IOAs).
-* **DSPM:** Data security posture management identifies which of your Amazon S3 buckets contain sensitive data
+* **ECR Registry Connections:** 
 * **Indicator of attack (IOA):** A pattern of suspicious behavior that suggests an attack might be underway. In CrowdStrike Cloud Security, IOAs are labeled as findings.
 * **Indicator of misconfiguration (IOM):** A configuration setting that doesn’t follow recommended security guidelines and might become a security vulnerability in a cloud environment. In CrowdStrike Cloud Security, IOMs are labeled as findings.
 * **Registration:** Enroll your AWS account ID with the CrowdStrike Cloud Security service.

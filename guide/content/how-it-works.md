@@ -53,7 +53,7 @@ This is accomplished by
 ### EKS Protection
 If your AWS environment uses EKS to run Kubernetes workloads, you can automatically deploy the Falcon Operator and Falcon sensor to each EKS Cluster.  This solution will automically deploy Falcon to existing clusters as well as new clusters upon creation.
 
-This is accoomplished by
+This is accomplished by
 1. IAM Roles in each account to provide permissions to List Clusters and create EKS Access Entries.
 2. EventBridge rules in each region of each account to trigger on CreateCluster events.
 3. IAM Roles in root account to facilitate permissions for EventBridge, Lambda and CodeBuild.
@@ -61,13 +61,12 @@ This is accoomplished by
 5. Lambda function to be triggered by CreateCluster and invoke codebuild against new clusters.
 6. CodeBuild project to update access entries, pull CrowdStrike images and deploy Falcon Operator/Sensor.
 
-### DSPM
-Data security posture management (DSPM) identifies which of your Amazon S3 buckets contain sensitive data, such as personal information and credit card info. DSPM scans a sample of the data in all S3 buckets in your registered AWS environments every 3 months to discover and classify the data in those S3 buckets, making it easier to prioritize your security efforts.
+### ECR Connections
+Ensuring that the images in the registry are assessed for vulnerabilities before runtime is an important part of cloud workload protection.  When a new registry connection is added, a job starts to discover all the repositories, and in parallel, the images and tags are collected from each repository to create the catalog. The catalog contains info about all images, the repository they come from, the image tag associated with that image, and the registry it belongs to. The catalog is used to compare the future and current state of the repo. We avoid showing duplicate image info by using the catalog info, including when tags move between images, to determine if we have already seen and assessed an image. When a catalog is created for a registry, the images in the catalog are inventoried.
 
-When DSPM performs a scan, it creates a data scanner using a c6a.2xlarge Amazon EC2 instance in the Amazon Virtual Private Cloud (VPC) that was created in your AWS account when you enabled DSPM. The data scanner discovers and classifies a sample of the data in the S3 buckets in your account and sends only classification labels and tags to CrowdStrike. Your data never leaves your environment. 
+This is accoomplished by
+1. IAM Roles in each account to provide permissions to push images to CrowdStrike Falcon.
+2. Lambda function in each account to register ECR Registries with Registry Connection service.
 
-1. VPC in each region to run Data Scanner instance
-2. IAM Role with trust to DSPM service to create Ec2 Instance at scan time
-3. Leat privilege permissions applied to Ec2 to allow for S3 Scanning
 
 **Next:** Choose [Architecture](/architecture/index.html).

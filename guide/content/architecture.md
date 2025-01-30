@@ -64,21 +64,12 @@ Deploying this ABI solution with default parameters builds the following archite
         * IAM Role for CodeBuild Execution
         * EventBridge Rule to send cluster events to centralized EventBus
 
-### DSPM
-* If you enable DSPM:
+### ECR Connections
+* If you enable ECR Connections:
     * In the primary region of all child accounts:
-        * IAM Role for CloudFormation execution
-        * IAM Role for integration with DSPM service
-        * IAM Role for Ec2 Instance operations (read-only)
-        * IAM Role for Lambda execution
-        * Secret to store Falcon API key
-        * Lambda Function to deploy CloudFormation across regions
-        * Instance Profile
-    * In all active regions of all child accounts:
-        * VPC with all required subnets, route tables, policies and 
-        * KMS Key
-        * Redshift Subnet Group
-        * IAM Instance Profile for data scanner EC2 instances
-        * EC2 Instance (ephemeral) created at scan-time to scan S3 Buckets
+        * IAM Role for ECR Registry Connection Scanning
+        * Lambda Function to register each AWS Region with Registry Connection Service
+        * IAM Role for Lambda Execution
+        * Secret for storing Falcon API Credentials
 
 **Next:** Choose [Deployment options](/deployment-options/index.html).

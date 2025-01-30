@@ -71,6 +71,8 @@ Metadata:
           - pGovernedRegions
           - pSecurityAccountId
           - pLogArchiveAccountId
+          - pRepoURL
+          - pRepoBranch
       - Label:
           default: EKS Protection
         Parameters:
@@ -87,10 +89,9 @@ Metadata:
           - Backend
           - EnableKAC
       - Label:
-          default: DSPM
+          default: ECR Registry Connections
         Parameters:
-          - EnableDSPM
-          - DSPMRegions
+          - ECRConnections
 
     ParameterLabels:
       # Account Type
@@ -180,6 +181,10 @@ Metadata:
         default: Security Account Id
       pLogArchiveAccountId:
         default: LogArchive Account Id
+      pRepoURL:
+        default: SRA Repo URL
+      pRepoBranch:
+        default: SRA Repo Branch
 
       # EKS Protection
       EKSProtection:
@@ -207,11 +212,9 @@ Metadata:
       EnableKAC:
         default: Enable Kubernetes Admission Controller
 
-      # DSPM
-      EnableDSPM:
-        default: Enable DSPM
-      DSPMRegions:
-        default: DSPM Regions
+      # ECR Connections
+      ECRConnections:
+        default: Enable ECR Connections
 
 Parameters:
   # Account Type
@@ -481,25 +484,10 @@ Parameters:
       - false
     Default: true
 
-  # DSPM
-  EnableDSPM:
+  # ECR Connections
+  ECRConnections:
     Type: String
-    Description: Deploy DSPM.  For more info see ...
-    AllowedValues:
-      - true
-      - false
-    Default: false
-  DSPMRegions:
-    Type: String
-    Description: comma separated list of regions to enable, e.g. us-east-1,us-west-2
-    AllowedPattern: "^((\\s*)((?:us|eu|ap|sa|ca|af|me|il)-(?:north|south|east|west|central|northeast|southeast|southwest|northwest)-[1-4])(\\s*)(?:,|$))+$"
-    Default: us-east-1
-    MinLength: "1"
-
-  # ECR Registry Connection
-  ConnectECR:
-    Type: String
-    Description: Connect ECR Registries with Falcon Registry Image Assessment
+    Description: Create ECR Registration Connections in each account for automatic Image Assessments.
     AllowedValues:
       - true
       - false
@@ -535,8 +523,7 @@ Conditions:
   NotDelegatedAdminGovIOA: !And [ !Equals [ !Ref 'DelegatedAdmin', false ], !Equals [ !Ref 'AWSAccountType', govcloud ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
   NotDelegatedAdminCommGovIOA: !And [!Equals [ !Ref 'DelegatedAdmin', false ], !Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
   EnableEKSProtection: !Equals [ !Ref 'EKSProtection', true ]
-  CreateDSPMResources: !Equals [ !Ref 'EnableDSPM', true ]
-  CreateECRResources: !Equals [ !Ref 'ConnectECR', true ]
+  EnableECRRegistration: !Equals [ !Ref 'ECRConnections', true ]
 
 Resources:
 # Optional Default Organization CloudTrail
@@ -556,33 +543,6 @@ Resources:
           pGovernedRegions: !Ref pGovernedRegions
           pSecurityAccountId: !Ref pSecurityAccountId
           pLogArchiveAccountId: !Ref pLogArchiveAccountId
-
-# Register ECR Registries
-  ECRStackSet:
-    Type: 'AWS::CloudFormation::StackSet'
-    Condition: CreateECRResources
-    Properties:
-      StackSetName: CrowdStrike-Cloud-ECR-Registration-Stackset
-      Description: Connect ECR registries so you can run image assessment on your container images
-      PermissionModel: SERVICE_MANAGED
-      CallAs: !If [ IsDelegatedAdmin, 'DELEGATED_ADMIN', 'SELF' ]
-      ManagedExecution:
-        Active: true
-      Parameters:
-        - ParameterKey: SecretsManagerSecretName
-          ParameterValue: !Ref SecretsManagerSecretName
-        - ParameterKey: PermissionsBoundary
-          ParameterValue: !Ref PermissionsBoundary
-      AutoDeployment:
-        Enabled: true
-        RetainStacksOnAccountRemoval: true
-      StackInstancesGroup:
-        - DeploymentTargets:
-            AccountFilterType: NONE
-            OrganizationalUnitIds: !Ref ProvisionOU
-          Regions:
-            - !Ref {AWS::Region}
-      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/ecr-registration-stackset.yml
 
 # Create SSM Distributor Associations
   AssociationStackSet:
@@ -1171,6 +1131,7 @@ Resources:
           aws_account_type: !Ref AWSAccountType
           falcon_account_type: !Ref FalconAccountType
           existing_cloudtrail: !If [ CreateIOATrail, 'False', 'True' ]
+          enable_dspm: 'True'
       Handler: lambda.lambda_handler
       MemorySize: 128
       Role: !GetAtt "LambdaCrowdStrikeRegistrationRole.Arn"
@@ -1622,19 +1583,34 @@ Resources:
           Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/eks-eventbridge-stackset.yml
 
-  # Optional DSPM
-  DSPMStack:
-      Type: 'AWS::CloudFormation::Stack'
-      Condition: CreateDSPMResources
-      Properties:
-        TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/dspm-stack.yml
-        Parameters:
-          ClientID: !Ref FalconClientID
-          ClientSecret: !Ref FalconSecret
-          CSRoleName: "CrowdStrikeCSPMConnector"
-          CSAccountNumber: !GetAtt TriggerRegisterAccountLambda.cs_account_id
-          ExternalID: !GetAtt TriggerRegisterAccountLambda.external_id
-          DSPMRegions: !Ref DSPMRegions
+  ECRRegistrationStackSet:
+    Condition: EnableECRRegistration
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: crowdstrike-ecr-connections-stackset
+      Parameters:
+        - ParameterKey: SecretName
+          ParameterValue: !Ref SecretsManagerSecretName
+        - ParameterKey: PermissionsBoundary
+          ParameterValue: !Ref PermissionsBoundary
+      PermissionModel: SERVICE_MANAGED
+      CallAs: !If [ IsDelegatedAdmin, 'DELEGATED_ADMIN', 'SELF' ]
+      AutoDeployment:
+        Enabled: true
+        RetainStacksOnAccountRemoval: true
+      OperationPreferences:
+        MaxConcurrentPercentage: 100
+        FailureTolerancePercentage: 50
+        RegionConcurrencyType: PARALLEL
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            OrganizationalUnitIds: !Ref ProvisionOU
+          Regions: 
+            - !Ref {AWS::Region}
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/ecr-registration-stackset.yml
+
+
 
 Outputs:
   CSBucket:
