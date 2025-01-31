@@ -92,6 +92,8 @@ Metadata:
           default: ECR Registry Connections
         Parameters:
           - ECRConnections
+          - ECRExecutionRoleName
+          - ECRLambdaName
 
     ParameterLabels:
       # Account Type
@@ -215,6 +217,10 @@ Metadata:
       # ECR Connections
       ECRConnections:
         default: Enable ECR Connections
+      ECRExecutionRoleName:
+        default: ECR Execution Role Name
+      ECRLambdaName:
+        default: ECR Lambda Function Name
 
 Parameters:
   # Account Type
@@ -492,6 +498,14 @@ Parameters:
       - true
       - false
     Default: false
+  ECRExecutionRoleName:
+    Type: String
+    Description: The name of the role that will be used for Lambda execution.
+    Default: 'crowdstrike-ecr-lambda-role'
+  ECRLambdaName:
+    Type: String
+    Description: The name of the lambda function used to register ECR registry connections.
+    Default: 'crowdstrike-ecr-function'
 
 Mappings: 
   CloudMap: 
@@ -1589,10 +1603,22 @@ Resources:
     Properties:
       StackSetName: crowdstrike-ecr-connections-stackset
       Parameters:
+        - ParameterKey: S3Bucket
+          ParameterValue: !Ref SourceS3BucketName
+        - ParameterKey: SourceS3BucketNamePrefix
+          ParameterValue: !Ref SourceS3BucketNamePrefix
         - ParameterKey: SecretName
           ParameterValue: !Ref SecretsManagerSecretName
         - ParameterKey: PermissionsBoundary
           ParameterValue: !Ref PermissionsBoundary
+        - ParameterKey: FalconClientID
+          ParameterValue: !Ref FalconClientID
+        - ParameterKey: FalconSecret
+          ParameterValue: !Ref FalconSecret
+        - ParameterKey: ECRExecutionRoleName
+          ParameterValue: !Ref ECRExecutionRoleName
+        - ParameterKey: ECRLambdaName
+          ParameterValue: !Ref ECRLambdaName
       PermissionModel: SERVICE_MANAGED
       CallAs: !If [ IsDelegatedAdmin, 'DELEGATED_ADMIN', 'SELF' ]
       AutoDeployment:
