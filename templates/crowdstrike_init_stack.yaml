@@ -1633,7 +1633,7 @@ Resources:
             AccountFilterType: NONE
             OrganizationalUnitIds: !Ref ProvisionOU
           Regions: 
-            - !Ref {AWS::Region}
+            - !Ref AWS::Region
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/ecr-registration-stackset.yml
 
 
