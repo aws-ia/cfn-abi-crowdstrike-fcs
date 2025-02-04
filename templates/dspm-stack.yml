@@ -38,6 +38,10 @@ Parameters:
     AllowedPattern: "^((\\s*)((?:us|eu|ap|sa|ca|af|me|il)-(?:north|south|east|west|central|northeast|southeast|southwest|northwest)-[1-4])(\\s*)(?:,|$))+$"
     Default: us-east-1
     MinLength: "1"
+  CloudformationTemplateURL:
+    Type: String
+    Description: URL for DSPM Env CloudFormation Template
+
 Mappings:
   TagMap:
     CrowdStrikeTag:
@@ -1098,4 +1102,4 @@ Resources:
       SourceRegion: !Ref "AWS::Region"
       AccountId: AWS::AccountId
       SecretId: !Ref ClientSecrets
-      CloudformationTemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_dspm_env.yml
+      CloudformationTemplateURL: !Ref CloudformationTemplateURL

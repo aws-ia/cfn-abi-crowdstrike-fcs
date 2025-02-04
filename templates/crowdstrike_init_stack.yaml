@@ -1605,6 +1605,7 @@ Resources:
           CSAccountNumber: !GetAtt TriggerRegisterAccountLambda.cs_account_id
           ExternalID: !GetAtt TriggerRegisterAccountLambda.external_id
           DSPMRegions: !Ref DSPMRegions
+          CloudformationTemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_dspm_env.yml
 
   DSPMStackSet:
       Type: 'AWS::CloudFormation::StackSet'
@@ -1626,6 +1627,8 @@ Resources:
             ParameterValue: !GetAtt TriggerRegisterAccountLambda.external_id
           - ParameterKey: DSPMRegions
             ParameterValue: !Ref DSPMRegions
+          - ParameterKey: CloudformationTemplateURL
+            ParameterValue: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/aws_cspm_cloudformation_dspm_env.yml
         PermissionModel: SERVICE_MANAGED
         CallAs: !If [ IsDelegatedAdmin, 'DELEGATED_ADMIN', 'SELF' ]
         AutoDeployment:
