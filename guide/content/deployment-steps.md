@@ -70,6 +70,8 @@ description: Deployment steps.
             * **Registry**: Source Falcon Image from CrowdStrike or mirror to ECR.  Allowed values are `crowdstrike` or `ecr`.  Default is `crowdstrike`
             * **Backend**: kernel or bpf for Daemonset Sensor.  Allowed Values are `kernel` or `bpf`.  Default is `kernel`
             * **EnableKAC**: Deploy Kubernetes Admission Controller (KAC).  For more info see https://falcon.crowdstrike.com/documentation/page/aa4fccee/container-security#s41cbec3
+        * ECR Connections
+            * **ECRConnections**: Whether to set up ECR Registry Connections for Image Assessments
 
 3. Select both of the following capabilities and choose **Submit** to launch the stack.
 

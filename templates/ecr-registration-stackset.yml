@@ -1,0 +1,167 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  S3Bucket:
+    Type: String
+    Description: Location of templates and lambda.zip package.
+  FalconClientID:
+    Description: Your Falcon OAuth2 Client ID.
+    NoEcho: 'true'
+    Type: String
+  FalconSecret:
+    Description: Your Falcon OAuth2 API Secret.
+    NoEcho: 'true'
+    Type: String
+  SecretsManagerSecretName:
+    Description: Secrets Manager Secret Name that will contain the Falcon ClientId, ClientSecret, and Cloud for the CrowdStrike APIs.
+    Type: String
+    Default: 'crowdstrike-ecr-api-credentials'
+  ECRExecutionRoleName:
+    Type: String
+    Description: The name of the role that will be used for Lambda execution.
+    Default: 'crowdstrike-ecr-lambda-role'
+  PermissionsBoundary:
+    Type: String
+    Description: The name of the policy used to set the permissions boundary for IAM roles.
+    Default: ''
+  ECRLambdaName:
+    Type: String
+    Description: The name of the lambda function used to register ECR registry connections.
+    Default: 'crowdstrike-ecr-function'
+  StackId:
+    Type: String
+    Description: Unique Stack Id
+  SourceS3BucketNamePrefix:
+    Description:
+      Staging S3 bucket name prefix for the artifacts relevant to the solutions. (e.g., lambda zips, CloudFormation templates). The account
+      and region are added to the prefix <bucket-name-prefix>-<account-id>-<region>. Example = staging-123456789012-us-east-1.
+    Type: String
+
+Conditions:
+  SetPermissionsBoundary: !Not [ !Equals [ !Ref PermissionsBoundary, '' ]]
+
+Resources:
+  CrowdStrikeSecrets:
+    Type: AWS::SecretsManager::Secret
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_149
+            comment: The default key aws/secretsmanager is sufficient to secure this resource
+    Properties:
+      Description: CrowdStrike Credentials
+      Name: !Ref SecretsManagerSecretName
+      SecretString:
+        Fn::Join:
+          - ''
+          - - '{"FalconClientId":"'
+            - Ref: "FalconClientID"
+            - '","FalconSecret": "'
+            - Ref: FalconSecret
+            - '"}'
+  ECRExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Ref ECRExecutionRoleName
+      PermissionsBoundary:
+        Fn::If:
+          - SetPermissionsBoundary
+          - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}'
+          - Ref: AWS::NoValue
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+      Policies:
+        - PolicyName: crowdstrike-ecr-execution-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - ec2:DescribeRegions
+                Resource: '*'
+              - Effect: Allow
+                Action: 
+                  - ssm:PutParameter
+                  - ssm:GetParameter
+                  - ssm:DeleteParameter
+                Resource:
+                  - !Sub arn:${AWS::Partition}:ssm:*:*:parameter/crowdstrike-ecr-lambda-external-id-${StackId}
+              - Effect: Allow
+                Action:
+                  - 'secretsmanager:GetSecretValue'
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:secretsmanager:*:*:secret:${SecretsManagerSecretName}-*'
+              - Effect: Allow
+                Action:
+                  - iam:ListPolicies
+                  - iam:GetRole
+                  - iam:GetPolicy
+                  - iam:PutRolePermissionsBoundary
+                  - iam:ListRoles
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:AttachRolePolicy
+                  - iam:PutRolePolicy
+                  - iam:DeleteRolePermissionsBoundary
+                  - iam:DetachRolePolicy
+                  - iam:DeleteRolePolicy
+                  - iam:ListRolePolicies
+                  - iam:GetRolePolicy
+                Resource:
+                  - !Sub arn:${AWS::Partition}:iam::*:role/CrowdStrikeECRConnectionRole-*
+                  - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+
+  ECRLambda:
+    Type: AWS::Lambda::Function
+    DependsOn: CrowdStrikeSecrets
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W89
+            reason: Lambda custom resource only run during stack lifecycle events.
+          - id: W92
+            reason: Lambda custom resource only run during stack lifecycle events.
+      checkov:
+        skip:
+          - id: CKV_AWS_115
+            comment: Lambda does not need reserved concurrent executions.
+          - id: CKV_AWS_116
+            comment: DLQ not needed, as Lambda function only triggered by CloudFormation events.
+          - id: CKV_AWS_117
+            comment: Lambda does not need to communicate with VPC resources.
+          - id: CKV_AWS_173
+            comment: Environment variables are not sensitive.
+    Properties:
+      Environment:
+        Variables:
+          secret_name: !Ref SecretsManagerSecretName
+          secret_region: !Ref AWS::Region
+          permissions_boundary: !If [SetPermissionsBoundary, !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}', '']
+          crowdstrike_principal: arn:aws:iam::292230061137:role/CrowdStrikeCustomerRegistryAssessmentRole
+          gov_cloud: false
+          stack_id: !Ref StackId
+      Handler: lambda.lambda_handler
+      MemorySize: 128
+      Role: !GetAtt ECRExecutionRole.Arn
+      Runtime: python3.12
+      Timeout: 300
+      FunctionName: !Ref ECRLambdaName
+      Code:
+        S3Bucket: !Ref S3Bucket
+        S3Key: !Sub ${SourceS3BucketNamePrefix}/lambda_functions/packages/ecr-registration/lambda.zip
+
+  TriggerECRLambda:
+    Type: Custom::LambdaCustomResource
+    Version: '1.0'
+    Properties:
+      ServiceToken: !GetAtt ECRLambda.Arn

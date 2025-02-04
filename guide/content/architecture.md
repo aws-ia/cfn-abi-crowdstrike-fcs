@@ -64,4 +64,12 @@ Deploying this ABI solution with default parameters builds the following archite
         * IAM Role for CodeBuild Execution
         * EventBridge Rule to send cluster events to centralized EventBus
 
+### ECR Connections
+* If you enable ECR Connections:
+    * In the primary region of all child accounts:
+        * IAM Role for ECR Registry Connection Scanning
+        * Lambda Function to register each AWS Region with Registry Connection Service
+        * IAM Role for Lambda Execution
+        * Secret for storing Falcon API Credentials
+
 **Next:** Choose [Deployment options](/deployment-options/index.html).
