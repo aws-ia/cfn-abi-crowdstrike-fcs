@@ -1619,6 +1619,8 @@ Resources:
           ParameterValue: !Ref ECRExecutionRoleName
         - ParameterKey: ECRLambdaName
           ParameterValue: !Ref ECRLambdaName
+        - ParameterKey: StackId
+          ParameterValue: !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]
       PermissionModel: SERVICE_MANAGED
       CallAs: !If [ IsDelegatedAdmin, 'DELEGATED_ADMIN', 'SELF' ]
       AutoDeployment:

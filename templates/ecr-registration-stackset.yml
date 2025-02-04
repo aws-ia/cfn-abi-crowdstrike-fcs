@@ -29,6 +29,9 @@ Parameters:
     Type: String
     Description: The name of the lambda function used to register ECR registry connections.
     Default: 'crowdstrike-ecr-function'
+  StackId:
+    Type: String
+    Description: Unique Stack Id
   SourceS3BucketNamePrefix:
     Description:
       Staging S3 bucket name prefix for the artifacts relevant to the solutions. (e.g., lambda zips, CloudFormation templates). The account
@@ -91,7 +94,8 @@ Resources:
                   - ssm:PutParameter
                   - ssm:GetParameter
                   - ssm:DeleteParameter
-                Resource: "*"
+                Resource:
+                  - !Sub arn:${AWS::Partition}:ssm:*:*:parameter/crowdstrike-ecr-lambda-external-id-${StackId}
               - Effect: Allow
                 Action:
                   - 'secretsmanager:GetSecretValue'
@@ -145,7 +149,8 @@ Resources:
           permissions_boundary: !If [SetPermissionsBoundary, !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}', '']
           crowdstrike_principal: arn:aws:iam::292230061137:role/CrowdStrikeCustomerRegistryAssessmentRole
           gov_cloud: false
-      Handler: lambda_function.lambda_handler
+          stack_id: !Ref StackId
+      Handler: lambda.lambda_handler
       MemorySize: 128
       Role: !GetAtt ECRExecutionRole.Arn
       Runtime: python3.12
