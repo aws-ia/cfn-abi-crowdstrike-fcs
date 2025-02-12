@@ -555,6 +555,14 @@
         "checkov": {
           "skip": [
             {
+              "id": "CKV_AWS_115",
+              "comment": "Lambda does not need reserved concurrent executions."
+            },
+            {
+              "id": "CKV_AWS_117",
+              "comment": "Lambda does not need to communicate with VPC resources."
+            },
+            {
               "id": "CKV_AWS_116",
               "comment": "We do not require customer to create and manage DLQ"
             },
