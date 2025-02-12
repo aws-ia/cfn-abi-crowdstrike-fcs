@@ -29,7 +29,8 @@ SECRET_STORE_REGION = os.environ['secret_region']
 PERMISSIONS_BOUNDARY = os.environ['permissions_boundary']
 CROWDSTRIKE_PRINCIPAL = os.environ['crowdstrike_principal']
 GOV_CLOUD = os.environ['gov_cloud']
-VERSION = "1.1.1"
+STACK_ID = os.environ['stack_id']
+VERSION = "1.0.0"
 NAME = "crowdstrike-cloud-aws-ecr"
 USERAGENT = ("%s/%s" % (NAME, VERSION))
 ROLE_POLICY_ARN = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
@@ -54,11 +55,11 @@ def get_secret():
         secret = base64.b64decode(get_secret_value_response['SecretBinary'])
     return secret
 
-def create_role(external_id, unique_suffix):
+def create_role(external_id, STACK_ID):
     """Function to create the IAM Role for ECR Registry Connection to CrowdStrike"""
     # commercial_principal = "arn:aws:iam::292230061137:role/CrowdStrikeCustomerRegistryAssessmentRole"
     # govcloud_principal = ""
-    connection_role = f"{ROLE_NAME}-{unique_suffix}"
+    connection_role = f"{ROLE_NAME}-{STACK_ID}"
     trust_policy = json.dumps({
         "Version": "2012-10-17",
         "Statement": [
@@ -187,18 +188,9 @@ def cfnresponse_send(event, response_status, response_data, physical_resource_id
 def generate_ids():
     ssm = boto3.client('ssm')
     external_id = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
-    unique_suffix = ''.join(random.choices(string.ascii_letters + string.digits, k=4))
     try:
         ssm.put_parameter(
-            Name='crowdstrike-ecr-lambda-role-id',
-            Description='Unique ID for creating CrowdStrike ECR Registry Connection Role',
-            Value=unique_suffix,
-            Type='String',
-            Overwrite=False,
-            Tier='Standard'
-        )
-        ssm.put_parameter(
-            Name='crowdstrike-ecr-lambda-external-id',
+            Name=f'crowdstrike-ecr-lambda-external-id{STACK_ID}',
             Description='External ID for creating trust policy for CrowdStrike ECR Registry Connection Role',
             Value=external_id,
             Type='String',
@@ -208,7 +200,7 @@ def generate_ids():
     except Exception as e:
         print("send(..) failed creating SSM Parameters(..): " + str(e))
     
-    return external_id, unique_suffix
+    return external_id
 
 def delete_role():
     ssm = boto3.client('ssm')
@@ -218,8 +210,7 @@ def delete_role():
         response = ssm.get_parameter(
             Name='crowdstrike-ecr-lambda-role-id'
         )
-        unique_suffix = response['Parameter']['Value']
-        connection_role = f"{ROLE_NAME}-{unique_suffix}"
+        connection_role = f"{ROLE_NAME}-{STACK_ID}"
         iam.detach_role_policy(
             RoleName=connection_role,
             PolicyArn=ROLE_POLICY_ARN
@@ -229,7 +220,7 @@ def delete_role():
         )
         print(f'Response: {response}')
         ssm.delete_parameter(
-            Name='crowdstrike-ecr-lambda-role-id'
+            Name=f'crowdstrike-ecr-lambda-external-id{STACK_ID}'
         )
     except Exception as e:
         print("send(..) failed deleting the connection role(..): " + str(e))
@@ -247,8 +238,8 @@ def lambda_handler(event, context):
             falcon_client_id = secrets_dict['FalconClientId']
             falcon_secret = secrets_dict['FalconSecret']
             if event['RequestType'] in ['Create']:
-                external_id, unique_suffix = generate_ids()
-                role_arn = create_role(external_id, unique_suffix)
+                external_id = generate_ids()
+                role_arn = create_role(external_id, STACK_ID)
                 print(f'Created role:\n{role_arn}\n')
                 regions = get_regions()
                 register_ecr(regions, role_arn, external_id, falcon_client_id, falcon_secret, account)
