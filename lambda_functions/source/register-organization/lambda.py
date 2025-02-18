@@ -28,7 +28,6 @@ USERAGENT = ("%s/%s" % (NAME, VERSION))
 
 SECRET_STORE_NAME = os.environ['secret_name']
 SECRET_STORE_REGION = os.environ['secret_region']
-EXCLUDE_REGIONS = os.environ['exclude_regions']
 EXISTING_CLOUDTRAIL = eval(os.environ['existing_cloudtrail'])
 AWS_REGION = os.environ['AWS_REGION']
 CS_CLOUD = os.environ['cs_cloud']
@@ -64,7 +63,7 @@ def get_management_id():
         logger.error('This stack runs only on the management of the AWS Organization')
         return False
 
-def get_active_regions():
+def get_active_regions(exclude_regions):
     """Function to get active Regions"""
     session = boto3.session.Session()
     client = session.client(
@@ -103,7 +102,7 @@ def get_active_regions():
         for region in regions:
             active_regions += [region['RegionName']]
         for region in active_regions:
-            if region not in EXCLUDE_REGIONS:
+            if region not in exclude_regions:
                 my_regions += [region]
         for region in active_regions:
             if region in my_regions and region != AWS_REGION:
@@ -146,8 +145,9 @@ def lambda_handler(event, context):
     """Function handler"""
     logger.info('Got event %s' % event)
     logger.info('Context %s' % context)
+    exclude_regions = event['ResourceProperties']['ExcludeRegions']
     aws_account_id = context.invoked_function_arn.split(":")[4]
-    regions, comm_gov_eb_regions, ssm_regions = get_active_regions()
+    regions, comm_gov_eb_regions, ssm_regions = get_active_regions(exclude_regions)
     org_id = get_management_id()
     try:
         secret_str = get_secret()
@@ -255,6 +255,34 @@ def lambda_handler(event, context):
             elif event['RequestType'] in ['Update']:
                 response_d = {}
                 logger.info('Event = %s' % event['RequestType'])
+                logger.info('Getting existing registration data...')
+                response = falcon.get_aws_account(organization_ids=org_id,
+                                                    user_agent=USERAGENT)
+                logger.info('Existing Registration Response: %s' % response)
+                cs_account = response['body']['resources'][0]['intermediate_role_arn'].rsplit('::')[1]
+                response_d = {
+                    "cs_account_id": cs_account.rsplit(':')[0],
+                    "iam_role_name": response['body']['resources'][0]['iam_role_arn'].rsplit('/')[1],
+                    "intermediate_role_arn": response['body']['resources'][0]['intermediate_role_arn'],
+                    "cs_role_name": response['body']['resources'][0]['intermediate_role_arn'].rsplit('/')[1],
+                    "external_id": response['body']['resources'][0]['external_id'],
+                    "dspm_role_arn": response['body']['resources'][0]['dspm_role_arn']
+                }
+                if not EXISTING_CLOUDTRAIL:
+                    response_d['cs_bucket_name'] = response['body']['resources'][0]['aws_cloudtrail_bucket_name']
+                if FALCON_ACCOUNT_TYPE == "commercial":
+                    response_d['eventbus_name'] = response['body']['resources'][0]['eventbus_name']
+                    response_d['my_regions'] = regions
+                    response_d['ssm_regions'] = ssm_regions
+                elif FALCON_ACCOUNT_TYPE == "govcloud" and AWS_ACCOUNT_TYPE == "govcloud" :
+                    eventbus_arn = response['body']['resources'][0]['eventbus_name'].rsplit(',')[0]
+                    response_d['eventbus_name'] = eventbus_arn.rsplit('/')[1]
+                    response_d['my_regions'] = regions
+                    response_d['ssm_regions'] = ssm_regions
+                elif FALCON_ACCOUNT_TYPE == "govcloud" and AWS_ACCOUNT_TYPE == "commercial" :
+                    response_d['comm_gov_eb_regions'] = comm_gov_eb_regions
+                    response_d['my_regions'] = regions
+                    response_d['ssm_regions'] = ssm_regions
                 cfnresponse_send(event, SUCCESS, response_d, "CustomResourcePhysicalID")
             elif event['RequestType'] in ['Delete']:
                 logger.info('Event = %s' % event['RequestType'])

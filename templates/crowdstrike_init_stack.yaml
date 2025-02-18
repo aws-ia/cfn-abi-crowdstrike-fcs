@@ -1140,7 +1140,6 @@ Resources:
             - '-'
             - - !Ref SecretsManagerSecretName
               - !Ref 'AWS::StackName'
-          exclude_regions: !If [ ExcludeRegionsEmpty, 'none', !Ref ExcludeRegions ]
           cs_cloud: !Ref CSCloud
           aws_account_type: !Ref AWSAccountType
           falcon_account_type: !Ref FalconAccountType
@@ -1165,6 +1164,7 @@ Resources:
       ServiceToken: !GetAtt
         - RegisterAccountLambda
         - Arn
+      ExcludeRegions: !Ref ExcludeRegions
 
   # Staging S3 Bucket
   StagingS3Bucket:
