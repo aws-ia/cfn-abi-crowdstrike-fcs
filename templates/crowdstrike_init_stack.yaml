@@ -1153,7 +1153,7 @@ Resources:
       FunctionName: !Ref 'AWS::StackName'
       Code:
         S3Bucket: !Ref StagingS3Bucket
-        S3Key: !Sub ${SourceS3BucketNamePrefix}/lambda_functions/packages/register-organization/lambda.zip
+        S3Key: !Sub ${SourceS3BucketNamePrefix}/lambda_functions/packages/register-organization-v2/lambda.zip
 
   TriggerRegisterAccountLambda:
     Type: 'Custom::TriggerLambda'
@@ -1164,7 +1164,7 @@ Resources:
       ServiceToken: !GetAtt
         - RegisterAccountLambda
         - Arn
-      ExcludeRegions: !Ref ExcludeRegions
+      ExcludeRegions: !If [ ExcludeRegionsEmpty, 'none', !Ref ExcludeRegions ]
 
   # Staging S3 Bucket
   StagingS3Bucket:
@@ -1251,7 +1251,7 @@ Resources:
       SourceBucket: !Ref 'SourceS3BucketName'
       Prefix: !Sub ${SourceS3BucketNamePrefix}/
       Objects:
-        - lambda_functions/packages/register-organization/lambda.zip
+        - lambda_functions/packages/register-organization-v2/lambda.zip
         - lambda_functions/packages/cw-helper/lambda.zip
         - templates/crowdstrike_init_stack.yaml
         - lambda_functions/packages/eks-existing-clusters/lambda.zip
