@@ -71,6 +71,8 @@ Metadata:
           - pGovernedRegions
           - pSecurityAccountId
           - pLogArchiveAccountId
+          - pRepoURL
+          - pRepoBranch
       - Label:
           default: EKS Protection
         Parameters:
@@ -86,6 +88,12 @@ Metadata:
           - Registry
           - Backend
           - EnableKAC
+      - Label:
+          default: ECR Registry Connections
+        Parameters:
+          - ECRConnections
+          - ECRExecutionRoleName
+          - ECRLambdaName
 
     ParameterLabels:
       # Account Type
@@ -175,6 +183,10 @@ Metadata:
         default: Security Account Id
       pLogArchiveAccountId:
         default: LogArchive Account Id
+      pRepoURL:
+        default: SRA Repo URL
+      pRepoBranch:
+        default: SRA Repo Branch
 
       # EKS Protection
       EKSProtection:
@@ -201,6 +213,14 @@ Metadata:
         default: Backend
       EnableKAC:
         default: Enable Kubernetes Admission Controller
+
+      # ECR Connections
+      ECRConnections:
+        default: Enable ECR Connections
+      ECRExecutionRoleName:
+        default: ECR Execution Role Name
+      ECRLambdaName:
+        default: ECR Lambda Function Name
 
 Parameters:
   # Account Type
@@ -470,6 +490,23 @@ Parameters:
       - false
     Default: true
 
+  # ECR Connections
+  ECRConnections:
+    Type: String
+    Description: Create ECR Registration Connections in each account for automatic Image Assessments.
+    AllowedValues:
+      - true
+      - false
+    Default: false
+  ECRExecutionRoleName:
+    Type: String
+    Description: The name of the role that will be used for Lambda execution.
+    Default: 'crowdstrike-ecr-lambda-role'
+  ECRLambdaName:
+    Type: String
+    Description: The name of the lambda function used to register ECR registry connections.
+    Default: 'crowdstrike-ecr-function'
+
 Mappings: 
   CloudMap: 
     us1: 
@@ -500,6 +537,7 @@ Conditions:
   NotDelegatedAdminGovIOA: !And [ !Equals [ !Ref 'DelegatedAdmin', false ], !Equals [ !Ref 'AWSAccountType', govcloud ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
   NotDelegatedAdminCommGovIOA: !And [!Equals [ !Ref 'DelegatedAdmin', false ], !Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
   EnableEKSProtection: !Equals [ !Ref 'EKSProtection', true ]
+  EnableECRRegistration: !Equals [ !Ref 'ECRConnections', true ]
 
 Resources:
 # Optional Default Organization CloudTrail
@@ -1102,11 +1140,11 @@ Resources:
             - '-'
             - - !Ref SecretsManagerSecretName
               - !Ref 'AWS::StackName'
-          exclude_regions: !If [ ExcludeRegionsEmpty, 'none', !Ref ExcludeRegions ]
           cs_cloud: !Ref CSCloud
           aws_account_type: !Ref AWSAccountType
           falcon_account_type: !Ref FalconAccountType
           existing_cloudtrail: !If [ CreateIOATrail, 'False', 'True' ]
+          enable_dspm: 'True'
       Handler: lambda.lambda_handler
       MemorySize: 128
       Role: !GetAtt "LambdaCrowdStrikeRegistrationRole.Arn"
@@ -1115,7 +1153,7 @@ Resources:
       FunctionName: !Ref 'AWS::StackName'
       Code:
         S3Bucket: !Ref StagingS3Bucket
-        S3Key: !Sub ${SourceS3BucketNamePrefix}/lambda_functions/packages/register-organization/lambda.zip
+        S3Key: !Sub ${SourceS3BucketNamePrefix}/lambda_functions/packages/register-organization-v2/lambda.zip
 
   TriggerRegisterAccountLambda:
     Type: 'Custom::TriggerLambda'
@@ -1126,6 +1164,7 @@ Resources:
       ServiceToken: !GetAtt
         - RegisterAccountLambda
         - Arn
+      ExcludeRegions: !If [ ExcludeRegionsEmpty, 'none', !Ref ExcludeRegions ]
 
   # Staging S3 Bucket
   StagingS3Bucket:
@@ -1212,7 +1251,7 @@ Resources:
       SourceBucket: !Ref 'SourceS3BucketName'
       Prefix: !Sub ${SourceS3BucketNamePrefix}/
       Objects:
-        - lambda_functions/packages/register-organization/lambda.zip
+        - lambda_functions/packages/register-organization-v2/lambda.zip
         - lambda_functions/packages/cw-helper/lambda.zip
         - templates/crowdstrike_init_stack.yaml
         - lambda_functions/packages/eks-existing-clusters/lambda.zip
@@ -1557,6 +1596,49 @@ Resources:
             OrganizationalUnitIds: !Ref ProvisionOU
           Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/eks-eventbridge-stackset.yml
+
+  ECRRegistrationStackSet:
+    Condition: EnableECRRegistration
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: crowdstrike-ecr-connections-stackset
+      Parameters:
+        - ParameterKey: S3Bucket
+          ParameterValue: !Ref SourceS3BucketName
+        - ParameterKey: SourceS3BucketNamePrefix
+          ParameterValue: !Ref SourceS3BucketNamePrefix
+        - ParameterKey: SecretName
+          ParameterValue: !Ref SecretsManagerSecretName
+        - ParameterKey: PermissionsBoundary
+          ParameterValue: !Ref PermissionsBoundary
+        - ParameterKey: FalconClientID
+          ParameterValue: !Ref FalconClientID
+        - ParameterKey: FalconSecret
+          ParameterValue: !Ref FalconSecret
+        - ParameterKey: ECRExecutionRoleName
+          ParameterValue: !Ref ECRExecutionRoleName
+        - ParameterKey: ECRLambdaName
+          ParameterValue: !Ref ECRLambdaName
+        - ParameterKey: StackId
+          ParameterValue: !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]
+      PermissionModel: SERVICE_MANAGED
+      CallAs: !If [ IsDelegatedAdmin, 'DELEGATED_ADMIN', 'SELF' ]
+      AutoDeployment:
+        Enabled: true
+        RetainStacksOnAccountRemoval: true
+      OperationPreferences:
+        MaxConcurrentPercentage: 100
+        FailureTolerancePercentage: 50
+        RegionConcurrencyType: PARALLEL
+      StackInstancesGroup:
+        - DeploymentTargets:
+            AccountFilterType: NONE
+            OrganizationalUnitIds: !Ref ProvisionOU
+          Regions: 
+            - !Ref AWS::Region
+      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/ecr-registration-stackset.yml
+
+
 
 Outputs:
   CSBucket:

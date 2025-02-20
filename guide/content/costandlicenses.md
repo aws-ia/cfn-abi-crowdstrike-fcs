@@ -11,7 +11,7 @@ description: Cost of the solution and licenses required.
 
 
 ### AWS service cost
-In addition to the CrowdStrike Falcon cost, consider costs associated with the AWS services you choose and the scale of your operations. AWS services such as CloudTrail, Lambda, Amazon S3, and AWS Key Management Service (AWS KMS) may have associated costs.
+In addition to the CrowdStrike Falcon cost, consider costs associated with the AWS services you choose and the scale of your operations. AWS services such as EventBridge, CloudTrail, Lambda, Amazon S3, and AWS Key Management Service (AWS KMS) may have associated costs.
 
 ### ABI cost and licenses
 

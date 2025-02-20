@@ -49,6 +49,11 @@ Parameters:
 Resources:
   CrowdStrikeSecrets:
     Type: AWS::SecretsManager::Secret
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_149
+            comment: The default key aws/secretsmanager is sufficient to secure this resource
     Properties:
       Description: CrowdStrike Falcon Credentials for SSM Distributor
       Name: !Ref SecretsManagerSecretName
