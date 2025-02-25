@@ -16,7 +16,6 @@ Parameters:
   SecretsManagerSecretName:
     Description: Secrets Manager Secret Name that will contain the Falcon ClientId, ClientSecret, and Cloud for the CrowdStrike APIs.
     Type: String
-    Default: 'crowdstrike-ecr-api-credentials'
   ECRExecutionRoleName:
     Type: String
     Description: The name of the role that will be used for Lambda execution.
@@ -51,7 +50,7 @@ Resources:
             comment: The default key aws/secretsmanager is sufficient to secure this resource
     Properties:
       Description: CrowdStrike Credentials
-      Name: !Ref SecretsManagerSecretName
+      Name: !Sub '${SecretsManagerSecretName}-ECR'
       SecretString:
         Fn::Join:
           - ''
@@ -100,7 +99,7 @@ Resources:
                 Action:
                   - 'secretsmanager:GetSecretValue'
                 Resource:
-                  - !Sub 'arn:${AWS::Partition}:secretsmanager:*:*:secret:${SecretsManagerSecretName}-*'
+                  - !Sub 'arn:${AWS::Partition}:secretsmanager:*:*:secret:${SecretsManagerSecretName}-ECR-*'
               - Effect: Allow
                 Action:
                   - iam:ListPolicies
@@ -144,7 +143,7 @@ Resources:
     Properties:
       Environment:
         Variables:
-          secret_name: !Ref SecretsManagerSecretName
+          secret_name: !Sub '${SecretsManagerSecretName}-ECR'
           secret_region: !Ref AWS::Region
           permissions_boundary: !If [SetPermissionsBoundary, !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}', '']
           crowdstrike_principal: arn:aws:iam::292230061137:role/CrowdStrikeCustomerRegistryAssessmentRole
