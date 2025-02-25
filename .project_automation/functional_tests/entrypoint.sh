@@ -45,7 +45,9 @@ run_test "cw-test-sra"
 
 run_test "cw-eks-test"
 
-run_test "cw-test-ct"
+run_test "cw-ecr-test"
+
+run_test "cw-test-trail"
 
 run_test "cw-test-ssm"
 

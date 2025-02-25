@@ -1607,7 +1607,7 @@ Resources:
           ParameterValue: !Ref SourceS3BucketName
         - ParameterKey: SourceS3BucketNamePrefix
           ParameterValue: !Ref SourceS3BucketNamePrefix
-        - ParameterKey: SecretName
+        - ParameterKey: SecretsManagerSecretName
           ParameterValue: !Ref SecretsManagerSecretName
         - ParameterKey: PermissionsBoundary
           ParameterValue: !Ref PermissionsBoundary
