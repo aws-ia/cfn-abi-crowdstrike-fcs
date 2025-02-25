@@ -18,7 +18,7 @@ tests:
     regions:
     - us-east-1
     template: templates/crowdstrike_init_stack.yaml
-  ecr-test:
+  cw-ecr-test:
     parameters:
       FalconClientID: $[taskcat_ssm_/crowdstrike/falcon_client_id]
       FalconSecret: $[taskcat_ssm_/crowdstrike/falcon_secret]
