@@ -293,4 +293,7 @@ def lambda_handler(event, context):
     except Exception as err:  # noqa: E722
         # We can't communicate with the endpoint
         logger.info('Registration Failed %s' % err)
-        cfnresponse_send(event, FAILED, err, "CustomResourcePhysicalID")
+        response_d = {
+                        "reason": err
+                     }
+        cfnresponse_send(event, FAILED, response_d, "CustomResourcePhysicalID")
