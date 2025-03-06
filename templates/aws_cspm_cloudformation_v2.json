@@ -285,10 +285,25 @@
                     "grafana:DescribeWorkspace",
                     "grafana:DescribeWorkspaceAuthentication",
                     "grafana:DescribeWorkspaceConfiguration",
+                    "lambda:GetEventSourceMapping",
                     "lambda:GetFunction",
                     "lambda:GetLayerVersion",
-                    "memorydb:DescribeParameterGroups",
+                    "lightsail:GetBucketAccessKeys",
+                    "lightsail:GetContainerServiceDeployments",
+                    "lightsail:GetContainerServiceMetricData",
+                    "lightsail:GetDisk",
+                    "lightsail:GetInstance",
+                    "lightsail:GetInstanceAccessDetails",
+                    "lightsail:GetInstancePortStates",
+                    "lightsail:GetInstanceState",
+                    "lightsail:GetKeyPair",
+                    "lightsail:GetKeyPairs",
+                    "memorydb:DescribeACLs",
                     "memorydb:DescribeParameters",
+                    "memorydb:DescribeParameterGroups",
+                    "memorydb:DescribeSnapshots",
+                    "memorydb:DescribeSubnetGroups",
+                    "memorydb:DescribeUsers",
                     "memorydb:ListTags",
                     "sns:GetSubscriptionAttributes",
                     "waf-regional:GetIPSet",
@@ -304,7 +319,10 @@
                 },
                 {
                   "Effect": "Allow",
-                  "Resource": "arn:aws:apigateway:*::/restapis/*",
+                  "Resource": [
+                    "arn:aws:apigateway:*::/restapis/*",
+                    "arn:aws:apigateway:*::/apis/*"
+                  ],
                   "Action": [
                     "apigateway:Get"
                   ]
