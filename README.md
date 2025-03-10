@@ -1,5 +1,8 @@
 ![](https://raw.githubusercontent.com/CrowdStrike/falconpy/main/docs/asset/cs-logo.png)
 
+> [!IMPORTANT]
+> CrowdStrike CSPM uses an IAM Role with read-only permissions to collect the asset inventory and detect IOMs in your cloud environment.  To stay ahead of the adversary CrowdStrike may periodically add to the required permissions of this role.  To see the process for updating this role across your environment after initial deployment, please click [here](https://aws-abi.s3.amazonaws.com/guide/cfn-abi-crowdstrike-fcs/post-deployment-steps/index.html).
+
 # CrowdStrike Cloud Security with AWS Built-in
 
 CrowdStrike now supports AWS Organization registration through the AWS Built-In (ABI) program.  ABI is a differentiation program that validates AWS Partner solutions that have automated their integrations with relevant AWS foundational services such as identity, management, security, and operations.

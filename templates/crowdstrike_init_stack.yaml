@@ -628,6 +628,7 @@ Resources:
         Enabled: true
         RetainStacksOnAccountRemoval: true
       OperationPreferences:
+        ConcurrencyMode: SOFT_FAILURE_TOLERANCE
         MaxConcurrentPercentage: 100
         FailureTolerancePercentage: 50
         RegionConcurrencyType: PARALLEL
@@ -709,6 +710,7 @@ Resources:
         Enabled: true
         RetainStacksOnAccountRemoval: true
       OperationPreferences:
+        ConcurrencyMode: SOFT_FAILURE_TOLERANCE
         MaxConcurrentPercentage: 100
         FailureTolerancePercentage: 50
         RegionConcurrencyType: PARALLEL
@@ -757,6 +759,7 @@ Resources:
         Enabled: true
         RetainStacksOnAccountRemoval: true
       OperationPreferences:
+        ConcurrencyMode: SOFT_FAILURE_TOLERANCE
         MaxConcurrentPercentage: 100
         FailureTolerancePercentage: 50
         RegionConcurrencyType: PARALLEL
@@ -867,6 +870,7 @@ Resources:
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.eventbus_name
       PermissionModel: SELF_MANAGED
       OperationPreferences:
+        ConcurrencyMode: SOFT_FAILURE_TOLERANCE
         MaxConcurrentPercentage: 100
         FailureTolerancePercentage: 50
         RegionConcurrencyType: PARALLEL
@@ -894,6 +898,7 @@ Resources:
           ParameterValue: !Ref AWSAccountType
       PermissionModel: SELF_MANAGED
       OperationPreferences:
+        ConcurrencyMode: SOFT_FAILURE_TOLERANCE
         MaxConcurrentPercentage: 100
         FailureTolerancePercentage: 50
         RegionConcurrencyType: PARALLEL
@@ -920,6 +925,7 @@ Resources:
           ParameterValue: !Ref AWS::Region
       PermissionModel: SELF_MANAGED
       OperationPreferences:
+        ConcurrencyMode: SOFT_FAILURE_TOLERANCE
         MaxConcurrentPercentage: 100
         FailureTolerancePercentage: 50
         RegionConcurrencyType: PARALLEL
@@ -958,6 +964,7 @@ Resources:
         Enabled: true
         RetainStacksOnAccountRemoval: true
       OperationPreferences:
+        ConcurrencyMode: SOFT_FAILURE_TOLERANCE
         MaxConcurrentPercentage: 100
         FailureTolerancePercentage: 50
         RegionConcurrencyType: PARALLEL
@@ -983,6 +990,7 @@ Resources:
       PermissionModel: SERVICE_MANAGED
       CallAs: !If [ IsDelegatedAdmin, 'DELEGATED_ADMIN', 'SELF' ]
       OperationPreferences:
+        ConcurrencyMode: SOFT_FAILURE_TOLERANCE
         MaxConcurrentPercentage: 100
         FailureTolerancePercentage: 50
         RegionConcurrencyType: PARALLEL
@@ -1010,6 +1018,7 @@ Resources:
       PermissionModel: SERVICE_MANAGED
       CallAs: !If [ IsDelegatedAdmin, 'DELEGATED_ADMIN', 'SELF' ]
       OperationPreferences:
+        ConcurrencyMode: SOFT_FAILURE_TOLERANCE
         MaxConcurrentPercentage: 100
         FailureTolerancePercentage: 50
         RegionConcurrencyType: PARALLEL
@@ -1041,6 +1050,7 @@ Resources:
       PermissionModel: SERVICE_MANAGED
       CallAs: !If [ IsDelegatedAdmin, 'DELEGATED_ADMIN', 'SELF' ]
       OperationPreferences:
+        ConcurrencyMode: SOFT_FAILURE_TOLERANCE
         MaxConcurrentPercentage: 100
         FailureTolerancePercentage: 50
         RegionConcurrencyType: PARALLEL
@@ -1521,6 +1531,7 @@ Resources:
         Enabled: true
         RetainStacksOnAccountRemoval: false
       OperationPreferences:
+        ConcurrencyMode: SOFT_FAILURE_TOLERANCE
         MaxConcurrentPercentage: 100
         FailureTolerancePercentage: 50
         RegionConcurrencyType: PARALLEL
@@ -1587,6 +1598,7 @@ Resources:
         Enabled: true
         RetainStacksOnAccountRemoval: true
       OperationPreferences:
+        ConcurrencyMode: SOFT_FAILURE_TOLERANCE
         MaxConcurrentPercentage: 100
         FailureTolerancePercentage: 50
         RegionConcurrencyType: PARALLEL
@@ -1602,6 +1614,8 @@ Resources:
     Type: AWS::CloudFormation::StackSet
     Properties:
       StackSetName: crowdstrike-ecr-connections-stackset
+      Capabilities:
+        - CAPABILITY_NAMED_IAM
       Parameters:
         - ParameterKey: S3Bucket
           ParameterValue: !Ref SourceS3BucketName
@@ -1627,6 +1641,7 @@ Resources:
         Enabled: true
         RetainStacksOnAccountRemoval: true
       OperationPreferences:
+        ConcurrencyMode: SOFT_FAILURE_TOLERANCE
         MaxConcurrentPercentage: 100
         FailureTolerancePercentage: 50
         RegionConcurrencyType: PARALLEL
