@@ -509,7 +509,7 @@ Resources:
     Type: 'AWS::CloudFormation::StackSet'
     Condition: CreateSSMAssociations
     Properties:
-      StackSetName: !Join ['-', ['cs-abi-SSMAssociations-stackset', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      StackSetName: !Join ['-', ['cs-abi-SSMAssociationStackSet', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
       Description: Create SSM State Manager Association to automatically manage Falcon Sensor installation across SSM Managed Instances
       PermissionModel: SERVICE_MANAGED
       CallAs: !If [ IsDelegatedAdmin, 'DELEGATED_ADMIN', 'SELF' ]
@@ -557,7 +557,7 @@ Resources:
     Type: 'AWS::CloudFormation::StackSet'
     Condition: CreateSSMAssociations
     Properties:
-      StackSetName: !Join ['-', ['cs-abi-SSMSetup-stackset', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      StackSetName: !Join ['-', ['cs-abi-SSMSetupStackSet', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
       Description: Securely store Falcon credentials and create AWS IAM role to assume when running the AWS Systems Manager Automation document.
       Capabilities:
        - CAPABILITY_NAMED_IAM
@@ -624,7 +624,7 @@ Resources:
     Condition: IsCommToComm
     Type: 'AWS::CloudFormation::StackSet'
     Properties:
-      StackSetName: !Join ['-', ['cs-abi-CloudSecurity-stackset', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      StackSetName: !Join ['-', ['cs-abi-CloudSecurityStackSet', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
       Capabilities:
         - CAPABILITY_IAM
         - CAPABILITY_NAMED_IAM
@@ -671,7 +671,7 @@ Resources:
     Condition: IsCommToGovCloud
     Type: 'AWS::CloudFormation::StackSet'
     Properties:
-      StackSetName: !Join ['-', ['cs-abi-CloudSecurity-stackset', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      StackSetName: !Join ['-', ['cs-abi-CloudSecurityStackSet', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
       Capabilities:
         - CAPABILITY_IAM
         - CAPABILITY_NAMED_IAM
@@ -727,7 +727,7 @@ Resources:
           - SetPermissionsBoundary
           - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}'
           - Ref: AWS::NoValue
-      RoleName: !Join ['-', ['cs-abi-StackSetAdmin', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      RoleName: !Join ['-', ['cs-abi-StackSetAdminRole', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -742,11 +742,10 @@ Resources:
             Version: '2012-10-17'
             Statement:
               - Action: sts:AssumeRole
-                Resource: !Join ['', ['arn:', !Ref AWS::Partition, ':iam::', !Ref AWS::AccountId, ':role/cs-abi-StackSetExec-', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+                Resource: !Join ['', ['arn:', !Ref AWS::Partition, ':iam::', !Ref AWS::AccountId, ':role/cs-abi-StackSetExecRole-', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
                 Effect: Allow
   StackSetExecutionRole:
     Type: AWS::IAM::Role
-    DependsOn: StackSetAdministrationRole
     Condition: CreateIOAResources
     Metadata:
       cfn-lint:
@@ -766,7 +765,7 @@ Resources:
           - SetPermissionsBoundary
           - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}'
           - Ref: AWS::NoValue
-      RoleName: !Join ['-', ['cs-abi-StackSetExec', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      RoleName: !Join ['-', ['cs-abi-StackSetExecRole', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -808,7 +807,7 @@ Resources:
     Properties:
       AdministrationRoleARN: !GetAtt StackSetAdministrationRole.Arn
       ExecutionRoleName: !Ref StackSetExecutionRole
-      StackSetName: !Join ['-', ['cs-abi-RootEB-stackset', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      StackSetName: !Join ['-', ['cs-abi-RootEBStackSet', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
       Parameters:
         - ParameterKey: CSAccountNumber
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.cs_account_id
@@ -834,7 +833,7 @@ Resources:
     Properties:
       AdministrationRoleARN: !GetAtt StackSetAdministrationRole.Arn
       ExecutionRoleName: !Ref StackSetExecutionRole
-      StackSetName: !Join ['-', ['cs-abi-RootEB-stackset', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      StackSetName: !Join ['-', ['cs-abi-RootEBStackSet', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
       Parameters:
         - ParameterKey: CSAccountNumber
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.cs_account_id
@@ -865,7 +864,7 @@ Resources:
         - CAPABILITY_NAMED_IAM
       AdministrationRoleARN: !GetAtt StackSetAdministrationRole.Arn
       ExecutionRoleName: !Ref StackSetExecutionRole
-      StackSetName: !Join ['-', ['cs-abi-RootEB-stackset', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      StackSetName: !Join ['-', ['cs-abi-RootEBStackSet', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
       Parameters:
         - ParameterKey: DefaultEventBusRegion
           ParameterValue: !Ref AWS::Region
@@ -898,7 +897,7 @@ Resources:
     Type: 'AWS::CloudFormation::StackSet'
     Condition: IsCommercialIOA
     Properties:
-      StackSetName: !Join ['-', ['cs-abi-MemberEB-stackset', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      StackSetName: !Join ['-', ['cs-abi-MemberEBStackSet', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
       Parameters:
         - ParameterKey: CSAccountNumber
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.cs_account_id
@@ -925,7 +924,7 @@ Resources:
     Type: 'AWS::CloudFormation::StackSet'
     Condition: IsGovCloudIOA
     Properties:
-      StackSetName: !Join ['-', ['cs-abi-MemberEB-stackset', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      StackSetName: !Join ['-', ['cs-abi-MemberEBStackSet', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
       Parameters:
         - ParameterKey: CSAccountNumber
           ParameterValue: !GetAtt TriggerRegisterAccountLambda.cs_account_id
@@ -957,7 +956,7 @@ Resources:
       Capabilities:
         - CAPABILITY_IAM
         - CAPABILITY_NAMED_IAM
-      StackSetName: !Join ['-', ['cs-abi-MemberEB-stackset', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      StackSetName: !Join ['-', ['cs-abi-MemberEBStackSet', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
       Parameters:
         - ParameterKey: DefaultEventBusRegion
           ParameterValue: !Ref AWS::Region
@@ -985,7 +984,7 @@ Resources:
       Capabilities:
         - CAPABILITY_IAM
         - CAPABILITY_NAMED_IAM
-      StackSetName: !Join ['-', ['cs-abi-CommGovIOA-stackset', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      StackSetName: !Join ['-', ['cs-abi-CommGovIOAStackSet', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
       Parameters:
         - ParameterKey: ClientID
           ParameterValue: !Ref FalconClientID
@@ -1101,7 +1100,7 @@ Resources:
       Role: !GetAtt "LambdaCrowdStrikeRegistrationRole.Arn"
       Runtime: python3.11
       Timeout: 300
-      FunctionName: !Join ['-', ['cs-abi-Registration', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      FunctionName: !Join ['-', ['cs-abi-RegistrationLambda', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
       Code:
         S3Bucket: !Ref StagingS3Bucket
         S3Key: !Sub ${SourceS3BucketNamePrefix}/lambda_functions/packages/register-organization-v2/lambda.zip
@@ -1168,7 +1167,7 @@ Resources:
             Condition:
               ArnLike:
                 aws:PrincipalArn:
-                  - !Join ['', ['arn:', !Ref AWS::Partition, ':iam::', !Ref AWS::AccountId, ':role/cs-abi-StackSetExec-', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+                  - !Join ['', ['arn:', !Ref AWS::Partition, ':iam::', !Ref AWS::AccountId, ':role/cs-abi-StackSetExecRole-', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
                   - !Sub arn:${AWS::Partition}:iam::*:role/stacksets-exec-*
 
           - Sid: DenyExternalPrincipals
@@ -1273,7 +1272,7 @@ Resources:
             comment: Lambda does not need to communicate with VPC resources.
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Join ['-', ['cs-abi-CopyZips', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      FunctionName: !Join ['-', ['cs-abi-CopyZipsLambda', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
       Description: Copies objects from a source S3 bucket to a destination
       Handler: index.handler
       Runtime: python3.9
@@ -1367,7 +1366,7 @@ Resources:
             comment: Environment variables are not sensitive.
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Join ['-', ['cs-abi-OrgId', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      FunctionName: !Join ['-', ['cs-abi-OrgIdLambda', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
       Description: Get AWS Organization ID
       Handler: organizations.lambda_handler
       Role: !GetAtt OrgIdLambdaRole.Arn
@@ -1428,7 +1427,7 @@ Resources:
                   - logs:CreateLogGroup
                   - logs:CreateLogStream
                   - logs:PutLogEvents
-                Resource: !Join ['', ['arn:', !Ref AWS::Partition, ':logs:', !Ref AWS::Region, ':', !Ref AWS::AccountId, ':log-group:/aws/lambda/cs-abi-OrgId-', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]], ':log-stream:*' ]]
+                Resource: !Join ['', ['arn:', !Ref AWS::Partition, ':logs:', !Ref AWS::Region, ':', !Ref AWS::AccountId, ':log-group:/aws/lambda/cs-abi-OrgIdLambda-', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]], ':log-stream:*' ]]
 
   # EKS Protection
   RootRolesStack:
@@ -1452,7 +1451,7 @@ Resources:
     DependsOn: RootRolesStack
     Type: AWS::CloudFormation::StackSet
     Properties:
-      StackSetName: !Join ['-', ['cs-abi-EKSTargetRoles-stackset', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      StackSetName: !Join ['-', ['cs-abi-EKSTargetRolesStackSet', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
       Capabilities:
         - CAPABILITY_NAMED_IAM
       Parameters:
@@ -1525,7 +1524,7 @@ Resources:
     DependsOn: RootEKSProtectionStack
     Type: AWS::CloudFormation::StackSet
     Properties:
-      StackSetName: !Join ['-', ['cs-abi-EKSEB-stackset', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      StackSetName: !Join ['-', ['cs-abi-EKSEBStackSet', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
       Parameters:
         - ParameterKey: EventBusName
           ParameterValue: !Ref EventBusName
@@ -1556,7 +1555,7 @@ Resources:
     Condition: EnableECRRegistration
     Type: AWS::CloudFormation::StackSet
     Properties:
-      StackSetName: !Join ['-', ['cs-abi-ECR-stackset', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      StackSetName: !Join ['-', ['cs-abi-ECRStackSet', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
       Capabilities:
         - CAPABILITY_NAMED_IAM
       Parameters:
