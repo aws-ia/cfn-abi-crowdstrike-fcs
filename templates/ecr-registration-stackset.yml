@@ -50,7 +50,7 @@ Resources:
             comment: The default key aws/secretsmanager is sufficient to secure this resource
     Properties:
       Description: CrowdStrike Credentials
-      Name: !Sub '${SecretsManagerSecretName}-ECR'
+      Name: !Ref SecretsManagerSecretName
       SecretString:
         Fn::Join:
           - ''
@@ -99,7 +99,7 @@ Resources:
                 Action:
                   - 'secretsmanager:GetSecretValue'
                 Resource:
-                  - !Sub 'arn:${AWS::Partition}:secretsmanager:*:*:secret:${SecretsManagerSecretName}-ECR-*'
+                  - !Sub 'arn:${AWS::Partition}:secretsmanager:*:*:secret:${SecretsManagerSecretName}*'
               - Effect: Allow
                 Action:
                   - iam:ListPolicies
@@ -143,7 +143,7 @@ Resources:
     Properties:
       Environment:
         Variables:
-          secret_name: !Sub '${SecretsManagerSecretName}-ECR'
+          secret_name: !Ref SecretsManagerSecretName
           secret_region: !Ref AWS::Region
           permissions_boundary: !If [SetPermissionsBoundary, !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}', '']
           crowdstrike_principal: arn:aws:iam::292230061137:role/CrowdStrikeCustomerRegistryAssessmentRole

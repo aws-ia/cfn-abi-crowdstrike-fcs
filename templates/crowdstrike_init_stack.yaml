@@ -234,10 +234,6 @@ Parameters:
       - 'usgov1'
       - 'usgov2'
     Description: The Cloud your CID is hosted in
-  SecretsManagerSecretName:
-    Description: Secrets Manager Secret Name that contains the Falcon ClientId, ClientSecret, and Cloud for the CrowdStrike APIs.
-    Type: String
-    Default: 'crowdstrike-falcon-api'
 
   # Configure Indicator of Attack Scanning
   EnableIOA:
@@ -523,7 +519,7 @@ Resources:
         - ParameterKey: DocumentVersion
           ParameterValue: !Ref DocumentVersion
         - ParameterKey: SecretsManagerSecretName
-          ParameterValue: !Ref SecretsManagerSecretName
+          ParameterValue: !Join ['-', ['cs-abi-FalconAPI-SSM', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
         - ParameterKey: SecretStorageMethod
           ParameterValue: 'SecretsManager'
         - ParameterKey: Action
@@ -1569,7 +1565,7 @@ Resources:
         - ParameterKey: SourceS3BucketNamePrefix
           ParameterValue: !Ref SourceS3BucketNamePrefix
         - ParameterKey: SecretsManagerSecretName
-          ParameterValue: !Ref SecretsManagerSecretName
+          ParameterValue: !Join ['-', ['cs-abi-FalconAPI-ECR', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
         - ParameterKey: PermissionsBoundary
           ParameterValue: !Ref PermissionsBoundary
         - ParameterKey: FalconClientID
