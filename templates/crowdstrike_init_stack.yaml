@@ -1398,7 +1398,7 @@ Resources:
           - SetPermissionsBoundary
           - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}'
           - Ref: AWS::NoValue
-      Description: !Sub Role for cs-abi-OrgId Lambda function
+      Description: 'Role for cs-abi-OrgId Lambda function'
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
