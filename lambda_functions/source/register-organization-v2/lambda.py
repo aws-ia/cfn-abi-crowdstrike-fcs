@@ -22,7 +22,7 @@ logger.setLevel(logging.INFO)
 SUCCESS = "SUCCESS"
 FAILED = "FAILED"
 
-VERSION = "1.2.1"
+VERSION = "1.2.2"
 NAME = "crowdstrike-cloud-abi"
 USERAGENT = ("%s/%s" % (NAME, VERSION))
 
@@ -293,7 +293,6 @@ def lambda_handler(event, context):
     except Exception as err:  # noqa: E722
         # We can't communicate with the endpoint
         logger.info('Registration Failed %s' % err)
-        response_d = {
-                        "reason": err
-                     }
+        error = str(err)
+        response_d = {"reason": error}
         cfnresponse_send(event, FAILED, response_d, "CustomResourcePhysicalID")

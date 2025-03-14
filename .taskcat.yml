@@ -13,7 +13,7 @@ tests:
       FalconSecret: $[taskcat_ssm_/crowdstrike/falcon_secret]
       SourceS3BucketName: $[taskcat_autobucket]
       S3BucketRegion: $[taskcat_current_region]
-      ProvisionOU: $[taskcat_ssm_/crowdstrike/provision-ou]
+      DeploymentScope: $[taskcat_ssm_/crowdstrike/provision-ou]
       ExcludeRegions: $[taskcat_ssm_/crowdstrike/exclude_regions]
     regions:
     - us-east-1
@@ -24,7 +24,7 @@ tests:
       FalconSecret: $[taskcat_ssm_/crowdstrike/falcon_secret]
       SourceS3BucketName: $[taskcat_autobucket]
       S3BucketRegion: $[taskcat_current_region]
-      ProvisionOU: $[taskcat_ssm_/crowdstrike/provision-ou]
+      DeploymentScope: $[taskcat_ssm_/crowdstrike/provision-ou]
       ExcludeRegions: $[taskcat_ssm_/crowdstrike/exclude_regions]
       ECRConnections: "true"
     regions:
@@ -38,7 +38,7 @@ tests:
       FalconCID: $[taskcat_ssm_/crowdstrike/falcon_cod]
       SourceS3BucketName: $[taskcat_autobucket]
       S3BucketRegion: $[taskcat_current_region]
-      ProvisionOU: $[taskcat_ssm_/crowdstrike/provision-ou]
+      DeploymentScope: $[taskcat_ssm_/crowdstrike/provision-ou]
       ExcludeRegions: $[taskcat_ssm_/crowdstrike/exclude_regions]
     regions:
     - us-east-1
@@ -49,7 +49,7 @@ tests:
       FalconSecret: $[taskcat_ssm_/crowdstrike/falcon_secret]
       SourceS3BucketName: $[taskcat_autobucket]
       S3BucketRegion: $[taskcat_current_region]
-      ProvisionOU: $[taskcat_ssm_/crowdstrike/provision-ou]
+      DeploymentScope: $[taskcat_ssm_/crowdstrike/provision-ou]
       CreateIOAOrgTrail: "true"
       ExcludeRegions: $[taskcat_ssm_/crowdstrike/exclude_regions]
     regions:
@@ -61,7 +61,7 @@ tests:
       FalconSecret: $[taskcat_ssm_/crowdstrike/falcon_secret]
       SourceS3BucketName: $[taskcat_autobucket]
       S3BucketRegion: $[taskcat_current_region]
-      ProvisionOU: $[taskcat_ssm_/crowdstrike/provision-ou]
+      DeploymentScope: $[taskcat_ssm_/crowdstrike/provision-ou]
       ExcludeRegions: $[taskcat_ssm_/crowdstrike/exclude_regions]
       EnableSSMDistributor: "true"
     regions:
@@ -73,7 +73,7 @@ tests:
       FalconSecret: $[taskcat_ssm_/crowdstrike/falcon_secret]
       SourceS3BucketName: $[taskcat_autobucket]
       S3BucketRegion: $[taskcat_current_region]
-      ProvisionOU: $[taskcat_ssm_/crowdstrike/provision-ou]
+      DeploymentScope: $[taskcat_ssm_/crowdstrike/provision-ou]
       ExcludeRegions: $[taskcat_ssm_/crowdstrike/exclude_regions]
       APICredentialsStorageMode: "lambda"
     regions:
@@ -85,7 +85,7 @@ tests:
       FalconSecret: $[taskcat_ssm_/crowdstrike/falcon_secret]
       SourceS3BucketName: $[taskcat_autobucket]
       S3BucketRegion: $[taskcat_current_region]
-      ProvisionOU: $[taskcat_ssm_/crowdstrike/provision-ou]
+      DeploymentScope: $[taskcat_ssm_/crowdstrike/provision-ou]
       ExcludeRegions: $[taskcat_ssm_/crowdstrike/exclude_regions]
       EnableSSMDistributor: "true"
       CreateIOAOrgTrail: "true"
@@ -99,7 +99,7 @@ tests:
       FalconSecret: $[taskcat_ssm_/crowdstrike/falcon_secret]
       SourceS3BucketName: $[taskcat_autobucket]
       S3BucketRegion: $[taskcat_current_region]
-      ProvisionOU: $[taskcat_ssm_/crowdstrike/provision-ou]
+      DeploymentScope: $[taskcat_ssm_/crowdstrike/provision-ou]
       CreateSRAOrgTrail: "true"
       ExcludeRegions: $[taskcat_ssm_/crowdstrike/exclude_regions]
     regions:
@@ -111,7 +111,7 @@ tests:
       FalconSecret: $[taskcat_ssm_/crowdstrike/falcon_secret]
       SourceS3BucketName: $[taskcat_autobucket]
       S3BucketRegion: $[taskcat_current_region]
-      ProvisionOU: $[taskcat_ssm_/crowdstrike/provision-ou]
+      DeploymentScope: $[taskcat_ssm_/crowdstrike/provision-ou]
       CreateSRAOrgTrail: "true"
       ExcludeRegions: $[taskcat_ssm_/crowdstrike/exclude_regions]
       pControlTower: 'false'
