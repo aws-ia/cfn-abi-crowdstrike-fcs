@@ -1095,6 +1095,7 @@ Resources:
           falcon_account_type: !Ref FalconAccountType
           existing_cloudtrail: !If [ CreateIOATrail, 'False', 'True' ]
           enable_dspm: 'True'
+          identity_protection: 'True'
       Handler: lambda.lambda_handler
       MemorySize: 128
       Role: !GetAtt "LambdaCrowdStrikeRegistrationRole.Arn"
