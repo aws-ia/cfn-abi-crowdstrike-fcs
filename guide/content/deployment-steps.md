@@ -11,28 +11,26 @@ description: Deployment steps.
 2. Launch the CloudFormation template in your [AWS Control Tower home Region](https://docs.aws.amazon.com/controltower/latest/userguide/region-how.html).
     * Stack name: `template-crowdstrike-enable-integrations`
     * Update the follwoing parameters as needed:
-        * Account Type  
-        **Note:** if `Falcon Account Type` = `govcloud` and `AWS Account Type` = `commercial`, then you must launch this solution in `us-east-1`
+        * Falcon CID Details
             * **Falcon Account Type**: Your Falcon Cloud type.  Allowed values include `commercial` or `govcloud`
-            * **AWS Account Type**: Your AWS Cloud type.  Allowed values include `commercial` or `govcloud`
-        * Permissions Boundary
-            * **Permissions Boundary Policy Name**: If your Organization requires a PermissionsBoundary policy applied to IAM Roles, enter the **Name** (not the ARN) of your Permissions Boundary policy
-        * CrowdStrike Falcon API Key
             * **Falcon API Client ID**: Your CrowdStrike Falcon API Client ID
             * **Falcon API Secret**: Your CrowdStrike Falcon API Client Secret
             * **CrowdStrike Cloud**: Your Falcon Cloud region.  Allowed values include: `us1`, `us2`, `eu1`, `usgov1`, `usgov2`
             * **Secrets Manager Secret Name**: Name of the Secrets Manager Secret that will store the Falcon API Credentials.
-        * Configure Indicator of Attack Scanning
+        * AWS Org Details
+        **Note:** if `Falcon Account Type` = `govcloud` and `AWS Account Type` = `commercial`, then you must launch this solution in `us-east-1`
+            * **AWS Account Type**: Your AWS Cloud type.  Allowed values include `commercial` or `govcloud`
+            * **Delegated Administrator Account**: Indicates whether this is a Delegated Administrator account.  Allowed values include `true` or `false`.  Default is `false`
+            * **Deployment Scope**: Comma Delimited List of AWS OU(s) to provision. If you are provisioning the entire organization, please enter the Root OU `r-******`
+            * **Permissions Boundary Policy Name**: If your Organization requires a PermissionsBoundary policy applied to IAM Roles, enter the **Name** (not the ARN) of your Permissions Boundary policy
+        * Realtime Visibility (IOA and/or IDP)
             * **Enable IOA Scanning**: Whether to enable IOA Scanning.  Allowed vlaues include `true` or `false`.  Default is `true`
             * **StackSet Administration Role**: Name of StackSet Administration role.  Default is `AWSCloudFormationStackSetAdministrationRole`
             * **StackSet Execution Role**: Name of StackSet Execution role.  Default is `AWSCloudFormationStackSetExecutionRole`
-            * **Create Optional Organization CloudTrail**: Whether you plan to create an additional CloudTrail to enable ReadOnly IOAs.  If `true` the CrowdStrike Bucket name (target for your CloudTrail) will be in the outputs and exports of this stack.  Allowed values include `true` or `false`. The default is `false`
             * **Exclude Prohibited Regions**: List of regions to exclude from deployment. Use this when SCPs cause stacksets to fail.  Eg. `[<region-1>,<region-2>,....]`
-        * Sensor Management
+        * Sensor Management (1Click)
             * **Enable Sensor Management**
             * **API Credentials Storage Mode**
-        * Provision OUs
-            * **The Organization Root ID or Organizational Unit (OU) IDs to Provision**: Comma Delimited List of AWS OU(s) to provision. If you are provisioning the entire organization, please enter the Root OU `r-******`
         * Deploy Falcon Sensors with SSM Distributor
             * **EnableSSMDistributor**: Whether to deploy SSM Associations in each AWS Region to automatically deploy the CrowdStrike Distributor Package against SSM-Managed Ec2 Instances. Allowed values include `true` or `false`. The default is `false`
             * **Document Version**: If EnableSSMDistributor is `true`: Define the version of the CrowdStrike SSM Automation document. The default is `2`.  This value should not change unless advised by CrowdStrike.
@@ -41,21 +39,23 @@ description: Deployment steps.
             * **Cron Schedule Expression**: If EnableSSMDistributor is `true`: Define the schedule or rate by which the SSM Automation runs. The default is `cron(0 0 */1 * * ? *)` (runs every hour)
             * **Max Errors Allowed**: If EnableSSMDistributor is `true`: The number or percent of errors that are allowed before the system stops sending requests to run the association on additional targets. The default is `10%`
             * **Max Concurrency Allowed**: If EnableSSMDistributor is `true`: The maximum number or percent of targets allowed to run the association at the same time. The default is `20%`
-        * AWS S3 Bucket
+        * ECR Registry Connections
+            * **Enable ECR Connections for Image Assessment**: Whether to set up ECR Registry Connections for Image Assessments
+            * **ECR Execution Role Name**: The name of the role that will be used for Lambda execution.
+            * **ECR Lambda Function Name**: The name of the lambda function used to register ECR registry connections.
+        * Advanced Configuration Properties
             * **Source S3 Bucket Name**: Name of the S3 Bucket for staging files.  The default is `aws-abi-${AWS::AccountId}-${AWS::Region}`
             * **S3 Bucket Region**: Region of the S3 Bucket for staging files.
             * **Source S3 Bucket Name Prefix**: Prefix of the S3 Bucket for sourcing files. Do not change the defult value.
-        * AWS Organization ID - Lambda Function Properties
-            * **AWS Organization ID - Lambda Role Name**: Name of the Organization ID Lambda Function execution Role.  The default is `sra-sh-org-id-lambda`
-            * **AWS Organization ID - Lambda Function Name**: Name of the Organization ID Lambda Function.  The default is `crowdstrike-org-id`
-        * Advanced Configuration Properties
-            * **Delegated Administrator Account**: Indicates whether this is a Delegated Administrator account.  Allowed values include `true` or `false`.  Default is `false`
+            * **Create Additional Organization CloudTrail (To enable ReadOnly IOAs)**: Whether you plan to create an additional CloudTrail to enable ReadOnly IOAs.  If `true` the CrowdStrike Bucket name (target for your CloudTrail) will be in the outputs and exports of this stack.  Allowed values include `true` or `false`. The default is `false`
         * Create Organization CloudTrail
             * **Create Default Organization CloudTrail**: Create org-wide trail, bucket, and bucket policy to enable EventBridge event collection.  If you already have either an Organization CloudTrail or CloudTrails enabled in each account, please leave this parameter false.
             * **Control Tower**: If Create Default Org Trail = true: Indicates whether AWS Control Tower is deployed and being used for this AWS environment.
             * **Governed Regions**: If Create Default Org Trail = true: for AWS Control Tower, set to ct-regions (default).  If not using AWS Control Tower, specify comma separated list of regions (e.g. us-west-2,us-east-1,ap-south-1) in lower case.
             * **Security Account Id**: If Create Default Org Trail = true: AWS Account ID of the Security Tooling account (ignored for AWS Control Tower environments).
             * **Log Archive Account Id**: If Create Default Org Trail = true: AWS Account ID of the Log Archive account (ignored for AWS Control Tower environments).
+            * **SRA Repo URL**: AWS Security Reference Architecture examples repository URL
+            * **SRA Repo Branch**: SRA version to tag
         * EKS Protection
             * **EKSProtection**: Enable CrowdStrike EKS Protection to automatically deploy Falcon Sensor against EKS Clusters. Allowed values include `true` or `false`.  Default is `false`
             * **FalconCID**: Your CrowdStrike Falcon CID with checksum. (eg. ********************************-ab)
@@ -70,8 +70,7 @@ description: Deployment steps.
             * **Registry**: Source Falcon Image from CrowdStrike or mirror to ECR.  Allowed values are `crowdstrike` or `ecr`.  Default is `crowdstrike`
             * **Backend**: kernel or bpf for Daemonset Sensor.  Allowed Values are `kernel` or `bpf`.  Default is `kernel`
             * **EnableKAC**: Deploy Kubernetes Admission Controller (KAC).  For more info see https://falcon.crowdstrike.com/documentation/page/aa4fccee/container-security#s41cbec3
-        * ECR Connections
-            * **ECRConnections**: Whether to set up ECR Registry Connections for Image Assessments
+        
 
 3. Select both of the following capabilities and choose **Submit** to launch the stack.
 
