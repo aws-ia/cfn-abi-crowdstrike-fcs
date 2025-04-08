@@ -24,6 +24,7 @@ Metadata:
         Parameters:
           - EnableIOA
           - ExcludeRegions
+          - EnableIDP
       - Label:
           default: Sensor Management (1Click)
         Parameters:
@@ -105,6 +106,8 @@ Metadata:
         default: Create Additional Organization CloudTrail (To enable ReadOnly IOAs)
       ExcludeRegions:
         default: Exclude Prohibited Regions
+      EnableIDP:
+        default: Enable Identity Protection
 
       # Sensor Management
       EnableSensorManagement:
@@ -254,6 +257,13 @@ Parameters:
     Description: Exclude regions from EventBridge Rules for IOA.  Use this when SCPs cause stacksets to fail.
     Type: String
     Default: ''
+  EnableIDP:
+    Description: Enable Identity Protection
+    Type: String
+    AllowedValues:
+      - 'True'
+      - 'False'
+    Default: 'False'
 
   # Sensor Management
   EnableSensorManagement:
@@ -1095,6 +1105,7 @@ Resources:
           falcon_account_type: !Ref FalconAccountType
           existing_cloudtrail: !If [ CreateIOATrail, 'False', 'True' ]
           enable_dspm: 'True'
+          identity_protection: !Ref EnableIDP
       Handler: lambda.lambda_handler
       MemorySize: 128
       Role: !GetAtt "LambdaCrowdStrikeRegistrationRole.Arn"

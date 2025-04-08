@@ -1,5 +1,5 @@
 """Function to register AWS Organization with CrowdStrike"""
-# pylint: disable=line-too-long
+# pylint: disable=line-too-long,E0401,W1201,C0209
 import json
 import logging
 import os
@@ -13,7 +13,7 @@ from botocore.exceptions import ClientError
 # pip install falconpy package to /tmp/ and add to path
 subprocess.call('pip install crowdstrike-falconpy -t /tmp/ --no-cache-dir'.split(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 sys.path.insert(1, '/tmp/')
-from falconpy import CSPMRegistration
+from falconpy import CSPMRegistration, CloudAWSRegistration
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -22,7 +22,7 @@ logger.setLevel(logging.INFO)
 SUCCESS = "SUCCESS"
 FAILED = "FAILED"
 
-VERSION = "1.2.2"
+VERSION = "1.3.0"
 NAME = "crowdstrike-cloud-abi"
 USERAGENT = ("%s/%s" % (NAME, VERSION))
 
@@ -33,6 +33,7 @@ AWS_REGION = os.environ['AWS_REGION']
 CS_CLOUD = os.environ['cs_cloud']
 AWS_ACCOUNT_TYPE = os.environ['aws_account_type']
 FALCON_ACCOUNT_TYPE = os.environ['falcon_account_type']
+IDENTITY_PROTECTION = eval(os.environ['identity_protection'])
 
 def get_secret():
     """Function to get secret"""
@@ -59,7 +60,7 @@ def get_management_id():
     try:
         org_id = org.list_roots()['Roots'][0]['Arn'].rsplit('/')[1]
         return org_id
-    except Exception:
+    except ClientError:
         logger.error('This stack runs only on the management of the AWS Organization')
         return False
 
@@ -111,8 +112,167 @@ def get_active_regions(exclude_regions):
             if region in supported_regions:
                 ssm_regions += [region]
         return my_regions, comm_gov_eb_regions, ssm_regions
-    except Exception as e:
+    except ClientError as e:
         return e
+
+def process_account(falcon_cspm, aws_account_id, org_id):
+    """Get and create or update account registration status"""
+    logger.info('Checking for existing registration...')
+    response = falcon_cspm.get_aws_account(organization_ids=org_id,
+                                        user_agent=USERAGENT)
+    logger.info('Get Account Registration Response: %s' % response)
+    if response['status_code'] == 207:
+        account_response = register_account(falcon_cspm, aws_account_id, org_id)
+    elif response['status_code'] == 200:
+        account_response = update_account(falcon_cspm, aws_account_id, org_id)
+    else:
+        account_response = response
+    return account_response
+
+def process_features(falcon_cloud, aws_account_id, org_id):
+    """Function to process feature registration"""
+    logger.info('Checking for existing features...')
+    response = falcon_cloud.get_accounts(ids=aws_account_id,
+                                        user_agent=USERAGENT)
+    logger.info('Get Features Registration Response: %s' % response)
+    if response['status_code'] == 207:
+        register_features(falcon_cloud, aws_account_id, org_id)
+    elif response['status_code'] == 200:
+        update_features(falcon_cloud, aws_account_id, org_id)
+    else:
+        error = response['body']['errors'][0]['message']
+        logger.error('Feature Registration Failed with reason....%s' % error)
+
+def register_account(falcon_cspm, aws_account_id, org_id):
+    """Function to register account with CSPM"""
+    if EXISTING_CLOUDTRAIL:
+        response = falcon_cspm.create_aws_account(account_id=aws_account_id,
+                                                organization_id=org_id,
+                                                behavior_assessment_enabled=True,
+                                                sensor_management_enabled=True,
+                                                dspm_enabled=True,
+                                                dspm_role='CrowdStrikeDSPMIntegrationRole',
+                                                use_existing_cloudtrail=EXISTING_CLOUDTRAIL,
+                                                user_agent=USERAGENT,
+                                                is_master=True,
+                                                account_type=AWS_ACCOUNT_TYPE
+                                                )
+    else:
+        response = falcon_cspm.create_aws_account(account_id=aws_account_id,
+                                                organization_id=org_id,
+                                                behavior_assessment_enabled=True,
+                                                sensor_management_enabled=True,
+                                                dspm_enabled=True,
+                                                dspm_role='CrowdStrikeDSPMIntegrationRole',
+                                                use_existing_cloudtrail=EXISTING_CLOUDTRAIL,
+                                                cloudtrail_region=AWS_REGION,
+                                                user_agent=USERAGENT,
+                                                is_master=True,
+                                                account_type=AWS_ACCOUNT_TYPE
+                                                )
+    logger.info('Account Registration Response: %s' % response)
+    return response
+
+def register_features(falcon_cloud, aws_account_id, org_id):
+    """Function to register account with Cloud features"""
+    cloud_response = falcon_cloud.create_account(account_id=aws_account_id,
+                                        organization_id=org_id,
+                                        user_agent=USERAGENT,
+                                        is_master=True,
+                                        account_type=AWS_ACCOUNT_TYPE,
+                                        products=[
+                                                    {
+                                                        "features":["default"],
+                                                        "product": "idp"
+                                                    }
+                                                ]
+                                        )
+    logger.info('Feature Registration Response: %s' % cloud_response)
+
+def update_account(falcon_cspm, aws_account_id, org_id):
+    """Function to update CSPM Registration"""
+    if EXISTING_CLOUDTRAIL:
+        payload = {
+            "resources": [
+                {
+                    'account_id':aws_account_id,
+                    'organization_id':org_id,
+                    'behavior_assessment_enabled':True,
+                    'sensor_management_enabled':True,
+                    'dspm_enabled':True,
+                    'dspm_role':'CrowdStrikeDSPMIntegrationRole',
+                    'use_existing_cloudtrail':EXISTING_CLOUDTRAIL,
+                    'user_agent':USERAGENT,
+                    'is_master':True,
+                    'account_type':AWS_ACCOUNT_TYPE
+                }
+            ]
+        }
+    else:
+        payload = {
+            "resources": [
+                {
+                    'account_id':aws_account_id,
+                    'organization_id':org_id,
+                    'behavior_assessment_enabled':True,
+                    'sensor_management_enabled':True,
+                    'dspm_enabled':True,
+                    'dspm_role':'CrowdStrikeDSPMIntegrationRole',
+                    'use_existing_cloudtrail':EXISTING_CLOUDTRAIL,
+                    'cloudtrail_region':AWS_REGION,
+                    'user_agent':USERAGENT,
+                    'is_master':True,
+                    'account_type':AWS_ACCOUNT_TYPE
+                }
+            ]
+        }
+    response = falcon_cspm.update_aws_account(body=payload)
+    logger.info('Account Update Response: %s' % response)
+    return response
+
+def update_features(falcon_cloud, aws_account_id, org_id):
+    """Function to update Cloud features"""
+    cloud_response = falcon_cloud.update_account(account_id=aws_account_id,
+                                        organization_id=org_id,
+                                        user_agent=USERAGENT,
+                                        is_master=True,
+                                        account_type=AWS_ACCOUNT_TYPE,
+                                        products=[
+                                                    {
+                                                        "features":["default"],
+                                                        "product": "idp"
+                                                    }
+                                                ]
+                                        )
+    logger.info('Feature Update Response: %s' % cloud_response)
+
+def format_response(response, regions, ssm_regions, comm_gov_eb_regions):
+    """Function to format response for CloudFormation"""
+    cs_account = response['body']['resources'][0]['intermediate_role_arn'].rsplit('::')[1]
+    response_d = {
+        "cs_account_id": cs_account.rsplit(':')[0],
+        "iam_role_name": response['body']['resources'][0]['iam_role_arn'].rsplit('/')[1],
+        "intermediate_role_arn": response['body']['resources'][0]['intermediate_role_arn'],
+        "cs_role_name": response['body']['resources'][0]['intermediate_role_arn'].rsplit('/')[1],
+        "external_id": response['body']['resources'][0]['external_id'],
+        "dspm_role_arn": response['body']['resources'][0]['dspm_role_arn']
+    }
+    if not EXISTING_CLOUDTRAIL:
+        response_d['cs_bucket_name'] = response['body']['resources'][0]['aws_cloudtrail_bucket_name']
+    if FALCON_ACCOUNT_TYPE == "commercial":
+        response_d['eventbus_name'] = response['body']['resources'][0]['eventbus_name']
+        response_d['my_regions'] = regions
+        response_d['ssm_regions'] = ssm_regions
+    elif FALCON_ACCOUNT_TYPE == "govcloud" and AWS_ACCOUNT_TYPE == "govcloud" :
+        eventbus_arn = response['body']['resources'][0]['eventbus_name'].rsplit(',')[0]
+        response_d['eventbus_name'] = eventbus_arn.rsplit('/')[1]
+        response_d['my_regions'] = regions
+        response_d['ssm_regions'] = ssm_regions
+    elif FALCON_ACCOUNT_TYPE == "govcloud" and AWS_ACCOUNT_TYPE == "commercial" :
+        response_d['comm_gov_eb_regions'] = comm_gov_eb_regions
+        response_d['my_regions'] = regions
+        response_d['ssm_regions'] = ssm_regions
+    return response_d
 
 def cfnresponse_send(event, response_status, response_data, physical_resource_id=None):
     """Function sending response to CloudFormation."""
@@ -155,95 +315,34 @@ def lambda_handler(event, context):
             secrets_dict = json.loads(secret_str)
             falcon_client_id = secrets_dict['FalconClientId']
             falcon_secret = secrets_dict['FalconSecret']
-            falcon = CSPMRegistration(client_id=falcon_client_id,
-                                    client_secret=falcon_secret,
-                                    base_url=CS_CLOUD,
-                                    user_agent=USERAGENT
-                                    )
-            if event['RequestType'] in ['Create']:
-                logger.info('Event = %s' % event)
-                if EXISTING_CLOUDTRAIL:
-                    response = falcon.create_aws_account(account_id=aws_account_id,
-                                                        organization_id=org_id,
-                                                        behavior_assessment_enabled=True,
-                                                        sensor_management_enabled=True,
-                                                        dspm_enabled=True,
-                                                        dspm_role='CrowdStrikeDSPMIntegrationRole',
-                                                        use_existing_cloudtrail=EXISTING_CLOUDTRAIL,
-                                                        user_agent=USERAGENT,
-                                                        is_master=True,
-                                                        account_type=AWS_ACCOUNT_TYPE
-                                                        )
-                else:
-                    response = falcon.create_aws_account(account_id=aws_account_id,
-                                                        organization_id=org_id,
-                                                        behavior_assessment_enabled=True,
-                                                        sensor_management_enabled=True,
-                                                        dspm_enabled=True,
-                                                        dspm_role='CrowdStrikeDSPMIntegrationRole',
-                                                        use_existing_cloudtrail=EXISTING_CLOUDTRAIL,
-                                                        cloudtrail_region=AWS_REGION,
-                                                        user_agent=USERAGENT,
-                                                        is_master=True,
-                                                        account_type=AWS_ACCOUNT_TYPE
-                                                        )
-                logger.info('Response: %s' % response)
-                if response['status_code'] == 201:
-                    cs_account = response['body']['resources'][0]['intermediate_role_arn'].rsplit('::')[1]
-                    response_d = {
-                        "cs_account_id": cs_account.rsplit(':')[0],
-                        "iam_role_name": response['body']['resources'][0]['iam_role_arn'].rsplit('/')[1],
-                        "intermediate_role_arn": response['body']['resources'][0]['intermediate_role_arn'],
-                        "cs_role_name": response['body']['resources'][0]['intermediate_role_arn'].rsplit('/')[1],
-                        "external_id": response['body']['resources'][0]['external_id'],
-                        "dspm_role_arn": response['body']['resources'][0]['dspm_role_arn']
-                    }
-                    if not EXISTING_CLOUDTRAIL:
-                        response_d['cs_bucket_name'] = response['body']['resources'][0]['aws_cloudtrail_bucket_name']
-                    if FALCON_ACCOUNT_TYPE == "commercial":
-                        response_d['eventbus_name'] = response['body']['resources'][0]['eventbus_name']
-                        response_d['my_regions'] = regions
-                        response_d['ssm_regions'] = ssm_regions
-                    elif FALCON_ACCOUNT_TYPE == "govcloud" and AWS_ACCOUNT_TYPE == "govcloud" :
-                        eventbus_arn = response['body']['resources'][0]['eventbus_name'].rsplit(',')[0]
-                        response_d['eventbus_name'] = eventbus_arn.rsplit('/')[1]
-                        response_d['my_regions'] = regions
-                        response_d['ssm_regions'] = ssm_regions
-                    elif FALCON_ACCOUNT_TYPE == "govcloud" and AWS_ACCOUNT_TYPE == "commercial" :
-                        response_d['comm_gov_eb_regions'] = comm_gov_eb_regions
-                        response_d['my_regions'] = regions
-                        response_d['ssm_regions'] = ssm_regions
-                    cfnresponse_send(event, SUCCESS, response_d, "CustomResourcePhysicalID")
-                elif 'already exists' in response['body']['errors'][0]['message']:
-                    logger.info(response['body']['errors'][0]['message'])
-                    logger.info('Getting existing registration data...')
-                    response = falcon.get_aws_account(organization_ids=org_id,
-                                                      user_agent=USERAGENT)
-                    logger.info('Existing Registration Response: %s' % response)
-                    cs_account = response['body']['resources'][0]['intermediate_role_arn'].rsplit('::')[1]
-                    response_d = {
-                        "cs_account_id": cs_account.rsplit(':')[0],
-                        "iam_role_name": response['body']['resources'][0]['iam_role_arn'].rsplit('/')[1],
-                        "intermediate_role_arn": response['body']['resources'][0]['intermediate_role_arn'],
-                        "cs_role_name": response['body']['resources'][0]['intermediate_role_arn'].rsplit('/')[1],
-                        "external_id": response['body']['resources'][0]['external_id'],
-                        "dspm_role_arn": response['body']['resources'][0]['dspm_role_arn']
-                    }
-                    if not EXISTING_CLOUDTRAIL:
-                        response_d['cs_bucket_name'] = response['body']['resources'][0]['aws_cloudtrail_bucket_name']
-                    if FALCON_ACCOUNT_TYPE == "commercial":
-                        response_d['eventbus_name'] = response['body']['resources'][0]['eventbus_name']
-                        response_d['my_regions'] = regions
-                        response_d['ssm_regions'] = ssm_regions
-                    elif FALCON_ACCOUNT_TYPE == "govcloud" and AWS_ACCOUNT_TYPE == "govcloud" :
-                        eventbus_arn = response['body']['resources'][0]['eventbus_name'].rsplit(',')[0]
-                        response_d['eventbus_name'] = eventbus_arn.rsplit('/')[1]
-                        response_d['my_regions'] = regions
-                        response_d['ssm_regions'] = ssm_regions
-                    elif FALCON_ACCOUNT_TYPE == "govcloud" and AWS_ACCOUNT_TYPE == "commercial" :
-                        response_d['comm_gov_eb_regions'] = comm_gov_eb_regions
-                        response_d['my_regions'] = regions
-                        response_d['ssm_regions'] = ssm_regions
+            falcon_cspm = CSPMRegistration(client_id=falcon_client_id,
+                                          client_secret=falcon_secret,
+                                          base_url=CS_CLOUD,
+                                          user_agent=USERAGENT
+                                          )
+            if event['RequestType'] in ['Delete']:
+                if IDENTITY_PROTECTION:
+                    falcon_cloud = CloudAWSRegistration(client_id=falcon_client_id,
+                                                       client_secret=falcon_secret,
+                                                       user_agent=USERAGENT
+                                                       )
+                    falcon_cloud.delete_account(organization_ids=org_id,
+                                               user_agent=USERAGENT
+                                               )
+                response = falcon_cspm.delete_aws_account(organization_ids=org_id,
+                                                         user_agent=USERAGENT
+                                                         )
+                cfnresponse_send(event, 'SUCCESS', response['body'], "CustomResourcePhysicalID")
+            else:
+                response = process_account(falcon_cspm, aws_account_id, org_id)
+                if response['status_code'] == 201 or response['status_code'] == 200:
+                    response_d = format_response(response, regions, ssm_regions, comm_gov_eb_regions)
+                    if IDENTITY_PROTECTION:
+                        falcon_cloud = CloudAWSRegistration(client_id=falcon_client_id,
+                                                           client_secret=falcon_secret,
+                                                           user_agent=USERAGENT
+                                                           )
+                        process_features(falcon_cloud, aws_account_id, org_id)
                     cfnresponse_send(event, SUCCESS, response_d, "CustomResourcePhysicalID")
                 else:
                     error = response['body']['errors'][0]['message']
@@ -252,46 +351,7 @@ def lambda_handler(event, context):
                         "reason": response['body']['errors'][0]['message']
                     }
                     cfnresponse_send(event, FAILED, response_d, "CustomResourcePhysicalID")
-            elif event['RequestType'] in ['Update']:
-                response_d = {}
-                logger.info('Event = %s' % event['RequestType'])
-                logger.info('Getting existing registration data...')
-                response = falcon.get_aws_account(organization_ids=org_id,
-                                                    user_agent=USERAGENT)
-                logger.info('Existing Registration Response: %s' % response)
-                cs_account = response['body']['resources'][0]['intermediate_role_arn'].rsplit('::')[1]
-                response_d = {
-                    "cs_account_id": cs_account.rsplit(':')[0],
-                    "iam_role_name": response['body']['resources'][0]['iam_role_arn'].rsplit('/')[1],
-                    "intermediate_role_arn": response['body']['resources'][0]['intermediate_role_arn'],
-                    "cs_role_name": response['body']['resources'][0]['intermediate_role_arn'].rsplit('/')[1],
-                    "external_id": response['body']['resources'][0]['external_id'],
-                    "dspm_role_arn": response['body']['resources'][0]['dspm_role_arn']
-                }
-                if not EXISTING_CLOUDTRAIL:
-                    response_d['cs_bucket_name'] = response['body']['resources'][0]['aws_cloudtrail_bucket_name']
-                if FALCON_ACCOUNT_TYPE == "commercial":
-                    response_d['eventbus_name'] = response['body']['resources'][0]['eventbus_name']
-                    response_d['my_regions'] = regions
-                    response_d['ssm_regions'] = ssm_regions
-                elif FALCON_ACCOUNT_TYPE == "govcloud" and AWS_ACCOUNT_TYPE == "govcloud" :
-                    eventbus_arn = response['body']['resources'][0]['eventbus_name'].rsplit(',')[0]
-                    response_d['eventbus_name'] = eventbus_arn.rsplit('/')[1]
-                    response_d['my_regions'] = regions
-                    response_d['ssm_regions'] = ssm_regions
-                elif FALCON_ACCOUNT_TYPE == "govcloud" and AWS_ACCOUNT_TYPE == "commercial" :
-                    response_d['comm_gov_eb_regions'] = comm_gov_eb_regions
-                    response_d['my_regions'] = regions
-                    response_d['ssm_regions'] = ssm_regions
-                cfnresponse_send(event, SUCCESS, response_d, "CustomResourcePhysicalID")
-            elif event['RequestType'] in ['Delete']:
-                logger.info('Event = %s' % event['RequestType'])
-                response = falcon.delete_aws_account(organization_ids=org_id,
-                                                    user_agent=USERAGENT
-                                                    )
-                cfnresponse_send(event, 'SUCCESS', response['body'], "CustomResourcePhysicalID")
-    except Exception as err:  # noqa: E722
-        # We can't communicate with the endpoint
+    except Exception as err:
         logger.info('Registration Failed %s' % err)
         error = str(err)
         response_d = {"reason": error}
