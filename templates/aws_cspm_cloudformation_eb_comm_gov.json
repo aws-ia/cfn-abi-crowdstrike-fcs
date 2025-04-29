@@ -1,121 +1,132 @@
 {
-    "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "Setup script to enable CrowdStrike Falcon CSPM.",
-    "Parameters": {
-      "DefaultEventBusRegion": {
-        "Type": "String",
-        "Default": "us-east-1"
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Setup script to enable CrowdStrike Falcon CSPM.",
+  "Parameters": {
+    "DefaultEventBusRegion": {
+      "Type": "String",
+      "Default": "us-east-1"
+    }
+  },
+  "Resources": {
+    "CrowdStrikeEventBusRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "cs-cloudtrail-events-ioa-rule",
+        "EventPattern": {
+          "source": [
+            {
+              "prefix": "aws."
+            }
+          ],
+          "detail-type": [
+            {
+              "suffix": "via CloudTrail"
+            }
+          ],
+          "detail": {
+            "eventName": [
+              {
+                "anything-but": [
+                  "InvokeExecution",
+                  "Invoke",
+                  "UploadPart",
+                  "PutObject",
+                  "InitiateReplication",
+                  "Publish"
+                ]
+              }
+            ],
+            "readOnly": [
+              false
+            ]
+          }
+        },
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::Sub": "arn:aws:events:${DefaultEventBusRegion}:${AWS::AccountId}:event-bus/default"
+            },
+            "RoleArn": {
+              "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/CrowdStrikeCSPMEventBridge"
+            },
+            "Id": "CrowdStrikeCentralizeEvents"
+          }
+        ]
       }
     },
-    "Resources": {
-      "CrowdStrikeEventBusRule": {
-        "Type": "AWS::Events::Rule",
-        "Properties": {
-          "Name": "cs-cloudtrail-events-ioa-rule",
-          "EventPattern": {
-            "source" : [
-              {
-                "prefix" : "aws."
-              }
-            ],
-            "detail-type": [
-              {
-                "suffix" : "via CloudTrail"
-              }
-            ],
-            "detail": {
-              "eventName": [
-                {
-                  "anything-but": [
-                    "InvokeExecution",
-                    "Invoke",
-                    "UploadPart"
-                  ]
-                }
-              ],
-              "readOnly": [
-                false
-              ]
-            }
-          },
-          "State": "ENABLED",
-          "Targets": [
+    "CrowdStrikeEventBusRuleRO": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "cs-cloudtrail-events-readonly-rule",
+        "EventPattern": {
+          "source": [
             {
-              "Arn": {
-                "Fn::Sub": "arn:aws:events:${DefaultEventBusRegion}:${AWS::AccountId}:event-bus/default"
-              },
-              "RoleArn": {
-                "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/CrowdStrikeCSPMEventBridge"
-              },
-              "Id": "CrowdStrikeCentralizeEvents"
+              "prefix": "aws."
             }
-          ]
-        }
-      },
-      "CrowdStrikeEventBusRuleRO": {
-        "Type": "AWS::Events::Rule",
-        "Properties": {
-          "Name": "cs-cloudtrail-events-readonly-rule",
-          "EventPattern": {
-            "source" : [
-              {
-                "prefix" : "aws."
+          ],
+          "detail-type": [
+            {
+              "suffix": "via CloudTrail"
+            }
+          ],
+          "detail": {
+            "readOnly": [
+              true
+            ]
+          },
+          "$or": [
+            {
+              "detail": {
+                "eventName": [
+                  {
+                    "anything-but": [
+                      "GetObject",
+                      "Encrypt",
+                      "Decrypt",
+                      "HeadObject",
+                      "ListObjects",
+                      "GenerateDataKey",
+                      "Sign",
+                      "AssumeRole",
+                      "GetObjectTagging",
+                      "GetObjectAcl"
+                    ]
+                  }
+                ]
               }
-            ],
-            "detail-type": [
-              {
-                "suffix" : "via CloudTrail"
-              }
-            ],
-            "detail": {
-              "readOnly": [
-                true
-              ]
             },
-            "$or": [
-              {
-                "detail": {
-                  "eventName": [
+            {
+              "detail": {
+                "eventName": [
+                  "AssumeRole"
+                ],
+                "userIdentity": {
+                  "type": [
                     {
                       "anything-but": [
-                        "GetObject",
-                        "Encrypt",
-                        "Decrypt",
-                        "HeadObject",
-                        "ListObjects",
-                        "GenerateDataKey",
-                        "Sign",
-                        "AssumeRole"
+                        "AWSService"
                       ]
                     }
                   ]
                 }
-              },
-              {
-                "detail": {
-                  "eventName": ["AssumeRole"],
-                  "userIdentity": {
-                    "type": [{
-                      "anything-but": ["AWSService"]
-                    }]
-                  }
-                }
               }
-            ]
-          },
-          "State": "ENABLED",
-          "Targets": [
-            {
-              "Arn": {
-                "Fn::Sub": "arn:aws:events:${DefaultEventBusRegion}:${AWS::AccountId}:event-bus/default"
-              },
-              "RoleArn": {
-                "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/CrowdStrikeCSPMEventBridge"
-              },
-              "Id": "CrowdStrikeCentralizeEvents"
             }
           ]
-        }
+        },
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::Sub": "arn:aws:events:${DefaultEventBusRegion}:${AWS::AccountId}:event-bus/default"
+            },
+            "RoleArn": {
+              "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/CrowdStrikeCSPMEventBridge"
+            },
+            "Id": "CrowdStrikeCentralizeEvents"
+          }
+        ]
       }
     }
   }
+}
