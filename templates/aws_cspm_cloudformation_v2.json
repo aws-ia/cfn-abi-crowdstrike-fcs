@@ -338,8 +338,8 @@
                 {
                   "Effect": "Allow",
                   "Resource": [
-                    "arn:aws:apigateway:*::/restapis/*",
-                    "arn:aws:apigateway:*::/apis/*"
+                    {"Fn::Sub": "arn:${AWS::Partition}:apigateway:*::/restapis/*"},
+                    {"Fn::Sub": "arn:${AWS::Partition}:apigateway:*::/apis/*"}
                   ],
                   "Action": [
                     "apigateway:Get"
