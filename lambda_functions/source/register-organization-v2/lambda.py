@@ -22,7 +22,7 @@ logger.setLevel(logging.INFO)
 SUCCESS = "SUCCESS"
 FAILED = "FAILED"
 
-VERSION = "1.3.0"
+VERSION = "1.4.0"
 NAME = "crowdstrike-cloud-abi"
 USERAGENT = ("%s/%s" % (NAME, VERSION))
 
@@ -264,8 +264,8 @@ def format_response(response, regions, ssm_regions, comm_gov_eb_regions):
         response_d['my_regions'] = regions
         response_d['ssm_regions'] = ssm_regions
     elif FALCON_ACCOUNT_TYPE == "govcloud" and AWS_ACCOUNT_TYPE == "govcloud" :
-        eventbus_arn = response['body']['resources'][0]['eventbus_name'].rsplit(',')[0]
-        response_d['eventbus_name'] = eventbus_arn.rsplit('/')[1]
+        eventbus_name = response['body']['resources'][0]['eventbus_name'].rsplit(',')[0]
+        response_d['eventbus_name'] = eventbus_name
         response_d['my_regions'] = regions
         response_d['ssm_regions'] = ssm_regions
     elif FALCON_ACCOUNT_TYPE == "govcloud" and AWS_ACCOUNT_TYPE == "commercial" :
