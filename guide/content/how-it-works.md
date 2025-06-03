@@ -68,5 +68,7 @@ This is accoomplished by
 1. IAM Roles in each account to provide permissions to push images to CrowdStrike Falcon.
 2. Lambda function in each account to register ECR Registries with Registry Connection service.
 
+**Note:** This will connect registries in each AWS Account of the org, for each region.
+
 
 **Next:** Choose [Architecture](/architecture/index.html).
