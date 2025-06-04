@@ -466,12 +466,20 @@ Mappings:
     eu1: 
       BaseURL: "https://api.eu-1.crowdstrike.com"
       CrowdStrikeCloud: eu-1
+    usgov1:
+      BaseURL: "https://api.laggar.gcw.crowdstrike.com"
+      CrowdStrikeCloud: us-gov-1
+    usgov2:
+      BaseURL: "https://api.us-gov-2.crowdstrike.mil"
+      CrowdStrikeCloud: us-gov-2
+
 
 Conditions:
   CreateIOAResources: !Equals [ !Ref 'EnableIOA', true ]
   CreateIOATrail: !Equals [ !Ref 'CreateIOAOrgTrail', true ]
   CreateOrgTrail: !Equals [ !Ref 'CreateSRAOrgTrail', true ]
   ExcludeRegionsEmpty:  !Equals [!Ref 'ExcludeRegions', '']
+  IsGovAWSAccount: !Equals [ !Ref 'AWSAccountType', govlcoud ]
   CreateSSMAssociations: !Equals [ !Ref 'EnableSSMDistributor', true ]
   IsCommercialIOA: !And [!Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', commercial ], !Equals [!Ref 'EnableIOA', true ]]
   IsGovCloudIOA: !And [!Equals [ !Ref 'AWSAccountType', govcloud ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
@@ -480,6 +488,7 @@ Conditions:
   IsCommToComm: !And [ !Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', commercial ]]
   IsGovToGov: !And [ !Equals [ !Ref 'AWSAccountType', govcloud ], !Equals [ !Ref 'FalconAccountType', govcloud ]]
   IsCommToGovCloud: !And [!Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', govcloud ]]
+  CreateCommercialSSM
   SetPermissionsBoundary: !Not [ !Equals [ !Ref PermissionsBoundary, '' ]]
   IsDelegatedAdmin: !Equals [ !Ref 'DelegatedAdmin', true ]
   NotDelegatedAdminCommIOA: !And [ !Equals [ !Ref 'DelegatedAdmin', false ], !Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', commercial ], !Equals [!Ref 'EnableIOA', true ]]
@@ -544,6 +553,11 @@ Resources:
           ParameterValue: !Ref FalconClientID
         - ParameterKey: FalconSecret
           ParameterValue: !Ref FalconSecret
+        - !If
+          - IsGovAWSAccount
+          - ParameterKey: S3BucketSourceUrl
+            ParameterValue: !Sub "s3://${SourceS3BucketName}/${SourceS3BucketNamePrefix}/ssm"
+          - !Ref AWS::NoValue
       AutoDeployment:
         Enabled: true
         RetainStacksOnAccountRemoval: true
@@ -552,7 +566,7 @@ Resources:
             AccountFilterType: NONE
             OrganizationalUnitIds: !Ref DeploymentScope
           Regions: !GetAtt TriggerRegisterAccountLambda.ssm_regions
-      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/ssm-association-stackset.yml
+      TemplateURL: !If [IsGovAWSAccount, !Sub "https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/ssm-association-stackset-gov.yml", !Sub "https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/ssm-association-stackset.yml"]
 
   SSMSetupStackSet:
     Type: 'AWS::CloudFormation::StackSet'
