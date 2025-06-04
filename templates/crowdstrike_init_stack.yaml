@@ -34,7 +34,6 @@ Metadata:
           default: Deploy Falcon Sensors with SSM Distributor
         Parameters:
           - EnableSSMDistributor
-          - DocumentVersion
           - AutomationAssumeRole
           - ApplyOnlyAtCronInterval
           - ScheduleExpression
@@ -122,8 +121,6 @@ Metadata:
       # Deploy Falcon Sensors with SSM Distributor
       EnableSSMDistributor:
         default: Enable Falcon SSM Distributor
-      DocumentVersion:
-        default: Automation Document Version
       AutomationAssumeRole:
         default: SSM Execution Role
       ApplyOnlyAtCronInterval:
@@ -313,11 +310,6 @@ Parameters:
     Description: The maximum number of targets allowed to run the association at the same time. You can specify a number, for example 10, or a percentage of the target set, for example 10%. The default value is 100%, which means all targets run the association at the same time.
     Type: String
     Default: '20%'
-  DocumentVersion:
-    Description: The version of the SSM document to associate with the target.
-    Type: String
-    Default: '2'
-    AllowedPattern: '([$]LATEST|[$]DEFAULT|^[1-9][0-9]*$)'
   
   # AWS S3 Bucket
   SourceS3BucketName:
@@ -527,8 +519,6 @@ Resources:
       ManagedExecution:
         Active: true
       Parameters:
-        - ParameterKey: DocumentVersion
-          ParameterValue: !Ref DocumentVersion
         - ParameterKey: SecretsManagerSecretName
           ParameterValue: !Join ['-', ['cs-abi-FalconAPI-SSM', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
         - ParameterKey: SecretStorageMethod

@@ -1,7 +1,6 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Association for CrowdStrike Falcon SSM Distributor
-
 Parameters:
   AutomationAssumeRole:
     Description: Execution Role for CrowdStrike SSM Distributor Package.
@@ -9,30 +8,37 @@ Parameters:
   Action:
     Description: Specify whether or not to install or uninstall the package.
     Type: String
-    AllowedValues: [ "Install", "Uninstall"]
+    AllowedValues: [Install, Uninstall]
   SecretStorageMethod:
-    Description: The method used to store the FalconClientId, FalconClientSecret, and FalconCloud for the CrowdStrike APIs.
+    Description: The method used to store the FalconClientId, FalconClientSecret,
+      and FalconCloud for the CrowdStrike APIs.
     Type: String
-    AllowedValues: [ "ParameterStore", "SecretsManager"]
+    AllowedValues: [ParameterStore, SecretsManager]
   SecretsManagerSecretName:
-    Description: Secrets Manager Secret Name that contains the Falcon ClientId, ClientSecret, and Cloud for the CrowdStrike APIs. Required if SecretStorageMethod is SecretsManager.
+    Description: Secrets Manager Secret Name that contains the Falcon ClientId, ClientSecret,
+      and Cloud for the CrowdStrike APIs. Required if SecretStorageMethod is SecretsManager.
     Type: String
-  DocumentVersion:
-    Description: The version of the SSM document to associate with the target.
-    Type: String
-    Default: '2'
-    AllowedPattern: '([$]LATEST|[$]DEFAULT|^[1-9][0-9]*$)'
   ApplyOnlyAtCronInterval:
-    Description: By default, when you create a new association, the system runs it immediately after it is created and then according to the schedule you specified. Specify true if you don't want an association to run immediately after you create it. .
+    Description: By default, when you create a new association, the system runs it
+      immediately after it is created and then according to the schedule you specified.
+      Specify true if you don't want an association to run immediately after you create
+      it. .
     Type: String
   ScheduleExpression:
-    Description: A cron expression that specifies a schedule when the association runs. The schedule runs in Coordinated Universal Time (UTC).
+    Description: A cron expression that specifies a schedule when the association
+      runs. The schedule runs in Coordinated Universal Time (UTC).
     Type: String
   MaxErrors:
-    Description: The number of errors that are allowed before the system stops sending requests to run the association on additional targets. You can specify either an absolute number of errors, for example 10, or a percentage of the target set, for example 10%.
+    Description: The number of errors that are allowed before the system stops sending
+      requests to run the association on additional targets. You can specify either
+      an absolute number of errors, for example 10, or a percentage of the target
+      set, for example 10%.
     Type: String
   MaxConcurrency:
-    Description: The maximum number of targets allowed to run the association at the same time. You can specify a number, for example 10, or a percentage of the target set, for example 10%. The default value is 100%, which means all targets run the association at the same time.
+    Description: The maximum number of targets allowed to run the association at the
+      same time. You can specify a number, for example 10, or a percentage of the
+      target set, for example 10%. The default value is 100%, which means all targets
+      run the association at the same time.
     Type: String
   FalconClientID:
     Description: Your Falcon OAuth2 Client ID.
@@ -41,11 +47,10 @@ Parameters:
   FalconSecret:
     Description: Your Falcon OAuth2 API Secret.
     NoEcho: 'true'
-    Type: String  
+    Type: String
   BaseURL:
     Description: Your Falcon OAuth2 API Base URL.
     Type: String
-
 Resources:
   CrowdStrikeSecrets:
     Type: AWS::SecretsManager::Secret
@@ -53,43 +58,38 @@ Resources:
       checkov:
         skip:
           - id: CKV_AWS_149
-            comment: The default key aws/secretsmanager is sufficient to secure this resource
+            comment: The default key aws/secretsmanager is sufficient to secure this
+              resource
     Properties:
       Description: CrowdStrike Falcon Credentials for SSM Distributor
       Name: !Ref SecretsManagerSecretName
       SecretString:
         Fn::Join:
           - ''
-          - - '{"ClientId":"'
-            - Ref: "FalconClientID"
-            - '","ClientSecret":"'
-            - Ref: "FalconSecret"
-            - '","Cloud": "'
-            - Ref: BaseURL
-            - '"}'
-
+          -   - '{"ClientId":"'
+              - Ref: FalconClientID
+              - '","ClientSecret":"'
+              - Ref: FalconSecret
+              - '","Cloud": "'
+              - Ref: BaseURL
+              - '"}'
   CrowdStrikeSSMAssociation:
     Type: AWS::SSM::Association
     DependsOn: CrowdStrikeSecrets
-    Properties: 
-      Name: 'CrowdStrike-FalconSensorDeploy'
-      AssociationName: 'crowdstrike-falcon-sensor-deploy'
-      AutomationTargetParameterName: 'InstanceIds'
+    Properties:
+      Name: CrowdStrike-FalconSensorDeploy
+      AssociationName: crowdstrike-falcon-sensor-deploy
+      AutomationTargetParameterName: InstanceIds
       Targets:
         - Key: InstanceIds
-          Values:
-            - '*'
+          Values: ['*']
       Parameters:
         AutomationAssumeRole:
-        - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${AutomationAssumeRole}
-        Action:
-        - !Ref Action
-        SecretStorageMethod:
-        - !Ref SecretStorageMethod
-        SecretsManagerSecretName:
-        - !Ref SecretsManagerSecretName
+          - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${AutomationAssumeRole}
+        Action: [!Ref Action]
+        SecretStorageMethod: [!Ref SecretStorageMethod]
+        SecretsManagerSecretName: [!Ref SecretsManagerSecretName]
       MaxConcurrency: !Ref MaxConcurrency
       MaxErrors: !Ref MaxErrors
       ApplyOnlyAtCronInterval: !Ref ApplyOnlyAtCronInterval
       ScheduleExpression: !Ref ScheduleExpression
-      DocumentVersion: !Ref DocumentVersion
