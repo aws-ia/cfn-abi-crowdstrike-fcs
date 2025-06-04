@@ -22,7 +22,7 @@ logger.setLevel(logging.INFO)
 SUCCESS = "SUCCESS"
 FAILED = "FAILED"
 
-VERSION = "1.4.0"
+VERSION = "1.5.0"
 NAME = "crowdstrike-cloud-abi"
 USERAGENT = ("%s/%s" % (NAME, VERSION))
 
@@ -257,6 +257,7 @@ def format_response(response, regions, ssm_regions, comm_gov_eb_regions):
         "external_id": response['body']['resources'][0]['external_id'],
         "dspm_role_arn": response['body']['resources'][0]['dspm_role_arn']
     }
+    response_d['regions_parameter'] = ','.join(regions)
     if not EXISTING_CLOUDTRAIL:
         response_d['cs_bucket_name'] = response['body']['resources'][0]['aws_cloudtrail_bucket_name']
     if FALCON_ACCOUNT_TYPE == "commercial":

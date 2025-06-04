@@ -70,7 +70,7 @@ description: GovCloud Deployment steps.
             * **Cron Schedule Expression**: If EnableSSMDistributor is `true`: Define the schedule or rate by which the SSM Automation runs. The default is `cron(0 0 */1 * * ? *)` (runs every hour)
             * **Max Errors Allowed**: If EnableSSMDistributor is `true`: The number or percent of errors that are allowed before the system stops sending requests to run the association on additional targets. The default is `10%`
             * **Max Concurrency Allowed**: If EnableSSMDistributor is `true`: The maximum number or percent of targets allowed to run the association at the same time. The default is `20%`
-        * ECR Registry Connections **Skip, this is not supported in GovCloud yet**
+        * ECR Registry Connections
             * **Enable ECR Connections for Image Assessment**: Whether to set up ECR Registry Connections for Image Assessments
             * **ECR Execution Role Name**: The name of the role that will be used for Lambda execution.
             * **ECR Lambda Function Name**: The name of the lambda function used to register ECR registry connections.

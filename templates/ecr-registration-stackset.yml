@@ -31,14 +31,49 @@ Parameters:
   StackId:
     Type: String
     Description: Unique Stack Id
+  Regions:
+    Type: String
+    Description: Which regions to register ECR
   SourceS3BucketNamePrefix:
     Description:
       Staging S3 bucket name prefix for the artifacts relevant to the solutions. (e.g., lambda zips, CloudFormation templates). The account
       and region are added to the prefix <bucket-name-prefix>-<account-id>-<region>. Example = staging-123456789012-us-east-1.
     Type: String
+  GovCloud:
+    Description: Whether this is a GovCloud account.
+    Type: String
+    AllowedValues:
+      - 'True'
+      - 'False'
+    Default: 'False'
+  CommToGovCloud:
+    Description: Whether this is a commercial AWS Account connecting to GovCloud Falcon.
+    Type: String
+    AllowedValues:
+      - 'True'
+      - 'False'
+    Default: 'False'
+  DisconnectUponDelete:
+    Description: Whether to automatically disconnect all ECR Registries from CrowdStrike upon deletion of this stack.
+    Type: String
+    AllowedValues:
+      - 'True'
+      - 'False'
+    Default: 'False'
+  CSCloud:
+    Type: String
+    Default: us1
+    AllowedValues: 
+      - 'us1'
+      - 'us2'
+      - 'eu1'
+      - 'usgov1'
+      - 'usgov2'
+    Description: The Cloud your CID is hosted in
 
 Conditions:
   SetPermissionsBoundary: !Not [ !Equals [ !Ref PermissionsBoundary, '' ]]
+  IsGov: !Equals [ !Ref 'GovCloud', 'True' ]
 
 Resources:
   CrowdStrikeSecrets:
@@ -147,8 +182,14 @@ Resources:
           secret_region: !Ref AWS::Region
           permissions_boundary: !If [SetPermissionsBoundary, !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}', '']
           crowdstrike_principal: arn:aws:iam::292230061137:role/CrowdStrikeCustomerRegistryAssessmentRole
-          gov_cloud: false
+          gov_cloud_principal: arn:aws-us-gov:iam::358431324613:role/CrowdStrikeCustomerRegistryAssessmentRole
+          gov_cloud: !Ref GovCloud
+          comm_to_gov_cloud: !Ref CommToGovCloud
           stack_id: !Ref StackId
+          disconnect_upon_delete: !Ref DisconnectUponDelete
+          cs_cloud: !Ref CSCloud
+          role_policy_arn: !If [IsGov, "arn:aws-us-gov:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly", "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"]
+          regions: !Ref Regions
       Handler: lambda.lambda_handler
       MemorySize: 128
       Role: !GetAtt ECRExecutionRole.Arn
