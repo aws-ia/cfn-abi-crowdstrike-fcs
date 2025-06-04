@@ -90,7 +90,7 @@ Resources:
     Type: AWS::SSM::Document
     Properties:
       Name: !Ref AutomationDocumentName
-      DocumentType: Automation
+      DocumentType: Package
       Attachments:
         - Key: SourceUrl
           Values: [!Ref S3BucketSourceUrl]
