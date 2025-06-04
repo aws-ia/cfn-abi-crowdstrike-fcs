@@ -1,10 +1,13 @@
 from pathlib import Path
+from urllib.request import urlretrieve, urlopen
+import json
 import sys
 import subprocess
 import shutil
 import os
 import tempfile
 import zipfile
+
 
 def package_directory(source_dir: Path, dest_dir: Path) -> None:
     """
@@ -14,16 +17,22 @@ def package_directory(source_dir: Path, dest_dir: Path) -> None:
         # Create temporary directory for packages
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
-            
+
             # Check for requirements.txt
             requirements_file = source_dir / "requirements.txt"
             if requirements_file.exists():
                 print(f"Installing requirements for {source_dir.name}...")
-                subprocess.run([
-                    "pip", "install",
-                    "-r", str(requirements_file),
-                    "--target", str(temp_path)
-                ], check=True)
+                subprocess.run(
+                    [
+                        "pip",
+                        "install",
+                        "-r",
+                        str(requirements_file),
+                        "--target",
+                        str(temp_path),
+                    ],
+                    check=True,
+                )
 
             # Create zip file
             zip_name = f"lambda.zip"
@@ -31,20 +40,16 @@ def package_directory(source_dir: Path, dest_dir: Path) -> None:
 
             # Add pip packages to zip
             if os.listdir(temp_path):
-                shutil.make_archive(
-                    str(zip_path.with_suffix('')),
-                    'zip',
-                    temp_path
-                )
-                
+                shutil.make_archive(str(zip_path.with_suffix("")), "zip", temp_path)
+
                 # Add Python files from source directory to existing zip
-                with zipfile.ZipFile(zip_path, 'a') as zipf:
-                    for file in source_dir.glob('*.py'):
+                with zipfile.ZipFile(zip_path, "a") as zipf:
+                    for file in source_dir.glob("*.py"):
                         zipf.write(file, file.name)
             else:
                 # If no requirements, just zip Python files
-                with zipfile.ZipFile(zip_path, 'w') as zipf:
-                    for file in source_dir.glob('*.py'):
+                with zipfile.ZipFile(zip_path, "w") as zipf:
+                    for file in source_dir.glob("*.py"):
                         zipf.write(file, file.name)
 
             print(f"Created package: {zip_path}")
@@ -53,6 +58,7 @@ def package_directory(source_dir: Path, dest_dir: Path) -> None:
         print(f"Error installing requirements: {str(e)}", file=sys.stderr)
     except Exception as e:
         print(f"Error creating package: {str(e)}", file=sys.stderr)
+
 
 def package_functions(source_path: str, destination_path: str) -> None:
     """
@@ -70,27 +76,28 @@ def package_functions(source_path: str, destination_path: str) -> None:
         destination.mkdir(parents=True, exist_ok=True)
 
         # Mirror directories and create packages
-        for dir_path in source.glob('**/'):
+        for dir_path in source.glob("**/"):
             if dir_path.is_dir():
                 # Skip __pycache__ and virtual environment directories
-                if dir_path.name in ['__pycache__', 'venv', '.env', '.venv']:
+                if dir_path.name in ["__pycache__", "venv", ".env", ".venv"]:
                     continue
 
                 # Calculate relative path
                 relative_path = dir_path.relative_to(source)
                 new_dir = destination / relative_path
-                
+
                 # Create new directory
                 new_dir.mkdir(parents=True, exist_ok=True)
                 print(f"\nProcessing directory: {relative_path}")
 
                 # Package the directory contents if it contains Python files
-                if list(dir_path.glob('*.py')):
+                if list(dir_path.glob("*.py")):
                     package_directory(dir_path, new_dir)
 
     except Exception as e:
         print(f"Error occurred: {str(e)}", file=sys.stderr)
         raise
+
 
 def copy_templates(source_dir: str, destination_dir: str) -> bool:
     """
@@ -113,11 +120,37 @@ def copy_templates(source_dir: str, destination_dir: str) -> bool:
         print(f"Error copying directory: {str(e)}", file=sys.stderr)
         return False
 
+
+def download_ssm_release(destination_dir: str):
+    """
+    Downloads the latest stable release of the custom api distributor package.
+    """
+    try:
+
+        with tempfile.NamedTemporaryFile() as tmpfile:
+            urlretrieve(
+                "https://github.com/ffalor/aws-ssm-distributor/releases/download/v0.0.2/custom-api-package.zip",
+                filename=tmpfile.name,
+            )
+
+            with zipfile.ZipFile(tmpfile.name) as zip_ref:
+                zip_ref.extractall(destination_dir)
+
+        print(f"Successfully created ssm distributor source: {destination_dir}")
+
+    except Exception as e:
+        print(f"Error occurred: {str(e)}", file=sys.stderr)
+        raise
+
+
 # Example usage
 if __name__ == "__main__":
     source_functions = "lambda_functions/source"
     destination_packages = "cfn-abi-crowdstrike-fcs/lambda_functions/packages"
     source_templates = "templates"
     destination_templates = "cfn-abi-crowdstrike-fcs/templates"
+    destination_distributor = "cfn-abi-crowdstrike-fcs/ssm"
     package_functions(source_functions, destination_packages)
     copy_templates(source_templates, destination_templates)
+    os.makedirs(destination_distributor, exist_ok=True)
+    download_ssm_release(destination_distributor)
