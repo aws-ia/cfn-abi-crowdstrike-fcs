@@ -65,7 +65,7 @@ def get_secret(event):
         secret = base64.b64decode(get_secret_value_response['SecretBinary'])
     return secret
 
-def create_role(external_id, STACK_ID):
+def create_role(external_id):
     """Function to create the IAM Role for ECR Registry Connection to CrowdStrike"""
     connection_role = f"{ROLE_NAME}-{STACK_ID}"
     if GOV_CLOUD:
@@ -274,7 +274,7 @@ def lambda_handler(event, context):
             falcon_secret = secrets_dict['FalconSecret']
             if event['RequestType'] in ['Create']:
                 external_id = generate_ids()
-                role_arn = create_role(external_id, STACK_ID)
+                role_arn = create_role(external_id)
                 print(f'Created role:\n{role_arn}\n')
                 regions = get_regions()
                 time.sleep(60)
