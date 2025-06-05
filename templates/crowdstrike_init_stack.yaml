@@ -555,7 +555,7 @@ Resources:
         - !If
           - IsGovAWSAccount
           - ParameterKey: S3BucketSourceUrl
-            ParameterValue: !Sub "s3://${SourceS3BucketName}/${SourceS3BucketNamePrefix}/ssm"
+            ParameterValue: !Sub "s3://${StagingS3Bucket}/${SourceS3BucketNamePrefix}/ssm"
           - !Ref AWS::NoValue
       AutoDeployment:
         Enabled: true
@@ -1314,7 +1314,10 @@ Resources:
                 Action:
                   - s3:GetObject
                   - s3:GetObjectTagging
+                  - s3:ListObjects
+                  - s3:ListBucket
                 Resource:
+                  - !Sub 'arn:${AWS::Partition}:s3:::${SourceS3BucketName}'
                   - !Sub 'arn:${AWS::Partition}:s3:::${SourceS3BucketName}/'
                   - !Sub 'arn:${AWS::Partition}:s3:::${SourceS3BucketName}/${SourceS3BucketNamePrefix}/*'
               - Effect: Allow
@@ -1368,6 +1371,18 @@ Resources:
               s3 = boto3.client('s3')
               for o in objects:
                   key = prefix + o
+                  copy_source = {
+                      'Bucket': source_bucket,
+                      'Key': key
+                  }
+                  print(('copy_source: %s' % copy_source))
+                  print(('dest_bucket = %s'%dest_bucket))
+                  print(('key = %s' %key))
+                  s3.copy_object(CopySource=copy_source, Bucket=dest_bucket,
+                      Key=key)
+              ssm_contents = s3.list_objects(Bucket=source_bucket,EncodingType='url',Prefix="cfn-abi-crowdstrike-fcs/ssm")['Contents']
+              for o in ssm_contents:
+                  key = o['Key']
                   copy_source = {
                       'Bucket': source_bucket,
                       'Key': key
