@@ -89,7 +89,7 @@ Resources:
   CrowdStrikeDistributorPackage:
     Type: AWS::SSM::Document
     Properties:
-      Name: !Ref AutomationDocumentName
+      Name: !Ref DistributorPackageName
       DocumentType: Package
       Attachments:
         - Key: SourceUrl
