@@ -1314,7 +1314,6 @@ Resources:
                 Action:
                   - s3:GetObject
                   - s3:GetObjectTagging
-                  - s3:ListObjects
                   - s3:ListBucket
                 Resource:
                   - !Sub 'arn:${AWS::Partition}:s3:::${SourceS3BucketName}'

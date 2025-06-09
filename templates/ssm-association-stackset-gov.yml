@@ -88,6 +88,12 @@ Resources:
               - '"}'
   CrowdStrikeDistributorPackage:
     Type: AWS::SSM::Document
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - E3051
+            - E1101
     Properties:
       Name: !Ref DistributorPackageName
       DocumentType: Package
