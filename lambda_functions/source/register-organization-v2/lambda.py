@@ -7,7 +7,7 @@ import sys
 import base64
 import subprocess
 import boto3
-import requests
+import urllib3
 from botocore.exceptions import ClientError
 
 # pip install falconpy package to /tmp/ and add to path
@@ -275,32 +275,34 @@ def format_response(response, regions, ssm_regions, comm_gov_eb_regions):
         response_d['ssm_regions'] = ssm_regions
     return response_d
 
-def cfnresponse_send(event, response_status, response_data, physical_resource_id=None):
+http = urllib3.PoolManager()
+
+def cfnresponse_send(event, context, responseStatus, responseData, physicalResourceId=None, noEcho=False, reason=None):
     """Function sending response to CloudFormation."""
-    response_url = event['ResponseURL']
-    print(response_url)
-    response_body = {}
-    response_body['Status'] = response_status
-    response_body['Reason'] = 'See the details in CloudWatch Log Stream: '
-    response_body['PhysicalResourceId'] = physical_resource_id
-    response_body['StackId'] = event['StackId']
-    response_body['RequestId'] = event['RequestId']
-    response_body['LogicalResourceId'] = event['LogicalResourceId']
-    response_body['Data'] = response_data
-    json_response_body = json.dumps(response_body)
-    print("Response body:\n" + json_response_body)
+    responseUrl = event['ResponseURL']
+    print(responseUrl)
+    responseBody = {
+        'Status' : responseStatus,
+        'Reason' : reason or "See the details in CloudWatch Log Group: {}".format(context.log_group_name),
+        'PhysicalResourceId' : physicalResourceId or context.log_stream_name,
+        'StackId' : event['StackId'],
+        'RequestId' : event['RequestId'],
+        'LogicalResourceId' : event['LogicalResourceId'],
+        'NoEcho' : noEcho,
+        'Data' : responseData
+    }
+    json_responseBody = json.dumps(responseBody)
+    print("Response body:")
+    print(json_responseBody)
     headers = {
-        'content-type': '',
-        'content-length': str(len(json_response_body))
+        'content-type' : '',
+        'content-length' : str(len(json_responseBody))
     }
     try:
-        response = requests.put(response_url,
-                                data=json_response_body,
-                                headers=headers,
-                                timeout=5)
-        print("Status code: " + response.reason)
+        response = http.request('PUT', responseUrl, headers=headers, body=json_responseBody)
+        print("Status code:", response.status)
     except Exception as e:
-        print("send(..) failed executing requests.put(..): " + str(e))
+        print("send(..) failed executing http.request(..):", e)
 
 def lambda_handler(event, context):
     """Function handler"""
@@ -333,7 +335,7 @@ def lambda_handler(event, context):
                 response = falcon_cspm.delete_aws_account(organization_ids=org_id,
                                                          user_agent=USERAGENT
                                                          )
-                cfnresponse_send(event, 'SUCCESS', response['body'], "CustomResourcePhysicalID")
+                cfnresponse_send(event, context, 'SUCCESS', response['body'], "CustomResourcePhysicalID")
             else:
                 response = process_account(falcon_cspm, aws_account_id, org_id)
                 if response['status_code'] == 201 or response['status_code'] == 200:
@@ -344,16 +346,16 @@ def lambda_handler(event, context):
                                                            user_agent=USERAGENT
                                                            )
                         process_features(falcon_cloud, aws_account_id, org_id)
-                    cfnresponse_send(event, SUCCESS, response_d, "CustomResourcePhysicalID")
+                    cfnresponse_send(event, context, SUCCESS, response_d, "CustomResourcePhysicalID")
                 else:
                     error = response['body']['errors'][0]['message']
                     logger.info('Account Registration Failed with reason....%s' % error)
                     response_d = {
                         "reason": response['body']['errors'][0]['message']
                     }
-                    cfnresponse_send(event, FAILED, response_d, "CustomResourcePhysicalID")
+                    cfnresponse_send(event, context, FAILED, response_d, "CustomResourcePhysicalID")
     except Exception as err:
         logger.info('Registration Failed %s' % err)
         error = str(err)
         response_d = {"reason": error}
-        cfnresponse_send(event, FAILED, response_d, "CustomResourcePhysicalID")
+        cfnresponse_send(event, context, FAILED, response_d, "CustomResourcePhysicalID")

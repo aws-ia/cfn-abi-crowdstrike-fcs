@@ -10,7 +10,7 @@ import random
 import string
 import time
 import boto3
-import requests
+import urllib3
 from botocore.exceptions import ClientError
 
 logger = logging.getLogger()
@@ -58,7 +58,7 @@ def get_secret(event):
         response = {
             "error": error
         }
-        cfnresponse_send(event, FAILED, response, "CustomResourcePhysicalID")
+        cfnresponse_send(event, context, FAILED, response, "CustomResourcePhysicalID")
     if 'SecretString' in get_secret_value_response:
         secret = get_secret_value_response['SecretString']
     else:
@@ -206,29 +206,34 @@ def delete_entities(falcon_client_id, falcon_secret, local_entities):
                                    )
     print(f'Response: {response}')
 
-def cfnresponse_send(event, response_status, response_data, physical_resource_id=None):
+http = urllib3.PoolManager()
+
+def cfnresponse_send(event, context, responseStatus, responseData, physicalResourceId=None, noEcho=False, reason=None):
     """Function sending response to CloudFormation."""
-    response_url = event['ResponseURL']
-    print(response_url)
-    response_body = {}
-    response_body['Status'] = response_status
-    response_body['Reason'] = 'See the details in CloudWatch Log Stream: '
-    response_body['PhysicalResourceId'] = physical_resource_id
-    response_body['StackId'] = event['StackId']
-    response_body['RequestId'] = event['RequestId']
-    response_body['LogicalResourceId'] = event['LogicalResourceId']
-    response_body['Data'] = response_data
-    json_response_body = json.dumps(response_body)
-    print("Response body:\n" + json_response_body)
-    headers = {
-        'content-type': '',
-        'content-length': str(len(json_response_body))
+    responseUrl = event['ResponseURL']
+    print(responseUrl)
+    responseBody = {
+        'Status' : responseStatus,
+        'Reason' : reason or "See the details in CloudWatch Log Group: {}".format(context.log_group_name),
+        'PhysicalResourceId' : physicalResourceId or context.log_stream_name,
+        'StackId' : event['StackId'],
+        'RequestId' : event['RequestId'],
+        'LogicalResourceId' : event['LogicalResourceId'],
+        'NoEcho' : noEcho,
+        'Data' : responseData
     }
-    response = requests.put(response_url,
-                            data=json_response_body,
-                            headers=headers,
-                            timeout=5)
-    print("Status code: " + response.reason)
+    json_responseBody = json.dumps(responseBody)
+    print("Response body:")
+    print(json_responseBody)
+    headers = {
+        'content-type' : '',
+        'content-length' : str(len(json_responseBody))
+    }
+    try:
+        response = http.request('PUT', responseUrl, headers=headers, body=json_responseBody)
+        print("Status code:", response.status)
+    except Exception as e:
+        print("send(..) failed executing http.request(..):", e)
 
 def generate_ids():
     ssm = boto3.client('ssm')
@@ -280,24 +285,24 @@ def lambda_handler(event, context):
                 time.sleep(60)
                 register_ecr(regions, role_arn, external_id, falcon_client_id, falcon_secret, account)
                 print('ECR Connection registration complete!')
-                cfnresponse_send(event, SUCCESS, response, "CustomResourcePhysicalID")
+                cfnresponse_send(event, context, SUCCESS, response, "CustomResourcePhysicalID")
             elif event['RequestType'] in ['Delete']:
                 if DISCONNECT_UPON_DELETE:
                     local_entities = get_entities(falcon_client_id, falcon_secret, account)
                     delete_entities(falcon_client_id, falcon_secret, local_entities)
                     delete_role(event)
                     print("Complete!")
-                cfnresponse_send(event, SUCCESS, response, "CustomResourcePhysicalID")
+                cfnresponse_send(event, context, SUCCESS, response, "CustomResourcePhysicalID")
             else:
                 print("complete")
-                cfnresponse_send(event, SUCCESS, response, "CustomResourcePhysicalID")
+                cfnresponse_send(event, context, SUCCESS, response, "CustomResourcePhysicalID")
         else:
             print("complete")
-            cfnresponse_send(event, SUCCESS, response, "CustomResourcePhysicalID")
+            cfnresponse_send(event, context, SUCCESS, response, "CustomResourcePhysicalID")
     except Exception as err:
         logger.info('Registration Failed %s' % err)
         error = str(err)
         response = {
             "error": error
         }
-        cfnresponse_send(event, FAILED, response, "CustomResourcePhysicalID")
+        cfnresponse_send(event, context, FAILED, response, "CustomResourcePhysicalID")
