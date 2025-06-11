@@ -1,0 +1,1435 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Association for CrowdStrike Falcon SSM Distributor
+Parameters:
+  AutomationAssumeRole:
+    Description: Execution Role for CrowdStrike SSM Distributor Package.
+    Type: String
+  Action:
+    Description: Specify whether or not to install or uninstall the package.
+    Type: String
+    AllowedValues: [Install, Uninstall]
+  SecretStorageMethod:
+    Description: The method used to store the FalconClientId, FalconClientSecret,
+      and FalconCloud for the CrowdStrike APIs.
+    Type: String
+    AllowedValues: [ParameterStore, SecretsManager]
+  SecretsManagerSecretName:
+    Description: Secrets Manager Secret Name that contains the Falcon ClientId, ClientSecret,
+      and Cloud for the CrowdStrike APIs. Required if SecretStorageMethod is SecretsManager.
+    Type: String
+  ApplyOnlyAtCronInterval:
+    Description: By default, when you create a new association, the system runs it
+      immediately after it is created and then according to the schedule you specified.
+      Specify true if you don't want an association to run immediately after you create
+      it. .
+    Type: String
+  ScheduleExpression:
+    Description: A cron expression that specifies a schedule when the association
+      runs. The schedule runs in Coordinated Universal Time (UTC).
+    Type: String
+  MaxErrors:
+    Description: The number of errors that are allowed before the system stops sending
+      requests to run the association on additional targets. You can specify either
+      an absolute number of errors, for example 10, or a percentage of the target
+      set, for example 10%.
+    Type: String
+  MaxConcurrency:
+    Description: The maximum number of targets allowed to run the association at the
+      same time. You can specify a number, for example 10, or a percentage of the
+      target set, for example 10%. The default value is 100%, which means all targets
+      run the association at the same time.
+    Type: String
+  FalconClientID:
+    Description: Your Falcon OAuth2 Client ID.
+    NoEcho: 'true'
+    Type: String
+  FalconSecret:
+    Description: Your Falcon OAuth2 API Secret.
+    NoEcho: 'true'
+    Type: String
+  BaseURL:
+    Description: Your Falcon OAuth2 API Base URL.
+    Type: String
+  AutomationDocumentName:
+    Type: String
+    Default: CrowdStrike-FalconSensorInstall
+    Description: The name to use when creating the SSM automation document. The SSM
+      Automation document is responsible for generating the required input parameters
+      to run the custom-api distributor package.
+  DistributorPackageName:
+    Type: String
+    Default: CrowdStrike-FalconSensor
+    Description: The name to use when creating the SSM Distributor package.
+  S3BucketSourceUrl:
+    Type: String
+    Description: The S3 bucket source url of the packages for ssm distributor.
+Resources:
+  CrowdStrikeSecrets:
+    Type: AWS::SecretsManager::Secret
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_149
+            comment: The default key aws/secretsmanager is sufficient to secure this
+              resource
+    Properties:
+      Description: CrowdStrike Falcon Credentials for SSM Distributor
+      Name: !Ref SecretsManagerSecretName
+      SecretString:
+        Fn::Join:
+          - ''
+          -   - '{"ClientId":"'
+              - Ref: FalconClientID
+              - '","ClientSecret":"'
+              - Ref: FalconSecret
+              - '","Cloud": "'
+              - Ref: BaseURL
+              - '"}'
+  CrowdStrikeDistributorPackage:
+    Type: AWS::SSM::Document
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - E3051
+            - E1101
+    Properties:
+      Name: !Ref DistributorPackageName
+      DocumentType: Package
+      Attachments:
+        - Key: SourceUrl
+          Values: [!Ref S3BucketSourceUrl]
+      DocumentFormat: JSON
+      Content: |-
+        {
+            "schemaVersion": "2.0",
+            "publisher": "Crowdstrike Inc.",
+            "description": "The CrowdStrike Falcon cloud platform helps successfully stop breaches, all via a single lightweight agent. Learn how to protect your AWS environment with CrowdStrike at https://github.com/CrowdStrike/aws-ssm-distributor/tree/main/custom-api-package",
+            "version": "v0.0.2",
+            "packages": {
+                "amazon": {
+                    "2": {
+                        "x86_64": {
+                            "file": "amazon2-x86_64.zip"
+                        },
+                        "arm64": {
+                            "file": "amazon2-arm64.zip"
+                        }
+                    },
+                    "2023": {
+                        "x86_64": {
+                            "file": "amazon2023-x86_64.zip"
+                        },
+                        "arm64": {
+                            "file": "amazon2023-arm64.zip"
+                        }
+                    }
+                },
+                "redhat": {
+                    "7.*": {
+                        "x86_64": {
+                            "file": "redhat7-x86_64.zip"
+                        }
+                    },
+                    "8.*": {
+                        "x86_64": {
+                            "file": "redhat8-x86_64.zip"
+                        },
+                        "arm64": {
+                            "file": "redhat8-arm64.zip"
+                        }
+                    },
+                    "9.*": {
+                        "x86_64": {
+                            "file": "redhat9-x86_64.zip"
+                        },
+                        "arm64": {
+                            "file": "redhat9-arm64.zip"
+                        }
+                    }
+                },
+                "almalinux": {
+                    "8.*": {
+                        "x86_64": {
+                            "file": "almalinux8-x86_64.zip"
+                        },
+                        "arm64": {
+                            "file": "almalinux8-arm64.zip"
+                        }
+                    },
+                    "9.*": {
+                        "arm64": {
+                            "file": "almalinux9-arm64.zip"
+                        },
+                        "x86_64": {
+                            "file": "almalinux9-x86_64.zip"
+                        }
+                    }
+                },
+                "rocky": {
+                    "8.*": {
+                        "x86_64": {
+                            "file": "rocky8-x86_64.zip"
+                        },
+                        "arm64": {
+                            "file": "rocky8-arm64.zip"
+                        }
+                    },
+                    "9.*": {
+                        "arm64": {
+                            "file": "rocky9-arm64.zip"
+                        },
+                        "x86_64": {
+                            "file": "rocky9-x86_64.zip"
+                        }
+                    }
+                },
+                "centos": {
+                    "7.*": {
+                        "x86_64": {
+                            "file": "centos7-x86_64.zip"
+                        }
+                    },
+                    "8.*": {
+                        "x86_64": {
+                            "file": "centos8-x86_64.zip"
+                        },
+                        "arm64": {
+                            "file": "centos8-arm64.zip"
+                        }
+                    }
+                },
+                "oracle": {
+                    "6.*": {
+                        "x86_64": {
+                            "file": "oracle6-x86_64.zip"
+                        }
+                    },
+                    "7.*": {
+                        "x86_64": {
+                            "file": "oracle7-x86_64.zip"
+                        }
+                    },
+                    "8.*": {
+                        "x86_64": {
+                            "file": "oracle8-x86_64.zip"
+                        }
+                    }
+                },
+                "suse": {
+                    "12.*": {
+                        "x86_64": {
+                            "file": "suse12-x86_64.zip"
+                        }
+                    },
+                    "15.*": {
+                        "x86_64": {
+                            "file": "suse15-x86_64.zip"
+                        }
+                    }
+                },
+                "ubuntu": {
+                    "16.*": {
+                        "x86_64": {
+                            "file": "ubuntu16-x86_64.zip"
+                        }
+                    },
+                    "18.*": {
+                        "x86_64": {
+                            "file": "ubuntu18-x86_64.zip"
+                        },
+                        "arm64": {
+                            "file": "ubuntu18-arm64.zip"
+                        }
+                    },
+                    "20.*": {
+                        "x86_64": {
+                            "file": "ubuntu20-x86_64.zip"
+                        },
+                        "arm64": {
+                            "file": "ubuntu20-arm64.zip"
+                        }
+                    },
+                    "22.*": {
+                        "x86_64": {
+                            "file": "ubuntu22-x86_64.zip"
+                        },
+                        "arm64": {
+                            "file": "ubuntu22-arm64.zip"
+                        }
+                    },
+                    "24.*": {
+                        "x86_64": {
+                            "file": "ubuntu24-x86_64.zip"
+                        },
+                        "arm64": {
+                            "file": "ubuntu24-arm64.zip"
+                        }
+                    }
+                },
+                "debian": {
+                    "9.*": {
+                        "x86_64": {
+                            "file": "debian9-x86_64.zip"
+                        }
+                    },
+                    "10.*": {
+                        "x86_64": {
+                            "file": "debian10-x86_64.zip"
+                        }
+                    },
+                    "11.*": {
+                        "x86_64": {
+                            "file": "debian11-x86_64.zip"
+                        }
+                    },
+                    "12.*": {
+                        "x86_64": {
+                            "file": "debian12-x86_64.zip"
+                        }
+                    },
+                    "12": {
+                        "arm64": {
+                            "file": "debian12-arm64.zip"
+                        }
+                    }
+                },
+                "windows": {
+                    "_any": {
+                        "_any": {
+                            "file": "windows-_any.zip"
+                        }
+                    }
+                }
+            },
+            "files": {
+                "amazon2-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "4b46148a1319a8b1cc3e00c6666e884f5442384dd2db51174b288c97b25fe725"
+                    }
+                },
+                "amazon2-arm64.zip": {
+                    "checksums": {
+                        "sha256": "2a51edacadb26d6499f695ee21e0e0e43640551ecc89df39aaa5087b25432cfc"
+                    }
+                },
+                "amazon2023-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "caf4aee2370eba4294a71362613f9df209f8d4db682585dfcb25a6cfa45f3026"
+                    }
+                },
+                "amazon2023-arm64.zip": {
+                    "checksums": {
+                        "sha256": "b39b07cf28e2f4df05f728aea365607ca0ed128a52aa6e161ac1061aa333523a"
+                    }
+                },
+                "redhat7-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "31ad5e08b94e8a066bef87b3e4c2661e6e2a4bf441243c2ee29aa584b7e8bbbf"
+                    }
+                },
+                "redhat8-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "069c2d096600f6fc75e8dfbcd8252a8a613072b5e43dea86cf9b0796b2f5cc05"
+                    }
+                },
+                "redhat8-arm64.zip": {
+                    "checksums": {
+                        "sha256": "d178208dd1b55de68230c024f8a6b00ec11942c9834de8eac45a6790c2cf235d"
+                    }
+                },
+                "redhat9-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "c4b9a6b471e4dedea6464cd02d57ba1aaa22228854180800a5f52e1071379c31"
+                    }
+                },
+                "redhat9-arm64.zip": {
+                    "checksums": {
+                        "sha256": "6f58790b4ade260dcee41013b4b5c8db0b2f501670506623918fca078d685c8a"
+                    }
+                },
+                "almalinux8-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "069c2d096600f6fc75e8dfbcd8252a8a613072b5e43dea86cf9b0796b2f5cc05"
+                    }
+                },
+                "almalinux8-arm64.zip": {
+                    "checksums": {
+                        "sha256": "d178208dd1b55de68230c024f8a6b00ec11942c9834de8eac45a6790c2cf235d"
+                    }
+                },
+                "almalinux9-arm64.zip": {
+                    "checksums": {
+                        "sha256": "6f58790b4ade260dcee41013b4b5c8db0b2f501670506623918fca078d685c8a"
+                    }
+                },
+                "almalinux9-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "c4b9a6b471e4dedea6464cd02d57ba1aaa22228854180800a5f52e1071379c31"
+                    }
+                },
+                "rocky8-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "069c2d096600f6fc75e8dfbcd8252a8a613072b5e43dea86cf9b0796b2f5cc05"
+                    }
+                },
+                "rocky8-arm64.zip": {
+                    "checksums": {
+                        "sha256": "d178208dd1b55de68230c024f8a6b00ec11942c9834de8eac45a6790c2cf235d"
+                    }
+                },
+                "rocky9-arm64.zip": {
+                    "checksums": {
+                        "sha256": "6f58790b4ade260dcee41013b4b5c8db0b2f501670506623918fca078d685c8a"
+                    }
+                },
+                "rocky9-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "c4b9a6b471e4dedea6464cd02d57ba1aaa22228854180800a5f52e1071379c31"
+                    }
+                },
+                "centos7-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "e880877616662c8493aa3461f7492a4824ccb74911ecd46008f405e4f9b7c5eb"
+                    }
+                },
+                "centos8-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "0aeb218a7d382b63f4dae6ed88115d946a94e24efd24f261b38e45c9bfec0d59"
+                    }
+                },
+                "centos8-arm64.zip": {
+                    "checksums": {
+                        "sha256": "d610d873dcfeec0dcb47a5bdb6520f6efaf7e9c39c8400bc00f53db01e073fa4"
+                    }
+                },
+                "oracle6-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "526569681001e497d70d50383ab921a4a8619b288ae85667caaaf66a6571cd46"
+                    }
+                },
+                "oracle7-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "1c014cf7f64ca034d53249547359575309ad1bfd2109889c486872e031146f6e"
+                    }
+                },
+                "oracle8-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "70080f9d86272cd49a6ac9fa588d1bfeebb8e2f20fecd39831599de5d4719540"
+                    }
+                },
+                "suse12-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "e5d240b6f655dcfd4ee43dd86b3a4fbfcc6a56250ba99ca0ac72cc32f65a3153"
+                    }
+                },
+                "suse15-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "0d2b97e1b9b9acb19b2e7597a63ca7ac9944c0f8e3f55dd777a377e2c8d22f1b"
+                    }
+                },
+                "ubuntu16-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "f0142906559b1e2e002869a1807df140945c3ab38ff9d89a7d1e7c871851952f"
+                    }
+                },
+                "ubuntu18-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "8042f974373640d6ca615d5f8914aa1366deaa04bc6f808daf241d43ea58f996"
+                    }
+                },
+                "ubuntu20-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "87d8e1fe5c7770547ffd462da443b237a460c3e97029d25f3027e2657a83b988"
+                    }
+                },
+                "ubuntu22-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "aabd71f455ccdb79689f2d839d7fc7ac0686d68fb63a442a93eea438f0a9e411"
+                    }
+                },
+                "ubuntu24-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "4770fba0ec55f25527b3f95d9297cf7e0adc947249c49e6f0a3e0a934d590d3a"
+                    }
+                },
+                "ubuntu24-arm64.zip": {
+                    "checksums": {
+                        "sha256": "9a25a159f2bcfcc28b6657e4e52eb9a1a7e4a45d772f0cd2f465e4bd0b322606"
+                    }
+                },
+                "ubuntu22-arm64.zip": {
+                    "checksums": {
+                        "sha256": "1d2a0d5cbb16b7ced3c1aa2284346baf102d7da2acfc77452bd2003155cbe544"
+                    }
+                },
+                "ubuntu18-arm64.zip": {
+                    "checksums": {
+                        "sha256": "9a3829ef66f505cbe65bceaef39e9566494e39dbf6cebc99b7e01faff2e7f32d"
+                    }
+                },
+                "ubuntu20-arm64.zip": {
+                    "checksums": {
+                        "sha256": "34f628b9b3f3a6f5d9fa7c0618b4487225c4a4703fdde9ca3b6a53fc1fd1ad88"
+                    }
+                },
+                "debian9-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "81dc8de299c864e904008a8d6894046bbd64f60c2555ebacfad771618c8cabf9"
+                    }
+                },
+                "debian10-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "f57f98bac96bac06762a22824936142e1aced5175ccd8a10cf4ada493d2a5103"
+                    }
+                },
+                "debian11-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "52d0ecbd5927e09c539cbc898da510c84c6f1d62b50b09e1cfaa396c88826693"
+                    }
+                },
+                "debian12-x86_64.zip": {
+                    "checksums": {
+                        "sha256": "5f66726b6a85fbb436ce2f0dd411f7c546119bcd242b1d3783f06c522b00e172"
+                    }
+                },
+                "debian12-arm64.zip": {
+                    "checksums": {
+                        "sha256": "81df10f8c0a3cf834e07afcb7acd915ae96bbf655d3bc64ef0bcf558577f1200"
+                    }
+                },
+                "windows-_any.zip": {
+                    "checksums": {
+                        "sha256": "cbbd4006bcb9bbf8cfd1ef7adbd295afa4b53ac01e1046e2dbc9a3ffbe350bf1"
+                    }
+                }
+            }
+        }
+  CrowdStrikeAutomationDocument:
+    Type: AWS::SSM::Document
+    Properties:
+      Name: !Ref AutomationDocumentName
+      DocumentType: Automation
+      Content:
+        description: Automation Document for installing Crowdstike's Falcon Sensor.
+        schemaVersion: '0.3'
+        assumeRole: '{{ AutomationAssumeRole }}'
+        parameters:
+          AutomationAssumeRole:
+            type: String
+            description: (Required) The ARN of the role that allows Automation to
+              perform the actions on your behalf. If no role is specified, Systems
+              Manager Automation uses your IAM permissions to run this runbook.
+            default: ''
+          DistributorPackageName:
+            type: String
+            description: The name of the custom-api distributor package.
+            default: !Ref DistributorPackageName
+          Action:
+            type: String
+            allowedValues: [Install, Uninstall]
+            description: (Required) Specify whether or not to install or uninstall
+              the package.
+            default: Install
+          LinuxPackageVersion:
+            type: String
+            description: (Optional) The version of the package to install or uninstall
+              on Linux nodes. If you do not specify a version, the system installs
+              the default version specified by the Distributor package.
+            default: ''
+          LinuxInstallerParams:
+            type: String
+            default: ''
+            description: |-
+              (Optional) Enter CrowdStrike's install time params to be used on Linux nodes. For more information refer to the console.
+          WindowsPackageVersion:
+            type: String
+            description: (Optional) The version of the package to install or uninstall
+              on Windows nodes. If you do not specify a version, the system installs
+              the default version specified by the Distributor package.
+            default: ''
+          WindowsInstallerParams:
+            type: String
+            default: ''
+            description: |-
+              (Optional) Enter CrowdStrike's install time params to be used on Windows nodes. For more information refer to the console.
+          SecretStorageMethod:
+            type: String
+            default: ParameterStore
+            description: The method used to store the Falcon ClientId, ClientSecret,
+              and Cloud for the CrowdStrike APIs.
+            allowedValues: [ParameterStore, SecretsManager]
+          FalconCloud:
+            type: String
+            description: SSM Parameter Store name that contains the Falcon Cloud URL
+              for CrowdStrike APIs. Required if SecretStorageMethod is ParameterStore.
+            default: /CrowdStrike/Falcon/Cloud
+          FalconClientId:
+            type: String
+            default: /CrowdStrike/Falcon/ClientId
+            description: SSM Parameter Store name that contains the Falcon Client
+              Id for CrowdStrike APIs. Required if SecretStorageMethod is ParameterStore.
+          FalconClientSecret:
+            type: String
+            description: SSM Parameter Store name that contains the Falcon Client
+              Secret for CrowdStrike APIs. Required if SecretStorageMethod is ParameterStore.
+            default: /CrowdStrike/Falcon/ClientSecret
+          SecretsManagerSecretName:
+            type: String
+            description: Secrets Manager Secret Name that contains the Falcon ClientId,
+              ClientSecret, and Cloud for the CrowdStrike APIs. Required if SecretStorageMethod
+              is SecretsManager. Refer to the user guide for required value format.
+            default: /CrowdStrike/Falcon/Distributor
+          InstanceIds:
+            type: StringList
+          Targets:
+            type: MapList
+            default: []
+        mainSteps:
+          - name: HandlePreqrequisites
+            action: aws:executeScript
+            nextStep: Branch
+            isEnd: false
+            onFailure: Abort
+            inputs:
+              Runtime: python3.11
+              Handler: script_handler
+              InputPayload:
+                instances: '{{ InstanceIds }}'
+                region: '{{global:REGION}}'
+                falconCloud: '{{FalconCloud}}'
+                falconClientId: '{{FalconClientId}}'
+                falconClientSecret: '{{FalconClientSecret}}'
+                secretsManagerSecretName: '{{SecretsManagerSecretName}}'
+                secretStorageMethod: '{{SecretStorageMethod}}'
+              Script: |-
+                """Module for handling prerequisites for CrowdStrike Falcon AWS Automation document"""
+                import http.client
+                import urllib.parse
+                import time
+                from datetime import datetime
+                import json
+                from enum import StrEnum
+                import boto3
+                from botocore.config import Config
+                import botocore.exceptions
+                class CrowdStrikeAPIError(Exception):
+                    """Crowdstrike API error"""
+                class InstanceStatus(StrEnum):
+                    """Enum for the InstanceStatus of the instance"""
+                    ACTIVE = "Active"
+                    CONNECTIONLOST = "ConnectionLost"
+                    STOPPED = "Stopped"
+                    TERMINATED = "Terminated"
+                    UNKNOWN = "Unknown"
+                class PingStatus(StrEnum):
+                    """Enum for the PingStatus of the instance"""
+                    ONLINE = "Online"
+                    CONNECTIONLOST = "ConnectionLost"
+                    INACTIVE = "Inactive"
+                def pretty_print_instances(instances):
+                    instancesStr = "\n[\n  "
+                    instancesStr += ",\n  ".join(f'"{i}"' for i in instances)
+                    instancesStr += "\n]"
+                    return instancesStr
+                class Falcon:
+                    """Crowdstrike Falcon API class"""
+                    def __init__(self, cloud, client_id, client_secret, bearer_token=None):
+                        """Default constructor
+                        Args:
+                            cloud (str): Falcon API Gateway
+                            client_id (str): Falcon OAuth2 Client ID
+                            client_secret (str): Falcon OAuth2 Client Secret
+                            bearer_token (str, optional): CrowdStrike API OAUTH2 Token. Defaults to None.
+                        """
+                        self.cloud = cloud.replace("https://", "").replace("http://", "").replace("/", "")
+                        self.client_id = client_id
+                        self.client_secret = client_secret
+                        self.user_agent = "crowdstrike-custom-api-automation-doc/v2.0.0"
+                        self.bearer_token = bearer_token
+                    def _handle_redirect(self, res):
+                        """Updates the cloud attribute with the new location received in the redirect
+                        Args:
+                            res (HTTPResponse): HTTP response object
+                        Raises:
+                            CrowdStrikeAPIError: If we are unable to handle the redirect
+                        """
+                        location = res.getheader("Location")
+                        if location is None:
+                            raise CrowdStrikeAPIError(
+                                f"Received redirect to {res.getheader('X-Cs-Region')}, but no location header was found. Ensure you are using the correct API Gateway."
+                            )
+                        new_cloud = urllib.parse.urlparse(location).netloc
+                        print(
+                            f"WARNING: While using {self.cloud}, received redirect to {new_cloud}. Please update the value used for the crowdstrike cloud to prevent future redirects."
+                        )
+                        self.cloud = new_cloud
+                    def _handle_rate_limit(self, res):
+                        """Handles rate limit exceptions by sleeping 10 seconds or X-RateLimit-RetryAfter
+                        whichever is largest
+                        Args:
+                            res (HTTPResponse): HTTP response object
+                        """
+                        retry_after = int(res.getheader("X-RateLimit-RetryAfter"))
+                        retry_datetime = datetime.utcfromtimestamp(retry_after)
+                        now = datetime.utcnow()
+                        wait_duration = max((retry_datetime - now).total_seconds(), 10)
+                        print(f"Rate limit exceeded. Retrying after {wait_duration} seconds.")
+                        time.sleep(wait_duration)
+                    def _oauth(self):
+                        """Creates OAuth bearer token
+                        Returns:
+                            token (str): OAuth bearer token
+                        Raises:
+                            CrowdStrikeAPIError: If the API call fails
+                        """
+                        print("Requesting Authentication token from Crowdstrike backend.")
+                        params = urllib.parse.urlencode(
+                            {
+                                "client_id": self.client_id,
+                                "client_secret": self.client_secret,
+                            }
+                        )
+                        headers = {
+                            "Content-Type": "application/x-www-form-urlencoded",
+                            "User-Agent": self.user_agent,
+                        }
+                        conn = http.client.HTTPSConnection(self.cloud)
+                        conn.request("POST", "/oauth2/token", params, headers)
+                        res = conn.getresponse()
+                        if res.status == 429:
+                            self._handle_rate_limit(res)
+                            return self._oauth()
+                        if res.status in [301, 302, 303, 307, 308]:
+                            self._handle_redirect(res)
+                            return self._oauth()
+                        if res.status != 201:
+                            raise CrowdStrikeAPIError(
+                                f"Received non success response {res.status} while fetching token. Error {res.reason}"
+                            )
+                        data = res.read()
+                        print("Successfully received OAuth token.")
+                        self.bearer_token = json.loads(data)["access_token"]
+                    def get_ccid(self):
+                        """Returns the Customer ID
+                        Returns:
+                            ccid (str): Customer ID
+                        Raises:
+                            CrowdStrikeAPIError: If the API call fails
+                        """
+                        print("Requesting Customer ID from Crowdstrike backend.")
+                        if self.bearer_token is None:
+                            self._oauth()
+                        headers = {
+                            "Authorization": f"Bearer {self.bearer_token}",
+                            "User-Agent": self.user_agent,
+                        }
+                        conn = http.client.HTTPSConnection(self.cloud)
+                        conn.request("GET", "/sensors/queries/installers/ccid/v1", "", headers)
+                        res = conn.getresponse()
+                        if res.status == 429:
+                            self._handle_rate_limit(res)
+                            return self.get_ccid()
+                        if res.status in [301, 302, 303, 307, 308]:
+                            self._handle_redirect(res)
+                            return self.get_ccid()
+                        if res.status != 200:
+                            raise CrowdStrikeAPIError(
+                                f"Received non success response {res.status} while fetching Customer ID. Error {res.reason}"
+                            )
+                        data = res.read()
+                        print("Successfully received Customer ID.")
+                        return json.loads(data)["resources"][0]
+                    def get_install_token(self):
+                        """Returns the Installation Token
+                        Returns:
+                            token (str): Installation Token
+                        Raises:
+                            CrowdStrikeAPIError: If the API call fails
+                        """
+                        print("Requesting Installation Token from Crowdstrike backend.")
+                        if self.bearer_token is None:
+                            self._oauth()
+                        conn = http.client.HTTPSConnection(self.cloud)
+                        headers = {
+                            "Authorization": f"Bearer {self.bearer_token}",
+                            "User-Agent": self.user_agent,
+                        }
+                        conn.request(
+                            "GET",
+                            "/installation-tokens/queries/tokens/v1?filter=status:'valid'",
+                            "",
+                            headers,
+                        )
+                        install_token_query_resp = conn.getresponse()
+                        if install_token_query_resp.status == 429:
+                            self._handle_rate_limit(install_token_query_resp)
+                            return self.get_install_token()
+                        if install_token_query_resp.status in [301, 302, 303, 307, 308]:
+                            self._handle_redirect(install_token_query_resp)
+                            return self.get_install_token()
+                        if install_token_query_resp.status != 200:
+                            raise CrowdStrikeAPIError(
+                                f"Received non success response {install_token_query_resp.status} while fetching token. Error {install_token_query_resp.reason}"
+                            )
+                        install_token_query_data = install_token_query_resp.read()
+                        resources = json.loads(install_token_query_data)["resources"]
+                        if len(resources) == 0:
+                            print("No Installation token found, skipping")
+                            return ""
+                        install_token_id = resources[0]
+                        url = f"/installation-tokens/entities/tokens/v1?ids={install_token_id}"
+                        conn.request("GET", url, "", headers)
+                        entities_resp = conn.getresponse()
+                        if entities_resp.status == 429:
+                            self._handle_rate_limit(entities_resp)
+                            return self.get_install_token()
+                        if entities_resp.status in [301, 302, 303, 307, 308]:
+                            self._handle_redirect(install_token_query_resp)
+                            return self.get_install_token()
+                        if entities_resp.status != 200:
+                            raise CrowdStrikeAPIError(
+                                f"Received non success response {entities_resp.status} while fetching token by id {install_token_id}. Error {entities_resp.reason}"
+                            )
+                        entities_resp_data = entities_resp.read()
+                        token = json.loads(entities_resp_data)["resources"][0]["value"]
+                        print("Successfully received Installation token")
+                        return token
+                class SSMHelper:
+                    """A helper class for SSM"""
+                    def __init__(self, config):
+                        self.client = boto3.client("ssm", config=config)
+                    def get_parameter(self, path):
+                        """Get a SSM parameter by path and return value.
+                        Handles throttling exceptions by backing off and retrying.
+                        Args:
+                            path (str): Path to the SSM parameter
+                        """
+                        try:
+                            response = self.client.get_parameter(
+                                Name=path,
+                                WithDecryption=True,
+                            )
+                            print(f"Successfully received SSM parameter: {path}")
+                            return response["Parameter"]["Value"]
+                        except botocore.exceptions.ClientError as error:
+                            if (
+                                error.response.get("Error", {}).get("Code", None)
+                                == "ThrottlingException"
+                            ):
+                                wait_time = 5
+                                print(f"Throttling exception, waiting {wait_time} seconds")
+                                time.sleep(wait_time)
+                                return self.get_parameter(path)
+                            else:
+                                raise error
+                class SecretsManagerHelper:
+                    """A helper class for Secrets Manager"""
+                    def __init__(self, config):
+                        self.client = boto3.client("secretsmanager", config=config)
+                    def _validate_secret(self, secret_value):
+                        """Validate a Secrets Manager secret contains all required fields.
+                        Args:
+                            secret_value (dict): Secrets Manager secret value
+                        Returns:
+                            valid (bool): True if secret contains all required fields
+                            fields: (list): List of missing fields
+                        """
+                        required_fields = ["clientid", "clientsecret", "cloud"]
+                        missing_fields = []
+                        for field in required_fields:
+                            if field not in secret_value:
+                                missing_fields.append(field)
+                        valid = len(missing_fields) == 0
+                        return valid, missing_fields
+                    def get_secret(self, secret_name):
+                        """Get a Secrets Manager secret by name and return value.
+                        Validates the secret contains all required fields.
+                        Handles throttling exceptions by backing off and retrying.
+                        Args:
+                            secret_name (str): secret name of the Secrets Manager secret
+                        Returns:
+                            secret_value (dict): Secrets Manager secret value
+                        Raises:
+                            botocore.exceptions.ClientError: If the API call fails
+                            ValueError: If the secret does not contain all required fields
+                        """
+                        try:
+                            response = self.client.get_secret_value(SecretId=secret_name)
+                            print(f"Successfully received Secrets Manager secret: {secret_name}")
+                            secret_value = json.loads(response["SecretString"])
+                            # Instead of throwing an error if the secret contains fields with
+                            # mismatching casing, we convert all keys to lowercase.
+                            # This eliminates this error entirely.
+                            secret_value = {k.lower(): v for k, v in secret_value.items()}
+                            valid, missing_fields = self._validate_secret(secret_value)
+                            if not valid:
+                                raise ValueError(
+                                    f"Secret {secret_name} is missing required fields: {missing_fields}"
+                                )
+                            return secret_value
+                        except botocore.exceptions.ClientError as error:
+                            if (
+                                error.response.get("Error", {}).get("Code", None)
+                                == "ThrottlingException"
+                            ):
+                                wait_time = 5
+                                print(f"Throttling exception, waiting {wait_time} seconds")
+                                time.sleep(wait_time)
+                                return self.get_secret(secret_name)
+                            else:
+                                raise error
+                def describe_instance_information(config, instances):
+                    """
+                    Get SSM instance information for the provided instances
+                    Args:
+                        config (botocore.config.Config): Botocore configuration object
+                        instances (list): List of instance IDs
+                    Returns:
+                        dict: SSM instance information for each instance {<instanceId>: {"InstanceStatus": <value>, ...}, ...}
+                        str: Error message, if any
+                    """
+                    inventoryDict = {}
+                    if not instances:
+                        return inventoryDict, None
+                    try:
+                        client = boto3.client("ssm", config=config)
+                        paginator = client.get_paginator("describe_instance_information")
+                        page_iterator = paginator.paginate(
+                            Filters=[
+                                {
+                                    "Key": "InstanceIds",
+                                    "Values": instances,
+                                }
+                            ]
+                        )
+                        for page in page_iterator:
+                            for instanceInfoList in page.get("InstanceInformationList", {}):
+                                instance_id = instanceInfoList.get("InstanceId")
+                                pingStatus = instanceInfoList.get("PingStatus")
+                                if pingStatus == PingStatus.ONLINE:
+                                    inventoryDict[instance_id] = {
+                                        "InstanceStatus": InstanceStatus.ACTIVE
+                                    }
+                                elif pingStatus == PingStatus.CONNECTIONLOST:
+                                    inventoryDict[instance_id] = {
+                                        "InstanceStatus": InstanceStatus.CONNECTIONLOST
+                                    }
+                                elif pingStatus == PingStatus.INACTIVE:
+                                    inventoryDict[instance_id] = {
+                                        "InstanceStatus": InstanceStatus.CONNECTIONLOST
+                                    }
+                                else:
+                                    inventoryDict[instance_id] = {
+                                        "InstanceStatus": InstanceStatus.UNKNOWN
+                                    }
+                        return inventoryDict, None
+                    except botocore.exceptions.ClientError as error:
+                        errorMsg = f"Error calling ssm.DescribeInstanceInformation: {error}"
+                        if error.response.get("Error", {}).get("Code") == "InvalidInstanceId":
+                          errorMsg += f"\n\nPlease check the following instance IDs provided and verify that they are in the correct format.\n{pretty_print_instances(instances)}"
+                        return inventoryDict, errorMsg
+                    except Exception as error:
+                        return inventoryDict, f"Error calling ssm.DescribeInstanceInformation: {error}\n\nFor instances {pretty_print_instances(instances)}"
+                def get_inventory(config, instances):
+                    """
+                    Get SSM Inventory information for the provided instances
+                    Args:
+                        config (botocore.config.Config): Botocore configuration object
+                        instances (list): List of instance IDs
+                    Returns:
+                        dict: SSM Inventory instance status for each instance {<instanceId>: {"InstanceStatus": <value>, ...}, ...}
+                        str: Error message, if any
+                    """
+                    inventoryDict = {}
+                    if not instances:
+                        return inventoryDict, None
+                    try:
+                        client = boto3.client("ssm", config=config)
+                        paginator = client.get_paginator("get_inventory")
+                        page_iterator = paginator.paginate(
+                            Filters=[
+                                {
+                                    "Key": "AWS:InstanceInformation.InstanceId",
+                                    "Values": instances,
+                                    "Type": "Equal",
+                                }
+                            ]
+                        )
+                        for page in page_iterator:
+                            for e in page["Entities"]:
+                                instance_id = e.get("Id")
+                                content = (
+                                    e.get("Data", {})
+                                    .get("AWS:InstanceInformation", {})
+                                    .get("Content", [])
+                                )
+                                if not content:
+                                    continue
+                                instanceInfo = content[0]
+                                instanceInfo["Id"] = instance_id
+                                inventoryDict[instance_id] = instanceInfo
+                        return inventoryDict, None
+                    except botocore.exceptions.ClientError as error:
+                        # Handle AccessDeniedException by falling back to ssm.DescribeInstanceInformation.
+                        # This ensures backwords compatbility with FalconSensor-Linux, FalconSensor-Windows, and v1/v2 of the automation document.
+                        if error.response.get("Error", {}).get("Code") == "AccessDeniedException":
+                            print(
+                                "Unable to call ssm.GetInventory due to missing permissions. Consider adding the ssm:GetInventory action to your role. This will allow the automation document to correctly report if a instance was skipped due to being stopped, terminated, or in an unkown state."
+                            )
+                            return describe_instance_information(config, instances)
+                        return inventoryDict, f"Error calling ssm.GetInventory: {error}\n\nFor instances {pretty_print_instances(instances)}"
+                    except Exception as error:
+                        return inventoryDict, f"Error calling ssm.GetInventory: {error}\n\nFor instances {pretty_print_instances(instances)}"
+                def add_unknown_status(instances, inventory):
+                    """
+                    Adds the UNKNOWN status to instances that were not found in the inventory.
+                    Args:
+                        instances (list): List of instances
+                        inventory (dict): Inventory of instances
+                    """
+                    updatedInventory = inventory.copy()
+                    for instance in instances:
+                        if instance not in updatedInventory:
+                            updatedInventory[instance] = {"InstanceStatus": InstanceStatus.UNKNOWN}
+                    return updatedInventory
+                def script_handler(events, _):
+                    """Handler for executeScript action
+                    Args:
+                        events (dict): Input for the action
+                        _ (dict): Context for the action
+                    Returns:
+                        dict: Output for the action
+                    """
+                    config = Config(
+                        region_name=events["region"], retries={"max_attempts": 30, "mode": "standard"}
+                    )
+                    response = {
+                        "skipDistributor": False,
+                        "failRun": False,
+                        "falconOauthToken": "",
+                        "message": "",
+                        "errorMessage": "",
+                    }
+                    instances = [i for i in events["instances"] if i.strip()]
+                    if len(instances) == 0:
+                        response["skipDistributor"] = True
+                        response["failRun"] = False
+                        response["message"] = (
+                            "Execution aborted: No instances were provided to the automation document."
+                        )
+                        return response
+                    inventory, error = get_inventory(config, instances)
+                    if error:
+                        response["skipDistributor"] = True
+                        response["failRun"] = True
+                        response["errorMessage"] = error
+                        return response
+                    inventory = add_unknown_status(instances, inventory)
+                    instanceStatusCount = {
+                        InstanceStatus.ACTIVE: [],
+                        InstanceStatus.CONNECTIONLOST: [],
+                        InstanceStatus.STOPPED: [],
+                        InstanceStatus.TERMINATED: [],
+                        InstanceStatus.UNKNOWN: [],
+                    }
+                    for instance, v in inventory.items():
+                        instanceStatusCount[v["InstanceStatus"]].append(instance)
+                    print("Instances by status")
+                    print(json.dumps(instanceStatusCount, indent=4))
+                    response["instanceList"] = instanceStatusCount[InstanceStatus.ACTIVE]
+                    if len(instanceStatusCount[InstanceStatus.ACTIVE]) == 0:
+                        response["skipDistributor"] = True
+                        response["failRun"] = False
+                        message = "Execution aborted: No instances in the ACTIVE state."
+                        response["message"] += message
+                    else:
+                        message = f"Targeting the following ACTIVE instances:{pretty_print_instances(instanceStatusCount[InstanceStatus.ACTIVE])}"
+                        print(message)
+                        response["message"] += message
+                    for status, message in [
+                        (
+                            InstanceStatus.STOPPED,
+                            f"\n\nThe following instances were skipped because they are in the STOPPED state. Start the instances and try again:{pretty_print_instances(instanceStatusCount[InstanceStatus.STOPPED])}",
+                        ),
+                        (
+                            InstanceStatus.TERMINATED,
+                            f"\n\nThe following instances were skipped because they are in the TERMINATED state:{pretty_print_instances(instanceStatusCount[InstanceStatus.TERMINATED])}",
+                        ),
+                        (
+                            InstanceStatus.UNKNOWN,
+                            f"\n\nThe following instances were skipped becuase they are in an UNKNOWN state. If the instance ID is correct and the instance is running this could indicate the instance is not managed by SSM.\nPlease refer to the following article for troubleshooting: https://repost.aws/knowledge-center/systems-manager-ec2-instance-not-appear{pretty_print_instances(instanceStatusCount[InstanceStatus.UNKNOWN])}",
+                        ),
+                        (
+                            InstanceStatus.CONNECTIONLOST,
+                            f"\n\nThe following instances were skipped becuase they are in the CONNECTIONLOST state. If the instance is running, this could indicate there is a issue between SSM and the instance.\nPlease refer to the following article for troubleshooting: https://repost.aws/knowledge-center/systems-manager-ec2-instance-not-appear{pretty_print_instances(instanceStatusCount[InstanceStatus.CONNECTIONLOST])}",
+                        ),
+                    ]:
+                        if instanceStatusCount[status]:
+                            response["message"] += message
+                    if response["skipDistributor"] or instanceStatusCount[InstanceStatus.ACTIVE] == 0:
+                        return response
+                    if events["secretStorageMethod"] == "ParameterStore":
+                        print("Using Parameter Store to retrieve secrets")
+                        ssm_helper = SSMHelper(config)
+                        falcon_cloud = ssm_helper.get_parameter(events["falconCloud"])
+                        falcon_client_id = ssm_helper.get_parameter(events["falconClientId"])
+                        falcon_client_secret = ssm_helper.get_parameter(events["falconClientSecret"])
+                    else:
+                        print("Using Secrets Manager to retrieve secrets")
+                        secret_helper = SecretsManagerHelper(config)
+                        secret_value = secret_helper.get_secret(events["secretsManagerSecretName"])
+                        falcon_cloud = secret_value["cloud"]
+                        falcon_client_id = secret_value["clientid"]
+                        falcon_client_secret = secret_value["clientsecret"]
+                    falcon_client = Falcon(falcon_cloud, falcon_client_id, falcon_client_secret)
+                    response["falconCcid"] = falcon_client.get_ccid()
+                    response["falconInstallToken"] = falcon_client.get_install_token()
+                    response["falconOauthToken"] = falcon_client.bearer_token
+                    response["falconCloud"] = falcon_client.cloud
+                    return response
+            outputs:
+              - Name: falconCloud
+                Selector: $.Payload.falconCloud
+                Type: String
+              - Name: falconCcid
+                Selector: $.Payload.falconCcid
+                Type: String
+              - Name: falconInstallToken
+                Selector: $.Payload.falconInstallToken
+                Type: String
+              - Name: falconOauthToken
+                Selector: $.Payload.falconOauthToken
+                Type: String
+              - Name: instanceList
+                Selector: $.Payload.instanceList
+                Type: StringList
+              - Name: skipDistributor
+                Selector: $.Payload.skipDistributor
+                Type: Boolean
+              - Name: failRun
+                Selector: $.Payload.failRun
+                Type: Boolean
+              - Name: errorMessage
+                Selector: $.Payload.errorMessage
+                Type: String
+              - Name: message
+                Selector: $.Payload.message
+                Type: String
+          - name: Branch
+            action: aws:branch
+            inputs:
+              Choices:
+                - NextStep: HandleCleanup
+                  Variable: '{{ HandlePreqrequisites.skipDistributor }}'
+                  BooleanEquals: true
+              Default: ExecuteDistributorPackage
+          - name: ExecuteDistributorPackage
+            action: aws:runCommand
+            nextStep: HandleCleanup
+            isEnd: false
+            onFailure: Continue
+            inputs:
+              Targets: '{{ Targets }}'
+              InstanceIds: '{{ HandlePreqrequisites.instanceList }}'
+              DocumentName: AWS-ConfigureAWSPackage
+              Parameters:
+                installationType: In-place update
+                additionalArguments:
+                  SSM_CS_INSTALLTOKEN: '{{HandlePreqrequisites.falconInstallToken}}'
+                  SSM_CS_CCID: '{{HandlePreqrequisites.falconCcid}}'
+                  SSM_CS_WINDOWS_INSTALLPARAMS: '{{WindowsInstallerParams}}'
+                  SSM_CS_WINDOWS_VERSION: '{{WindowsPackageVersion}}'
+                  SSM_CS_LINUX_INSTALLPARAMS: '{{LinuxInstallerParams}}'
+                  SSM_CS_LINUX_VERSION: '{{LinuxPackageVersion}}'
+                  SSM_CS_AUTH_TOKEN: '{{HandlePreqrequisites.falconOauthToken}}'
+                  SSM_CS_HOST: '{{HandlePreqrequisites.falconCloud}}'
+                name: '{{DistributorPackageName}}'
+                action: '{{Action}}'
+          - name: HandleCleanup
+            action: aws:executeScript
+            isEnd: true
+            inputs:
+              Runtime: python3.11
+              Handler: script_handler
+              InputPayload:
+                region: '{{global:REGION}}'
+                falconOauthToken: '{{HandlePreqrequisites.falconOauthToken}}'
+                falconCloud: '{{HandlePreqrequisites.falconCloud}}'
+                falconClientId: '{{FalconClientId}}'
+                falconClientSecret: '{{FalconClientSecret}}'
+                secretsManagerSecretName: '{{SecretsManagerSecretName}}'
+                secretStorageMethod: '{{SecretStorageMethod}}'
+                distributorStatus: '{{ExecuteDistributorPackage.Status}}'
+                skipDistributor: '{{HandlePreqrequisites.skipDistributor}}'
+                failRun: '{{HandlePreqrequisites.failRun}}'
+                errorMessage: '{{HandlePreqrequisites.errorMessage}}'
+                message: '{{HandlePreqrequisites.message}}'
+              Script: |-
+                """Module for handling cleanup for CrowdStrike Falcon AWS Automation document"""
+                import http.client
+                import urllib.parse
+                import time
+                from datetime import datetime
+                import json
+                import base64
+                import boto3
+                from botocore.config import Config
+                import botocore.exceptions
+                class CrowdStrikeAPIError(Exception):
+                    """Crowdstrike API error"""
+                class Falcon:
+                    """Crowdstrike Falcon API class"""
+                    def __init__(self, cloud, client_id, client_secret, bearer_token=None):
+                        """Default constructor
+                        Args:
+                            cloud (str): Falcon API Gateway
+                            client_id (str): Falcon OAuth2 Client ID
+                            client_secret (str): Falcon OAuth2 Client Secret
+                            bearer_token (str, optional): CrowdStrike API OAUTH2 Token. Defaults to None.
+                        """
+                        self.cloud = cloud.replace("https://", "").replace("http://", "")
+                        self.client_id = client_id
+                        self.client_secret = client_secret
+                        self.user_agent = "crowdstrike-custom-api-automation-doc/v2.0.0"
+                        self.bearer_token = bearer_token
+                    def _handle_redirect(self, res):
+                        """Updates the cloud attribute with the new location received in the redirect
+                        Args:
+                            res (HTTPResponse): HTTP response object
+                        Raises:
+                            CrowdStrikeAPIError: If we are unable to handle the redirect
+                        """
+                        location = res.getheader("Location")
+                        if location is None:
+                            raise CrowdStrikeAPIError(
+                                f"Received redirect to {res.getheader('X-Cs-Region')}, but no location header was found. Ensure you are using the correct API Gateway."
+                            )
+                        new_cloud = urllib.parse.urlparse(location).netloc
+                        print(
+                            f"WARNING: While using {self.cloud}, received redirect to {new_cloud}. Please update the value used for the crowdstrike cloud to prevent future redirects."
+                        )
+                        self.cloud = new_cloud
+                    def _handle_rate_limit(self, res):
+                        """Handles rate limit exceptions by sleeping 10 seconds or X-RateLimit-RetryAfter
+                        whichever is largest
+                        Args:
+                            res (HTTPResponse): HTTP response object
+                        """
+                        retry_after = int(res.getheader("X-RateLimit-RetryAfter"))
+                        retry_datetime = datetime.utcfromtimestamp(retry_after)
+                        now = datetime.utcnow()
+                        wait_duration = max((retry_datetime - now).total_seconds(), 10)
+                        print(f"Rate limit exceeded. Retrying after {wait_duration} seconds.")
+                        time.sleep(wait_duration)
+                    def revoke_oauth_token(self):
+                        """Revokes a OAuth bearer token
+                        Raises:
+                            CrowdStrikeAPIError: If the API call fails
+                        """
+                        print("Revoking Authentication token")
+                        credentials = base64.b64encode(
+                            f"{self.client_id}:{self.client_secret}".encode()
+                        ).decode()
+                        params = urllib.parse.urlencode(
+                            {
+                                "client_id": self.client_id,
+                                "token": self.bearer_token,
+                            }
+                        )
+                        headers = {
+                            "Content-Type": "application/x-www-form-urlencoded",
+                            "Authorization": f"Basic {credentials}",
+                            "User-Agent": self.user_agent,
+                        }
+                        conn = http.client.HTTPSConnection(self.cloud)
+                        conn.request("POST", "/oauth2/revoke", params, headers)
+                        res = conn.getresponse()
+                        if res.status == 429:
+                            self._handle_rate_limit(res)
+                            return self.revoke_oauth_token()
+                        if res.status in [301, 302, 303, 307, 308]:
+                            self._handle_redirect(res)
+                            return self.revoke_oauth_token()
+                        if res.status != 200:
+                            print(
+                                f"Received non success response {res.status} while revoking token. Error {res.reason}"
+                            )
+                            return
+                        print("Successfully revoked Authentication token")
+                class SSMHelper:
+                    """A helper class for SSM"""
+                    def __init__(self, config):
+                        self.client = boto3.client("ssm", config=config)
+                    def get_parameter(self, path):
+                        """Get a SSM parameter by path and return value.
+                        Handles throttling exceptions by backing off and retrying.
+                        Args:
+                            path (str): Path to the SSM parameter
+                        """
+                        try:
+                            response = self.client.get_parameter(
+                                Name=path,
+                                WithDecryption=True,
+                            )
+                            print(f"Successfully received SSM parameter: {path}")
+                            return response["Parameter"]["Value"]
+                        except botocore.exceptions.ClientError as error:
+                            if (
+                                error.response.get("Error", {}).get("Code", None)
+                                == "ThrottlingException"
+                            ):
+                                wait_time = 5
+                                print(f"Throttling exception, waiting {wait_time} seconds")
+                                time.sleep(wait_time)
+                                return self.get_parameter(path)
+                            else:
+                                raise error
+                class SecretsManagerHelper:
+                    """A helper class for Secrets Manager"""
+                    def __init__(self, config):
+                        self.client = boto3.client("secretsmanager", config=config)
+                    def _validate_secret(self, secret_value):
+                        """Validate a Secrets Manager secret contains all required fields.
+                        Args:
+                            secret_value (dict): Secrets Manager secret value
+                        Returns:
+                            valid (bool): True if secret contains all required fields
+                            fields: (list): List of missing fields
+                        """
+                        required_fields = ["clientid", "clientsecret", "cloud"]
+                        missing_fields = []
+                        for field in required_fields:
+                            if field not in secret_value:
+                                missing_fields.append(field)
+                        valid = len(missing_fields) == 0
+                        return valid, missing_fields
+                    def get_secret(self, secret_name):
+                        """Get a Secrets Manager secret by name and return value.
+                        Validates the secret contains all required fields.
+                        Handles throttling exceptions by backing off and retrying.
+                        Args:
+                            secret_name (str): secret name of the Secrets Manager secret
+                        Returns:
+                            secret_value (dict): Secrets Manager secret value
+                        Raises:
+                            botocore.exceptions.ClientError: If the API call fails
+                            ValueError: If the secret does not contain all required fields
+                        """
+                        try:
+                            response = self.client.get_secret_value(SecretId=secret_name)
+                            print(f"Successfully received Secrets Manager secret: {secret_name}")
+                            secret_value = json.loads(response["SecretString"])
+                            # Instead of throwing an error if the secret contains fields with
+                            # mismatching casing, we convert all keys to lowercase.
+                            # This eliminates this error entirely.
+                            secret_value = {k.lower(): v for k, v in secret_value.items()}
+                            valid, missing_fields = self._validate_secret(secret_value)
+                            if not valid:
+                                raise ValueError(
+                                    f"Secret {secret_name} is missing required fields: {missing_fields}"
+                                )
+                            return secret_value
+                        except botocore.exceptions.ClientError as error:
+                            if (
+                                error.response.get("Error", {}).get("Code", None)
+                                == "ThrottlingException"
+                            ):
+                                wait_time = 5
+                                print(f"Throttling exception, waiting {wait_time} seconds")
+                                time.sleep(wait_time)
+                                return self.get_secret(secret_name)
+                            else:
+                                raise error
+                def script_handler(events, _):
+                    """Handler for executeScript action
+                    Args:
+                        events (dict): Input for the action
+                        _ (dict): Context for the action
+                    Returns:
+                        dict: Output for the action
+                    """
+                    if (
+                        events["falconOauthToken"]
+                        and "falconOauthToken" not in events["falconOauthToken"]
+                    ):
+                        config = Config(
+                            region_name=events["region"],
+                            retries={"max_attempts": 30, "mode": "standard"},
+                        )
+                        if events["secretStorageMethod"] == "ParameterStore":
+                            print("Using Parameter Store to retrieve secrets")
+                            ssm_helper = SSMHelper(config=config)
+                            falcon_cloud = events["falconCloud"]
+                            falcon_client_id = ssm_helper.get_parameter(events["falconClientId"])
+                            falcon_client_secret = ssm_helper.get_parameter(
+                                events["falconClientSecret"]
+                            )
+                        else:
+                            print("Using Secrets Manager to retrieve secrets")
+                            secret_helper = SecretsManagerHelper(config=config)
+                            secret_value = secret_helper.get_secret(events["secretsManagerSecretName"])
+                            falcon_cloud = events["falconCloud"]
+                            falcon_client_id = secret_value["clientid"]
+                            falcon_client_secret = secret_value["clientsecret"]
+                        falcon_client = Falcon(
+                            falcon_cloud,
+                            falcon_client_id,
+                            falcon_client_secret,
+                            events["falconOauthToken"],
+                        )
+                        falcon_client.revoke_oauth_token()
+                    if events["message"] and "message" not in events["message"]:
+                        print(events["message"])
+                    if events["errorMessage"] and "errorMessage" not in events["errorMessage"]:
+                        print(events["errorMessage"])
+                    if events["failRun"]:
+                        raise Exception(
+                            "Marking the run as failed. Check the automation document output and the HandlePreqrequisites step logs for more details."
+                        )
+                    distributor_status = events["distributorStatus"]
+                    possible_states = [
+                        "success",
+                        "pending",
+                        "inprogress",
+                        "failed",
+                        "waiting",
+                        "timedout",
+                        "cancelled",
+                        "cancelling",
+                    ]
+                    valid_states = ["success", "pending"]
+                    failed_run = False
+                    failed_steps = []
+                    if distributor_status.lower() in possible_states:
+                        if distributor_status.lower() not in valid_states:
+                            failed_steps.append("ExecuteDistributorPackage")
+                            failed_run = True
+                    if failed_run:
+                        raise Exception(
+                            f"Failed to execute distributor package. Failed steps: {failed_steps} check the step's logs for more details"
+                        )
+        outputs:
+          - HandlePreqrequisites.message
+          - HandlePreqrequisites.errorMessage
+  CrowdStrikeSSMAssociation:
+    Type: AWS::SSM::Association
+    DependsOn: CrowdStrikeSecrets
+    Properties:
+      Name: !Ref CrowdStrikeAutomationDocument
+      AssociationName: crowdstrike-falcon-sensor-deploy
+      AutomationTargetParameterName: InstanceIds
+      Targets:
+        - Key: InstanceIds
+          Values: ['*']
+      Parameters:
+        AutomationAssumeRole:
+          - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${AutomationAssumeRole}
+        Action: [!Ref Action]
+        SecretStorageMethod: [!Ref SecretStorageMethod]
+        SecretsManagerSecretName: [!Ref SecretsManagerSecretName]
+      MaxConcurrency: !Ref MaxConcurrency
+      MaxErrors: !Ref MaxErrors
+      ApplyOnlyAtCronInterval: !Ref ApplyOnlyAtCronInterval
+      ScheduleExpression: !Ref ScheduleExpression
