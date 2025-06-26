@@ -34,7 +34,6 @@ Metadata:
           default: Deploy Falcon Sensors with SSM Distributor
         Parameters:
           - EnableSSMDistributor
-          - DocumentVersion
           - AutomationAssumeRole
           - ApplyOnlyAtCronInterval
           - ScheduleExpression
@@ -122,8 +121,6 @@ Metadata:
       # Deploy Falcon Sensors with SSM Distributor
       EnableSSMDistributor:
         default: Enable Falcon SSM Distributor
-      DocumentVersion:
-        default: Automation Document Version
       AutomationAssumeRole:
         default: SSM Execution Role
       ApplyOnlyAtCronInterval:
@@ -313,11 +310,6 @@ Parameters:
     Description: The maximum number of targets allowed to run the association at the same time. You can specify a number, for example 10, or a percentage of the target set, for example 10%. The default value is 100%, which means all targets run the association at the same time.
     Type: String
     Default: '20%'
-  DocumentVersion:
-    Description: The version of the SSM document to associate with the target.
-    Type: String
-    Default: '2'
-    AllowedPattern: '([$]LATEST|[$]DEFAULT|^[1-9][0-9]*$)'
   
   # AWS S3 Bucket
   SourceS3BucketName:
@@ -477,12 +469,17 @@ Mappings:
     usgov1:
       BaseURL: "https://api.laggar.gcw.crowdstrike.com"
       CrowdStrikeCloud: us-gov-1
+    usgov2:
+      BaseURL: "https://api.us-gov-2.crowdstrike.mil"
+      CrowdStrikeCloud: us-gov-2
+
 
 Conditions:
   CreateIOAResources: !Equals [ !Ref 'EnableIOA', true ]
   CreateIOATrail: !Equals [ !Ref 'CreateIOAOrgTrail', true ]
   CreateOrgTrail: !Equals [ !Ref 'CreateSRAOrgTrail', true ]
   ExcludeRegionsEmpty:  !Equals [!Ref 'ExcludeRegions', '']
+  IsGovAWSAccount: !Equals [ !Ref 'AWSAccountType', govcloud ]
   CreateSSMAssociations: !Equals [ !Ref 'EnableSSMDistributor', true ]
   IsCommercialIOA: !And [!Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', commercial ], !Equals [!Ref 'EnableIOA', true ]]
   IsGovCloudIOA: !And [!Equals [ !Ref 'AWSAccountType', govcloud ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
@@ -530,8 +527,6 @@ Resources:
       ManagedExecution:
         Active: true
       Parameters:
-        - ParameterKey: DocumentVersion
-          ParameterValue: !Ref DocumentVersion
         - ParameterKey: SecretsManagerSecretName
           ParameterValue: !Join ['-', ['cs-abi-FalconAPI-SSM', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
         - ParameterKey: SecretStorageMethod
@@ -557,6 +552,11 @@ Resources:
           ParameterValue: !Ref FalconClientID
         - ParameterKey: FalconSecret
           ParameterValue: !Ref FalconSecret
+        - !If
+          - IsGovAWSAccount
+          - ParameterKey: S3BucketSourceUrl
+            ParameterValue: !Sub "s3://${StagingS3Bucket}/${SourceS3BucketNamePrefix}/ssm"
+          - !Ref AWS::NoValue
       AutoDeployment:
         Enabled: true
         RetainStacksOnAccountRemoval: true
@@ -565,7 +565,7 @@ Resources:
             AccountFilterType: NONE
             OrganizationalUnitIds: !Ref DeploymentScope
           Regions: !GetAtt TriggerRegisterAccountLambda.ssm_regions
-      TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/ssm-association-stackset.yml
+      TemplateURL: !If [IsGovAWSAccount, !Sub "https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/ssm-association-stackset-gov.yml", !Sub "https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/ssm-association-stackset.yml"]
 
   SSMSetupStackSet:
     Type: 'AWS::CloudFormation::StackSet'
@@ -1315,7 +1315,9 @@ Resources:
                 Action:
                   - s3:GetObject
                   - s3:GetObjectTagging
+                  - s3:ListBucket
                 Resource:
+                  - !Sub 'arn:${AWS::Partition}:s3:::${SourceS3BucketName}'
                   - !Sub 'arn:${AWS::Partition}:s3:::${SourceS3BucketName}/'
                   - !Sub 'arn:${AWS::Partition}:s3:::${SourceS3BucketName}/${SourceS3BucketNamePrefix}/*'
               - Effect: Allow
@@ -1369,6 +1371,18 @@ Resources:
               s3 = boto3.client('s3')
               for o in objects:
                   key = prefix + o
+                  copy_source = {
+                      'Bucket': source_bucket,
+                      'Key': key
+                  }
+                  print(('copy_source: %s' % copy_source))
+                  print(('dest_bucket = %s'%dest_bucket))
+                  print(('key = %s' %key))
+                  s3.copy_object(CopySource=copy_source, Bucket=dest_bucket,
+                      Key=key)
+              ssm_contents = s3.list_objects(Bucket=source_bucket,EncodingType='url',Prefix="cfn-abi-crowdstrike-fcs/ssm")['Contents']
+              for o in ssm_contents:
+                  key = o['Key']
                   copy_source = {
                       'Bucket': source_bucket,
                       'Key': key
