@@ -1369,7 +1369,7 @@ Resources:
           import threading
           import boto3
           import cfnresponse
-          def copy_objects(source_bucket, dest_bucket, prefix, objects):
+          def copy_objects(source_bucket, dest_bucket, prefix, objects, gov_ssm):
               s3 = boto3.client('s3')
               for o in objects:
                   key = prefix + o
@@ -1425,7 +1425,7 @@ Resources:
                   if event['RequestType'] == 'Delete':
                       delete_objects(dest_bucket, prefix, objects)
                   else:
-                      copy_objects(source_bucket, dest_bucket, prefix, objects)
+                      copy_objects(source_bucket, dest_bucket, prefix, objects, gov_ssm)
               except Exception as e:
                   logging.error('Exception: %s' % e, exc_info=True)
                   status = cfnresponse.FAILED
