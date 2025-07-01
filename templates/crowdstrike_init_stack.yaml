@@ -481,6 +481,7 @@ Conditions:
   ExcludeRegionsEmpty:  !Equals [!Ref 'ExcludeRegions', '']
   IsGovAWSAccount: !Equals [ !Ref 'AWSAccountType', govcloud ]
   CreateSSMAssociations: !Equals [ !Ref 'EnableSSMDistributor', true ]
+  CreateGovSSM: !And [!Equals [ !Ref 'EnableSSMDistributor', true ], !Equals [ !Ref 'AWSAccountType', govcloud ]]
   IsCommercialIOA: !And [!Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', commercial ], !Equals [!Ref 'EnableIOA', true ]]
   IsGovCloudIOA: !And [!Equals [ !Ref 'AWSAccountType', govcloud ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
   IsCommToGovCloudIOA: !And [!Equals [ !Ref 'AWSAccountType', commercial ], !Equals [ !Ref 'FalconAccountType', govcloud ], !Equals [!Ref 'EnableIOA', true ]]
@@ -1277,6 +1278,7 @@ Resources:
       ServiceToken: !GetAtt 'CopyZipsFunction.Arn'
       DestBucket: !Ref 'StagingS3Bucket'
       SourceBucket: !Ref 'SourceS3BucketName'
+      GovSSM: !If [ CreateGovSSM, 'True', 'False' ]
       Prefix: !Sub ${SourceS3BucketNamePrefix}/
       Objects:
         - lambda_functions/packages/register-organization-v2/lambda.zip
@@ -1380,18 +1382,19 @@ Resources:
                   print(('key = %s' %key))
                   s3.copy_object(CopySource=copy_source, Bucket=dest_bucket,
                       Key=key)
-              ssm_contents = s3.list_objects(Bucket=source_bucket,EncodingType='url',Prefix="cfn-abi-crowdstrike-fcs/ssm")['Contents']
-              for o in ssm_contents:
-                  key = o['Key']
-                  copy_source = {
-                      'Bucket': source_bucket,
-                      'Key': key
-                  }
-                  print(('copy_source: %s' % copy_source))
-                  print(('dest_bucket = %s'%dest_bucket))
-                  print(('key = %s' %key))
-                  s3.copy_object(CopySource=copy_source, Bucket=dest_bucket,
-                      Key=key)
+              if gov_ssm:
+                ssm_contents = s3.list_objects(Bucket=source_bucket,EncodingType='url',Prefix="cfn-abi-crowdstrike-fcs/ssm")['Contents']
+                for o in ssm_contents:
+                    key = o['Key']
+                    copy_source = {
+                        'Bucket': source_bucket,
+                        'Key': key
+                    }
+                    print(('copy_source: %s' % copy_source))
+                    print(('dest_bucket = %s'%dest_bucket))
+                    print(('key = %s' %key))
+                    s3.copy_object(CopySource=copy_source, Bucket=dest_bucket,
+                        Key=key)
           def bucket_exists(bucket):
               s3 = boto3.client('s3')
               buckets = s3.list_buckets()
@@ -1416,6 +1419,7 @@ Resources:
               try:
                   source_bucket = event['ResourceProperties']['SourceBucket']
                   dest_bucket = event['ResourceProperties']['DestBucket']
+                  gov_ssm = eval(event['ResourceProperties']['GovSSM'])
                   prefix = event['ResourceProperties']['Prefix']
                   objects = event['ResourceProperties']['Objects']
                   if event['RequestType'] == 'Delete':
