@@ -19,8 +19,6 @@ description: Instructions to clean up the resources created by the ABI solution.
       ManagedExecution:
         Active: true
       Parameters:
-        - ParameterKey: DocumentVersion
-          ParameterValue: !Ref DocumentVersion
         - ParameterKey: SecretsManagerSecretName
           ParameterValue: !Ref SecretsManagerSecretName
         - ParameterKey: SecretStorageMethod
