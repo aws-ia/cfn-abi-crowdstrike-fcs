@@ -16,10 +16,6 @@ description: GovCloud Deployment steps.
     * cfn-abi-crowdstrike-fcs/lambda_functions/packages/eks-existing-clusters/lambda.zip
     * cfn-abi-crowdstrike-fcs/lambda_functions/packages/eks-new-clusters/lambda.zip
     * cfn-abi-crowdstrike-fcs/lambda_functions/packages/register-organization-v2/lambda.zip
-    * cfn-abi-crowdstrike-fcs/templates/aws_cspm_cloudformation_eb_comm_gov.json
-    * cfn-abi-crowdstrike-fcs/templates/aws_cspm_cloudformation_eb_v2.json
-    * cfn-abi-crowdstrike-fcs/templates/aws_cspm_cloudformation_ioa_comm_gov.json
-    * cfn-abi-crowdstrike-fcs/templates/aws_cspm_cloudformation_v2.json
     * cfn-abi-crowdstrike-fcs/templates/crowdstrike_init_stack.yaml
     * cfn-abi-crowdstrike-fcs/templates/ecr-registration-stackset.yml
     * cfn-abi-crowdstrike-fcs/templates/eks-eventbridge-stackset.yml
@@ -35,14 +31,14 @@ description: GovCloud Deployment steps.
 2. Click **Upload**
 3. Click **Add Folder**
 4. Select the new `cfn-abi-crowdstrike-fcs` directory.
-    * **Note**:  this directory may have the same name of the repo you downloaded.  Please snure you are selecting the `cfn-abi-crowdstrike-fcs` directory which contains only the folders and files created by the source_prep.py script in the previous step.
+    * **Note**:  this directory may have the same name of the repo you downloaded.  Please ensure you are selecting the `cfn-abi-crowdstrike-fcs` directory which contains only the folders and files created by the source_prep.py script in the previous step.
 5. Click **Upload**
 
 ## Step 3: Launch the CloudFormation template in the AWS Organizations management account {#launch-cfn}
 
 1. Launch the CloudFormation template in your [AWS Control Tower home Region](https://docs.aws.amazon.com/controltower/latest/userguide/region-how.html).
     * Stack name: `template-crowdstrike-enable-integrations`
-    * Update the follwoing parameters as needed:
+    * Update the following parameters as needed:
         * Falcon CID Details
             * **Falcon Account Type**: Your Falcon Cloud type.  Select `govcloud`
             * **Falcon API Client ID**: Your CrowdStrike Falcon API Client ID
@@ -54,11 +50,6 @@ description: GovCloud Deployment steps.
             * **Delegated Administrator Account**: Indicates whether this is a Delegated Administrator account.  Allowed values include `true` or `false`.  Default is `false`
             * **Deployment Scope**: Comma Delimited List of AWS OU(s) to provision. If you are provisioning the entire organization, please enter the Root OU `r-******`
             * **Permissions Boundary Policy Name**: If your Organization requires a PermissionsBoundary policy applied to IAM Roles, enter the **Name** (not the ARN) of your Permissions Boundary policy
-        * Realtime Visibility (IOA and/or IDP)
-            * **Enable IOA Scanning**: Whether to enable IOA Scanning.  Allowed vlaues include `true` or `false`.  Default is `true`
-            * **StackSet Administration Role**: Name of StackSet Administration role.  Default is `AWSCloudFormationStackSetAdministrationRole`
-            * **StackSet Execution Role**: Name of StackSet Execution role.  Default is `AWSCloudFormationStackSetExecutionRole`
-            * **Exclude Prohibited Regions**: List of regions to exclude from deployment. Use this when SCPs cause stacksets to fail.  Eg. `[<region-1>,<region-2>,....]`
         * Sensor Management (1Click)
             * **Enable Sensor Management**
             * **API Credentials Storage Mode**
@@ -79,16 +70,7 @@ description: GovCloud Deployment steps.
         * Advanced Configuration Properties
             * **Source S3 Bucket Name**: Name of the S3 Bucket you used to upload the contents.
             * **S3 Bucket Region**: Region in which this S3 Bucket resides. ie. `us-gov-west-1` or `us-gov-east-1`
-            * **Source S3 Bucket Name Prefix**: Prefix of the S3 Bucket for sourcing files. Do not change the defult value.
-            * **Create Additional Organization CloudTrail (To enable ReadOnly IOAs)**: Whether you plan to create an additional CloudTrail to enable ReadOnly IOAs.  If `true` the CrowdStrike Bucket name (target for your CloudTrail) will be in the outputs and exports of this stack.  Allowed values include `true` or `false`. The default is `false`
-        * Create Organization CloudTrail
-            * **Create Default Organization CloudTrail**: Create org-wide trail, bucket, and bucket policy to enable EventBridge event collection.  If you already have either an Organization CloudTrail or CloudTrails enabled in each account, please leave this parameter false.
-            * **Control Tower**: If Create Default Org Trail = true: Indicates whether AWS Control Tower is deployed and being used for this AWS environment.
-            * **Governed Regions**: If Create Default Org Trail = true: for AWS Control Tower, set to ct-regions (default).  If not using AWS Control Tower, specify comma separated list of regions (e.g. us-west-2,us-east-1,ap-south-1) in lower case.
-            * **Security Account Id**: If Create Default Org Trail = true: AWS Account ID of the Security Tooling account (ignored for AWS Control Tower environments).
-            * **Log Archive Account Id**: If Create Default Org Trail = true: AWS Account ID of the Log Archive account (ignored for AWS Control Tower environments).
-            * **SRA Repo URL**: AWS Security Reference Architecture examples repository URL
-            * **SRA Repo Branch**: SRA version to tag
+            * **Source S3 Bucket Name Prefix**: Prefix of the S3 Bucket for sourcing files. Do not change the default value.
         * EKS Protection **Skip, this is not supported in GovCloud yet**
             * **EKSProtection**: Enable CrowdStrike EKS Protection to automatically deploy Falcon Sensor against EKS Clusters. Allowed values include `true` or `false`.  Default is `false`
             * **FalconCID**: Your CrowdStrike Falcon CID with checksum. (eg. ********************************-ab)

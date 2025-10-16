@@ -4,29 +4,6 @@ title: How it Works
 description: How each service in this solution works.
 ---
 
-### Indicators of Misconfiguration (IOM)
-Falcon Cloud Security performs configuration assessments to identify IOMs. These are configuration settings in your cloud environment that don’t follow recommended security guidelines and could be a security risk. CrowdStrike leverages read-only IAM permissions to collect the asset inventory and detect IOMs in your cloud environment.
-
-This is accomplished by a single IAM Role, commonly referred to as the "reader role", deployed to each account of the AWS Organization.
-
-The IAM Role has only read-only permissions provided by a combination of the AWS-Managed SecurityAudit policy as well as a custom inline policy.
-
-**Note:** This role will also be deployed in the Organization Management or Delegated Admin account to enable automatic registration of new AWS Accounts through the organizations:ListAccounts permission.
-
-### Threat Detection
-#### Indicators of Attack (IOA)
-Falcon Cloud Security performs behavior assessment to identify indicators of attack (IOA) in near real time. These are patterns of suspicious behavior that suggest an attack might be underway.
-#### Falcon Identity Protection
-If you have a Falcon Identity Protection subscription, enabling threat detection extends Falcon Identity Protection's threat detection capabilities to include AWS IAM Identity Center. This allows visibility into IAM Identity Center users and insights into their authentication activity.
-
-This is accomplished by 
-1. EventBridge Rules deployed to each region of each account of the AWS Organization
-2. IAM Role deployed to each account of the AWS Organization
-
-The EventBridge rules target the CrowdStrike EventBus for your tenant to automatically forward CloudTrail API Activity which generate IOAs and Identity Protection findings.
-
-The IAM Role provides the permissions for the EventBridge rules to target an EventBus in an external account.
-
 ### Sensor Management (1Click)
 If your AWS environment uses AWS Systems Manager (SSM), you can leverage it to deploy the Falcon sensor to your EC2 instances from within the Falcon console with just one click.  See [CrowdStrike Documentation](https://falcon.crowdstrike.com/documentation/page/cf2a51e5/deploy-sensors-using-aws-ssm) for more details.
 
@@ -61,10 +38,10 @@ This is accomplished by
 5. Lambda function to be triggered by CreateCluster and invoke codebuild against new clusters.
 6. CodeBuild project to update access entries, pull CrowdStrike images and deploy Falcon Operator/Sensor.
 
-### ECR Connections
+### ECR Registry Connections
 Ensuring that the images in the registry are assessed for vulnerabilities before runtime is an important part of cloud workload protection.  When a new registry connection is added, a job starts to discover all the repositories, and in parallel, the images and tags are collected from each repository to create the catalog. The catalog contains info about all images, the repository they come from, the image tag associated with that image, and the registry it belongs to. The catalog is used to compare the future and current state of the repo. We avoid showing duplicate image info by using the catalog info, including when tags move between images, to determine if we have already seen and assessed an image. When a catalog is created for a registry, the images in the catalog are inventoried.
 
-This is accoomplished by
+This is accomplished by
 1. IAM Roles in each account to provide permissions to push images to CrowdStrike Falcon.
 2. Lambda function in each account to register ECR Registries with Registry Connection service.
 

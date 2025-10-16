@@ -10,7 +10,7 @@ description: Deployment steps.
 1. Download the [CloudFormation template](https://raw.githubusercontent.com/aws-ia/cfn-abi-crowdstrike-fcs/main/templates/crowdstrike_init_stack.yaml).
 2. Launch the CloudFormation template in your [AWS Control Tower home Region](https://docs.aws.amazon.com/controltower/latest/userguide/region-how.html).
     * Stack name: `template-crowdstrike-enable-integrations`
-    * Update the follwoing parameters as needed:
+    * Update the following parameters as needed:
         * Falcon CID Details
             * **Falcon Account Type**: Your Falcon Cloud type.  Allowed values include `commercial` or `govcloud`
             * **Falcon API Client ID**: Your CrowdStrike Falcon API Client ID
@@ -23,11 +23,6 @@ description: Deployment steps.
             * **Delegated Administrator Account**: Indicates whether this is a Delegated Administrator account.  Allowed values include `true` or `false`.  Default is `false`
             * **Deployment Scope**: Comma Delimited List of AWS OU(s) to provision. If you are provisioning the entire organization, please enter the Root OU `r-******`
             * **Permissions Boundary Policy Name**: If your Organization requires a PermissionsBoundary policy applied to IAM Roles, enter the **Name** (not the ARN) of your Permissions Boundary policy
-        * Realtime Visibility (IOA and/or IDP)
-            * **Enable IOA Scanning**: Whether to enable IOA Scanning.  Allowed vlaues include `true` or `false`.  Default is `true`
-            * **StackSet Administration Role**: Name of StackSet Administration role.  Default is `AWSCloudFormationStackSetAdministrationRole`
-            * **StackSet Execution Role**: Name of StackSet Execution role.  Default is `AWSCloudFormationStackSetExecutionRole`
-            * **Exclude Prohibited Regions**: List of regions to exclude from deployment. Use this when SCPs cause stacksets to fail.  Eg. `[<region-1>,<region-2>,....]`
         * Sensor Management (1Click)
             * **Enable Sensor Management**
             * **API Credentials Storage Mode**
@@ -46,16 +41,7 @@ description: Deployment steps.
         * Advanced Configuration Properties
             * **Source S3 Bucket Name**: Name of the S3 Bucket for staging files.  The default is `aws-abi-${AWS::AccountId}-${AWS::Region}`
             * **S3 Bucket Region**: Region of the S3 Bucket for staging files.
-            * **Source S3 Bucket Name Prefix**: Prefix of the S3 Bucket for sourcing files. Do not change the defult value.
-            * **Create Additional Organization CloudTrail (To enable ReadOnly IOAs)**: Whether you plan to create an additional CloudTrail to enable ReadOnly IOAs.  If `true` the CrowdStrike Bucket name (target for your CloudTrail) will be in the outputs and exports of this stack.  Allowed values include `true` or `false`. The default is `false`
-        * Create Organization CloudTrail
-            * **Create Default Organization CloudTrail**: Create org-wide trail, bucket, and bucket policy to enable EventBridge event collection.  If you already have either an Organization CloudTrail or CloudTrails enabled in each account, please leave this parameter false.
-            * **Control Tower**: If Create Default Org Trail = true: Indicates whether AWS Control Tower is deployed and being used for this AWS environment.
-            * **Governed Regions**: If Create Default Org Trail = true: for AWS Control Tower, set to ct-regions (default).  If not using AWS Control Tower, specify comma separated list of regions (e.g. us-west-2,us-east-1,ap-south-1) in lower case.
-            * **Security Account Id**: If Create Default Org Trail = true: AWS Account ID of the Security Tooling account (ignored for AWS Control Tower environments).
-            * **Log Archive Account Id**: If Create Default Org Trail = true: AWS Account ID of the Log Archive account (ignored for AWS Control Tower environments).
-            * **SRA Repo URL**: AWS Security Reference Architecture examples repository URL
-            * **SRA Repo Branch**: SRA version to tag
+            * **Source S3 Bucket Name Prefix**: Prefix of the S3 Bucket for sourcing files. Do not change the default value.
         * EKS Protection
             * **EKSProtection**: Enable CrowdStrike EKS Protection to automatically deploy Falcon Sensor against EKS Clusters. Allowed values include `true` or `false`.  Default is `false`
             * **FalconCID**: Your CrowdStrike Falcon CID with checksum. (eg. ********************************-ab)
@@ -106,14 +92,10 @@ resources:
         parameter_value: $[alfred_ssm_/crowdstrike/falcon_secret] # Create SSM parameter with the CrowdStrike API secret
       - parameter_key: ProvisionOU
         parameter_value: $[alfred_ssm_/crowdstrike/provision-ou] # Create SSM parameter with the OU name
-      - parameter_key: ExcludeRegions
-        parameter_value: $[alfred_ssm_/crowdstrike/exclude_regions] # Create SSM parameter with regions to exclude
       - parameter_key: SourceS3BucketName
         parameter_value: aws-abi
       - parameter_key: S3BucketRegion
         parameter_value: us-east-1 # Update as needed
-      - parameter_key: CreateOrgTrail
-        parameter_value: "true" # Update as needed. Set to "false" if you already have an organization trail.
     regions:
       - us-east-1 # Update as needed
     deployment_targets:
