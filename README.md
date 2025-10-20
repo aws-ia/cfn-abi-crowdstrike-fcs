@@ -1,7 +1,7 @@
 ![](https://raw.githubusercontent.com/CrowdStrike/falconpy/main/docs/asset/cs-logo.png)
 
 > [!IMPORTANT]
-> **CSPM Functionality Deprecated**: This repository no longer supports Cloud Security Posture Management (CSPM) and should only be used for SSM Distributor, EKS Protection, and ECR Registry Connections. For information on new CSPM registration methods, see [crowdstrike-aws-cloudformation-benefits-summary.md](crowdstrike-aws-cloudformation-benefits-summary.md) and [terraform-aws-organization-registration-benefits.md](terraform-aws-organization-registration-benefits.md). For guidance on removing ABI as your registration method, see [crowdstrike-cloudformation-stack-deletion-guide.md](crowdstrike-cloudformation-stack-deletion-guide.md).
+> **CSPM Functionality Deprecated**: This repository no longer supports Cloud Security Posture Management (CSPM) and should only be used for SSM Distributor, EKS Protection, and ECR Registry Connections. For information on new CSPM registration methods, see [CrowdStrike AWS CloudFormation](crowdstrike-aws-cloudformation.md) and [CrowdStrike AWS Terraform.md](crowdstrike-aws-terraform.md). For guidance on removing ABI as your registration method, see [CrowdStrike ABI Stack Deletion Guide.md](crowdstrike-abi-stack-deletion-guide.md).
 
 # CrowdStrike Cloud Security with AWS Built-in
 
