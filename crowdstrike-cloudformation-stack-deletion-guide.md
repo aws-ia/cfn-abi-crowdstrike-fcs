@@ -1,5 +1,33 @@
 # CrowdStrike CloudFormation Stack Deletion Guide
 
+## Option 1: Update to Latest ABI Template (Recommended for SSM Distributor/EKS Protection/ECR Registration Users)
+
+If you intend to **continue using ABI for SSM Distributor, EKS Protection, and/or ECR Registry Connections** but want to remove CSPM functionality, you should update your existing stack with the latest version of the ABI template instead of deleting it entirely.
+
+### Benefits of Updating vs. Deleting
+- **Maintains sensor deployment capabilities** via SSM Distributor
+- **Preserves EKS protection** for Kubernetes clusters
+- **Keeps ECR registry connections** for image scanning
+- **Only removes CSPM resources** (IOA/IOM detection, CloudTrails, etc.)
+
+### How to Update the Stack
+1. Download the latest main template from this repository: [`crowdstrike_init_stack.yaml`](templates/crowdstrike_init_stack.yaml)
+2. Sign in to the AWS Account where you deployed the original ABI stack
+3. Navigate to **CloudFormation** > **Stacks**
+4. Select your existing CrowdStrike ABI stack
+5. Click **Update** > **Replace current template**
+6. Upload the latest `crowdstrike_init_stack.yaml` template
+7. Keep all existing parameter values the same
+8. Complete the update process
+
+**Result:** Your stack will be updated to remove all CSPM functionality while preserving SSM, EKS, and ECR capabilities.
+
+---
+
+## Option 2: Complete Stack Deletion to move to new Registration Methods
+
+If you want to **completely remove all CrowdStrike integrations** from your AWS Organization, proceed with the full deletion process below.  This is the appropriate step to take before re-registering with the new CloudFormation or Terraform methods.
+
 ## ⚠️ CRITICAL WARNING
 
 **Deleting the CrowdStrike CloudFormation stack created by `crowdstrike_init_stack.yaml` will completely deregister your AWS Organization from Falcon Cloud Security.** This action will:
@@ -48,7 +76,7 @@ The CrowdStrike initialization stack creates numerous resources across your orga
 3. Locate the CrowdStrike initialization stack (typically named with prefix `cs-abi` or similar)
 4. Note the stack name for deletion
 
-### Step 2: Review Stack Dependencies
+### Step 2: (Optional) Review Stack Dependencies
 Before deletion, understand what will be removed:
 
 ```bash
@@ -83,16 +111,6 @@ The stack deletion process will automatically:
 - Clean up IAM roles and policies
 - Delete S3 buckets (if they're empty)
 - Remove EventBridge rules and targets
-
-**Manual Cleanup (if needed):**
-Some resources may require manual cleanup:
-
-```bash
-# Check for remaining CrowdStrike-related resources
-aws iam list-roles --query 'Roles[?contains(RoleName, `crowdstrike`) || contains(RoleName, `cs-abi`)]'
-aws s3 ls | grep -i crowdstrike
-aws events list-rules --query 'Rules[?contains(Name, `cs-`) || contains(Name, `crowdstrike`)]'
-```
 
 ## Post-Deletion Status
 

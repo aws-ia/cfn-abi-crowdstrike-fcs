@@ -1,7 +1,7 @@
 ![](https://raw.githubusercontent.com/CrowdStrike/falconpy/main/docs/asset/cs-logo.png)
 
 > [!IMPORTANT]
-> CrowdStrike CSPM uses an IAM Role with read-only permissions to collect the asset inventory and detect IOMs in your cloud environment.  To stay ahead of the adversary CrowdStrike may periodically add to the required permissions of this role.  To see the process for updating this role across your environment after initial deployment, please click [here](https://aws-abi.s3.amazonaws.com/guide/cfn-abi-crowdstrike-fcs/post-deployment-steps/index.html).
+> **CSPM Functionality Deprecated**: This repository no longer supports Cloud Security Posture Management (CSPM) and should only be used for SSM Distributor, EKS Protection, and ECR Registry Connections. For information on new CSPM registration methods, see [crowdstrike-aws-cloudformation-benefits-summary.md](crowdstrike-aws-cloudformation-benefits-summary.md) and [terraform-aws-organization-registration-benefits.md](terraform-aws-organization-registration-benefits.md). For guidance on removing ABI as your registration method, see [crowdstrike-cloudformation-stack-deletion-guide.md](crowdstrike-cloudformation-stack-deletion-guide.md).
 
 # CrowdStrike Cloud Security with AWS Built-in
 
