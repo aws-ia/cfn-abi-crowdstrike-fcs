@@ -1,4 +1,4 @@
-# Benefits of Registering AWS Organizations with CrowdStrike Using Terraform
+# Register AWS Organizations with CrowdStrike Using Terraform
 
 For the official CrowdStrike cloud-registration Terraform module see https://registry.terraform.io/modules/CrowdStrike/cloud-registration/aws/latest 
 
