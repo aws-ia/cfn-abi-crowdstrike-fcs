@@ -20,11 +20,6 @@ Metadata:
           - DeploymentScope
           - PermissionsBoundary
       - Label:
-          default: Sensor Management (1Click)
-        Parameters:
-          - EnableSensorManagement
-          - APICredentialsStorageMode
-      - Label:
           default: Deploy Falcon Sensors with SSM Distributor
         Parameters:
           - EnableSSMDistributor
@@ -93,11 +88,6 @@ Metadata:
         default: CrowdStrike Cloud
 
 
-      # Sensor Management
-      EnableSensorManagement:
-        default: Enable Sensor Management (1Click)
-      APICredentialsStorageMode:
-        default: API Credentials Storage Mode
 
       # Provision OUs
       DeploymentScope:
@@ -223,19 +213,6 @@ Parameters:
     Description: The Cloud your CID is hosted in
 
 
-  # Sensor Management
-  EnableSensorManagement:
-    Type: String
-    Description: Enable Automatic Sensor Deployment via AWS SSM and/or Ansible.
-    AllowedValues:
-      - 'true'
-      - 'false'
-    Default: 'true'
-  APICredentialsStorageMode:
-    Type: String
-    Description: How Falcon API credentials are stored for Sensor Management. 'lambda' stores them in the lambda environment variables, 'secret' in an AWS secret.
-    Default: 'secret'
-    AllowedValues: ['lambda', 'secret']
 
   # Provision OUs
   DeploymentScope:
