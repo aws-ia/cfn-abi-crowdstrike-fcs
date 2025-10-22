@@ -1,7 +1,6 @@
 # Register AWS Organizations with CrowdStrike CSPM Using CloudFormation
 
-For the official CrowdStrike Cloud Security CloudFormation templates please see Falcon Documentation [us-1](https://falcon.crowdstrike.com/documentation/category/b552498b/registering-aws-accounts), [us-2](https://falcon.us-2.crowdstrike.com/documentation/category/b552498b/registering-aws-accounts) or [eu-1](https://falcon.eu-1.crowdstrike.com/documentation/category/b552498b/registering-aws-accounts).
-
+For the official CrowdStrike Cloud Security CloudFormation templates please see Falcon Documentation for [AWS Registration](https://docs.crowdstrike.com/r/b552498b) 
 ## Summary
 
 CrowdStrike's CloudFormation-based approach for registering AWS Organizations with Falcon Cloud Security (CSPM) offers a comprehensive, automated, and scalable solution for enterprise cloud security management. 
