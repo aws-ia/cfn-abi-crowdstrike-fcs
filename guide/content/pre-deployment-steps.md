@@ -8,7 +8,6 @@ Before deploying this ABI solution, complete the following steps:
 
 1. Subscribe to the [CrowdStrike Falcon Cloud Security](https://aws.amazon.com/marketplace/pp/prodview-l6ti2ml2i2g6y?ref_=esp&feature_=FeaturedProducts) AWS Marketplace listing.
 2. Create Crowdstrike API Client in Falcon UI with the following scope: 
-- Cloud Security AWS Registration: Read and Write
 - Sensor management: Read and Write (If Sensor Management enabled)
 - Installation Tokens: Read, Sensor Download: Read (If Sensor Management or SSM Distributor enabled)
 - ECR Registry Scanning: Read and Write (If ECR Registry Connections enabled)

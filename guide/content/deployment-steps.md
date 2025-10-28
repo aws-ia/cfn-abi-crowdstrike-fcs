@@ -23,9 +23,6 @@ description: Deployment steps.
             * **Delegated Administrator Account**: Indicates whether this is a Delegated Administrator account.  Allowed values include `true` or `false`.  Default is `false`
             * **Deployment Scope**: Comma Delimited List of AWS OU(s) to provision. If you are provisioning the entire organization, please enter the Root OU `r-******`
             * **Permissions Boundary Policy Name**: If your Organization requires a PermissionsBoundary policy applied to IAM Roles, enter the **Name** (not the ARN) of your Permissions Boundary policy
-        * Sensor Management (1Click)
-            * **Enable Sensor Management**
-            * **API Credentials Storage Mode**
         * Deploy Falcon Sensors with SSM Distributor
             * **EnableSSMDistributor**: Whether to deploy SSM Associations in each AWS Region to automatically deploy the CrowdStrike Distributor Package against SSM-Managed Ec2 Instances. Allowed values include `true` or `false`. The default is `false`
             * **Document Version**: If EnableSSMDistributor is `true`: Define the version of the CrowdStrike SSM Automation document. The default is `2`.  This value should not change unless advised by CrowdStrike.

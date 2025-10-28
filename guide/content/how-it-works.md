@@ -4,17 +4,6 @@ title: How it Works
 description: How each service in this solution works.
 ---
 
-### Sensor Management (1Click)
-If your AWS environment uses AWS Systems Manager (SSM), you can leverage it to deploy the Falcon sensor to your EC2 instances from within the Falcon console with just one click.  See [CrowdStrike Documentation](https://falcon.crowdstrike.com/documentation/page/cf2a51e5/deploy-sensors-using-aws-ssm) for more details.
-
-This is accomplished by
-1. IAM Role in each account to allow CrowdStrike to invoke the Sensor Management Lambda function.
-2. Lambda function in each account to call SSM and deploy the CrowdStrike Falcon Distributor package against SSM-Managed EC2 Instances.
-3. IAM Role in each account to provide execution role for Lambda function.
-4. Secrets Manager Secret in each each account to store Falcon API Credentials for the CrowdStrike Falcon Distributor package.
-
-**Note:** This feature will only apply to SSM-Managed EC2 Instances.  See [AWS Documentation](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-setting-up-ec2.html) for details.
-
 ### SSM Distributor
 If your AWS environment uses AWS Systems Manager (SSM), you can leverage it to deploy the Falcon sensor to your EC2 instances automatically via State Manager Associations.  The same CrowdStrike Falcon Distributor Package that enables 1Click, can also be deployed against instances in your environment without clicking through the Falcon Console.  See [GitHub Documentation](https://github.com/CrowdStrike/aws-ssm-distributor/blob/main/README.md) for details. 
 

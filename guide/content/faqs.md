@@ -4,13 +4,9 @@ title: FAQs
 description: Frequently asked questions.
 ---
 
-## When should I use the Sensor Management option?
+## What is the difference between 1-Click and SSM Distributor?
 
-We recommend this method for deploying the Falcon sensor in AWS environments where AWS Systems Manager (SSM) is in use. After enabling and adding EC2 hosts to the SSM inventory on your registered AWS accounts, you can deploy the Falcon sensor into your EC2 instances from the Falcon console with just one click.
-
-## What is the difference between Sensor Management and SSM Distributor?
-
-Sensor Management (1-Click) allows you to deploy sensors from the Falcon console on demand with a single click. SSM Distributor automatically deploys sensors via scheduled State Manager Associations without requiring manual intervention through the Falcon console.
+1-Click allows you to deploy sensors from the Falcon console on demand with a single click, which can be enabled via the Falcon Console. SSM Distributor automatically deploys sensors via scheduled State Manager Associations without requiring manual intervention through the Falcon console.
 
 ## How does ECR Registry Connections help secure my container images?
 
@@ -23,6 +19,10 @@ Yes, EKS Protection works with both existing EKS clusters and newly created clus
 ## What regions are supported for this solution?
 
 This solution can be deployed in any AWS region where the required AWS services (CloudFormation, Lambda, Systems Manager, etc.) are available. For GovCloud deployments, please refer to the GovCloud deployment guide for specific considerations.
+
+SSM Distributor is enabled for most regions, for an updated list please see https://github.com/CrowdStrike/aws-ssm-distributor
+
+EKS Protection is not yet supported by GovCloud
 
 ## Can I contribute to this repository?
 

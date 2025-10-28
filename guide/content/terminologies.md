@@ -11,8 +11,6 @@ description: Terminolgies used in this guide.
 * **CrowdStrike event bus:** The AWS event bus in CrowdStrike's environment for receiving events from EKS clusters and providing runtime protection data to CrowdStrike.
 * **ECR Registry Connections:** Integration that enables CrowdStrike to assess container images stored in Amazon Elastic Container Registry (ECR) for vulnerabilities and malware.
 * **EKS Protection:** Runtime security monitoring for Amazon Elastic Kubernetes Service clusters that detects suspicious activities and provides visibility into containerized workloads.
-* **Registration:** Enroll your AWS account ID with the CrowdStrike service to enable integrations across your AWS environment.
-* **Sensor Management:** Enable 1-click sensor deployment to quickly and easily deploy the Falcon sensor to your cloud workloads. Use the Deployment dashboard to discover unmanaged AWS hosts and unregistered AWS accounts and to kick start workflows to register your cloud accounts and automate sensor deployments.
 * **SSM Distributor:** Install the Falcon sensor on instances across your AWS accounts using AWS SSM State Manager Associations.  
 
 **Next:** Choose [Cost and licenses](/costandlicenses/index.html).

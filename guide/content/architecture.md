@@ -6,9 +6,6 @@ description: Solution architecture.
 
 Deploying this ABI solution with default parameters builds the following architecture.
 
-### Sensor Management (OneClick)
-![Sensor Management Architecture diagram](/images/sensor_architecture.png)  
-
 ### SSM Distributor
 ![SSM Distributor Architecture diagram](/images/distributor_architecture.png)  
 * In the child AWS accounts:
