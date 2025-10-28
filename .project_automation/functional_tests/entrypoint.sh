@@ -39,25 +39,13 @@ run_test() {
 }
 
 # Run taskcat e2e test
-run_test "cw-test"
+run_test "eks-only-test"
 
-run_test "cw-test-idp"
+run_test "ecr-only-test"
 
-run_test "cw-test-sra"
+run_test "ssm-only-test"
 
-run_test "cw-eks-test"
-
-run_test "cw-ecr-test"
-
-run_test "cw-test-trail"
-
-run_test "cw-test-ssm"
-
-run_test "cw-test-smlambda"
-
-run_test "cw-test-all"
-
-#run_test "cw-test-nonct"
+run_test "all-three-test"
 
 ## Executing ash tool
 
