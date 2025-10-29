@@ -714,7 +714,6 @@ Resources:
       SourceBucket: !Ref 'SourceS3BucketName'
       Prefix: !Sub ${SourceS3BucketNamePrefix}/
       Objects:
-        - lambda_functions/packages/register-organization-v2/lambda.zip
         - lambda_functions/packages/cw-helper/lambda.zip
         - templates/crowdstrike_init_stack.yaml
         - lambda_functions/packages/eks-existing-clusters/lambda.zip
