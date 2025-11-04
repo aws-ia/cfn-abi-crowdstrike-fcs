@@ -18,6 +18,7 @@ Metadata:
           - AWSAccountType
           - DelegatedAdmin
           - DeploymentScope
+          - Regions
           - PermissionsBoundary
       - Label:
           default: Deploy Falcon Sensors with SSM Distributor
@@ -92,6 +93,10 @@ Metadata:
       # Provision OUs
       DeploymentScope:
         default: Deployment Scope
+
+      # Regions
+      Regions:
+        default: Regions
 
       # Deploy Falcon Sensors with SSM Distributor
       EnableSSMDistributor:
@@ -219,6 +224,9 @@ Parameters:
     Type: CommaDelimitedList
     Description: Comma Delimited List of OU(s) to provision resources.  If you are onboarding the entire Organization, please enter the Root OU (r-****)
     AllowedPattern: '^r-[0-9a-z]{4,32}$|^(ou-[0-9a-z]{4,32}-[a-z0-9]{8,32},)*(ou-[0-9a-z]{4,32}-[a-z0-9]{8,32})$'
+  Regions:
+    Type: CommaDelimitedList
+    Description: Comma Delimited List of AWS Regions to provision resources.
 
   # Deploy Falcon Sensors with SSM Distributor
   EnableSSMDistributor:
@@ -488,7 +496,7 @@ Resources:
         - DeploymentTargets:
             AccountFilterType: NONE
             OrganizationalUnitIds: !Ref DeploymentScope
-          Regions: !GetAtt TriggerRegisterAccountLambda.ssm_regions
+          Regions: !Ref Regions
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/ssm-association-stackset.yml
 
   SSMSetupStackSet:
@@ -544,90 +552,6 @@ Resources:
             - '","FalconSecret": "'
             - Ref: FalconSecret
             - '"}'
-
-  LambdaCrowdStrikeRegistrationRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: !Join ['-', ['cs-abi-RegistrationRole', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
-      PermissionsBoundary:
-        Fn::If:
-          - SetPermissionsBoundary
-          - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${PermissionsBoundary}'
-          - Ref: AWS::NoValue
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-            Condition: { }
-      Path: /
-      Policies:
-        - PolicyName: CrowdStrikeApiSecretPolicy
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'secretsmanager:GetSecretValue'
-                Resource:
-                  - !Ref CrowdStrikeSecrets
-      ManagedPolicyArns:
-        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
-        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/AWSOrganizationsReadOnlyAccess'
-        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ReadOnlyAccess'
-
-  RegisterAccountLambda:
-    Type: AWS::Lambda::Function
-    DependsOn:
-      - CrowdStrikeSecrets
-      - CopyZips
-    Metadata:
-      cfn_nag:
-        rules_to_suppress:
-          - id: W89
-            reason: Lambda custom resource only run during stack lifecycle events.
-          - id: W92
-            reason: Lambda custom resource only run during stack lifecycle events.
-      checkov:
-        skip:
-          - id: CKV_AWS_115
-            comment: Lambda does not need reserved concurrent executions.
-          - id: CKV_AWS_116
-            comment: DLQ not needed, as Lambda function only triggered by CloudFormation events.
-          - id: CKV_AWS_117
-            comment: Lambda does not need to communicate with VPC resources.
-          - id: CKV_AWS_173
-            comment: Environment variables are not sensitive.
-    Properties:
-      Environment:
-        Variables:
-          secret_region: !Ref AWS::Region
-          secret_name: !Join ['-', ['cs-abi-FalconAPI', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
-          cs_cloud: !Ref CSCloud
-          aws_account_type: !Ref AWSAccountType
-          falcon_account_type: !Ref FalconAccountType
-          enable_dspm: 'True'
-      Handler: lambda.lambda_handler
-      MemorySize: 128
-      Role: !GetAtt "LambdaCrowdStrikeRegistrationRole.Arn"
-      Runtime: python3.11
-      Timeout: 300
-      FunctionName: !Join ['-', ['cs-abi-RegistrationLambda', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
-      Code:
-        S3Bucket: !Ref StagingS3Bucket
-        S3Key: !Sub ${SourceS3BucketNamePrefix}/lambda_functions/packages/register-organization-v2/lambda.zip
-
-  TriggerRegisterAccountLambda:
-    Type: 'Custom::TriggerLambda'
-    DependsOn:
-      - LambdaCrowdStrikeRegistrationRole
-      - CrowdStrikeSecrets
-    Properties:
-      ServiceToken: !GetAtt
-        - RegisterAccountLambda
-        - Arn
 
   # Staging S3 Bucket
   StagingS3Bucket:
@@ -890,6 +814,7 @@ Resources:
           LOG_LEVEL: "INFO"
           EVENTBUS_ACCOUNT: !Ref AWS::AccountId
           EKS_PROTECTION: !Ref EKSProtection
+          REGIONS: !Ref Regions
       Code:
         S3Bucket: !Ref StagingS3Bucket
         S3Key: !Sub ${SourceS3BucketNamePrefix}/lambda_functions/packages/cw-helper/lambda.zip
@@ -1061,7 +986,7 @@ Resources:
         - DeploymentTargets:
             AccountFilterType: NONE
             OrganizationalUnitIds: !Ref DeploymentScope
-          Regions: !GetAtt TriggerRegisterAccountLambda.my_regions
+          Regions: !Ref Regions
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/eks-eventbridge-stackset.yml
 
   ECRRegistrationStackSet:
@@ -1099,7 +1024,7 @@ Resources:
         - ParameterKey: CSCloud
           ParameterValue: !Ref CSCloud
         - ParameterKey: Regions
-          ParameterValue: !GetAtt TriggerRegisterAccountLambda.regions_parameter
+          ParameterValue: !GetAtt OrgIdLambdaCustomResource.regions_parameter
       PermissionModel: SERVICE_MANAGED
       CallAs: !If [ IsDelegatedAdmin, 'DELEGATED_ADMIN', 'SELF' ]
       AutoDeployment:
