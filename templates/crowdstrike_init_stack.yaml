@@ -18,7 +18,6 @@ Metadata:
           - AWSAccountType
           - DelegatedAdmin
           - DeploymentScope
-          - Regions
           - PermissionsBoundary
       - Label:
           default: Deploy Falcon Sensors with SSM Distributor
@@ -97,8 +96,12 @@ Metadata:
         default: Deployment Scope
 
       # Regions
-      Regions:
-        default: Regions
+      SSMRegions:
+        default: SSM Regions
+      EKSRegions:
+        default: EKS Regions
+      ECRRegions:
+        default: ECR Regions
 
       # Deploy Falcon Sensors with SSM Distributor
       EnableSSMDistributor:
