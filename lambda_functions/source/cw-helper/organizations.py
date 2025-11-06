@@ -62,12 +62,6 @@ def lambda_handler(event, context):
         organization_id = get_org_id()
         data_dict["organization_id"] = organization_id
 
-        # Get regions from environment variable (already a comma-separated string from !Ref Regions)
-        regions_env = os.environ.get("REGIONS", "")
-        data_dict["regions_parameter"] = (
-            regions_env  # Pass through as string for ECR StackSet
-        )
-
         if EKS_PROTECTION == "true":
             eventbus_account_ou = get_parents()
             data_dict["eventbus_account_ou"] = eventbus_account_ou

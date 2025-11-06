@@ -24,6 +24,7 @@ Metadata:
           default: Deploy Falcon Sensors with SSM Distributor
         Parameters:
           - EnableSSMDistributor
+          - SSMRegions
           - DocumentVersion
           - AutomationAssumeRole
           - ApplyOnlyAtCronInterval
@@ -34,6 +35,7 @@ Metadata:
           default: ECR Registry Connections
         Parameters:
           - ECRConnections
+          - ECRRegions
           - ECRExecutionRoleName
           - ECRLambdaName
       - Label:
@@ -43,19 +45,10 @@ Metadata:
           - S3BucketRegion
           - SourceS3BucketNamePrefix
       - Label:
-          default: Create Organization CloudTrail
-        Parameters:
-          - CreateSRAOrgTrail
-          - pControlTower
-          - pGovernedRegions
-          - pSecurityAccountId
-          - pLogArchiveAccountId
-          - pRepoURL
-          - pRepoBranch
-      - Label:
           default: EKS Protection
         Parameters:
           - EKSProtection
+          - EKSRegions
           - FalconCID
           - DockerAPIToken
           - EventBusName
@@ -67,7 +60,16 @@ Metadata:
           - Registry
           - Backend
           - EnableKAC
-      
+      - Label:
+          default: Create Organization CloudTrail
+        Parameters:
+          - CreateSRAOrgTrail
+          - pControlTower
+          - pGovernedRegions
+          - pSecurityAccountId
+          - pLogArchiveAccountId
+          - pRepoURL
+          - pRepoBranch
 
     ParameterLabels:
       # Account Type
@@ -224,9 +226,15 @@ Parameters:
     Type: CommaDelimitedList
     Description: Comma Delimited List of OU(s) to provision resources.  If you are onboarding the entire Organization, please enter the Root OU (r-****)
     AllowedPattern: '^r-[0-9a-z]{4,32}$|^(ou-[0-9a-z]{4,32}-[a-z0-9]{8,32},)*(ou-[0-9a-z]{4,32}-[a-z0-9]{8,32})$'
-  Regions:
+  EKSRegions:
     Type: CommaDelimitedList
-    Description: Comma Delimited List of AWS Regions to provision resources.
+    Description: Comma Delimited List of AWS Regions to provision resources for EKS Protection.
+  SSMRegions:
+    Type: CommaDelimitedList
+    Description: Comma Delimited List of AWS Regions to provision resources for SSM Distributor.
+  ECRRegions:
+    Type: String
+    Description: Comma Delimited List of AWS Regions to provision resources for ECR Registration.
 
   # Deploy Falcon Sensors with SSM Distributor
   EnableSSMDistributor:
@@ -496,7 +504,7 @@ Resources:
         - DeploymentTargets:
             AccountFilterType: NONE
             OrganizationalUnitIds: !Ref DeploymentScope
-          Regions: !Ref Regions
+          Regions: !Ref SSMRegions
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/ssm-association-stackset.yml
 
   SSMSetupStackSet:
@@ -814,7 +822,6 @@ Resources:
           LOG_LEVEL: "INFO"
           EVENTBUS_ACCOUNT: !Ref AWS::AccountId
           EKS_PROTECTION: !Ref EKSProtection
-          REGIONS: !Ref Regions
       Code:
         S3Bucket: !Ref StagingS3Bucket
         S3Key: !Sub ${SourceS3BucketNamePrefix}/lambda_functions/packages/cw-helper/lambda.zip
@@ -986,7 +993,7 @@ Resources:
         - DeploymentTargets:
             AccountFilterType: NONE
             OrganizationalUnitIds: !Ref DeploymentScope
-          Regions: !Ref Regions
+          Regions: !Ref EKSRegions
       TemplateURL: !Sub https://${SourceS3BucketName}.s3.${S3BucketRegion}.amazonaws.com/${SourceS3BucketNamePrefix}/templates/eks-eventbridge-stackset.yml
 
   ECRRegistrationStackSet:
@@ -1024,7 +1031,7 @@ Resources:
         - ParameterKey: CSCloud
           ParameterValue: !Ref CSCloud
         - ParameterKey: Regions
-          ParameterValue: !GetAtt OrgIdLambdaCustomResource.regions_parameter
+          ParameterValue: !Ref ECRRegions
       PermissionModel: SERVICE_MANAGED
       CallAs: !If [ IsDelegatedAdmin, 'DELEGATED_ADMIN', 'SELF' ]
       AutoDeployment:
