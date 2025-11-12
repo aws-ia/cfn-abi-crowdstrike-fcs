@@ -232,12 +232,15 @@ Parameters:
   EKSRegions:
     Type: CommaDelimitedList
     Description: Comma Delimited List of AWS Regions to provision resources for EKS Protection.
+    Default: ''
   SSMRegions:
     Type: CommaDelimitedList
     Description: Comma Delimited List of AWS Regions to provision resources for SSM Distributor.
+    Default: ''
   ECRRegions:
     Type: String
     Description: Comma Delimited List of AWS Regions to provision resources for ECR Registration.
+    Default: ''
 
   # Deploy Falcon Sensors with SSM Distributor
   EnableSSMDistributor:
