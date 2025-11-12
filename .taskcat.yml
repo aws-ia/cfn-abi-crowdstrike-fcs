@@ -20,6 +20,7 @@ tests:
       DockerAPIToken: $[taskcat_ssm_/crowdstrike/falcon_docker_api_token]
       ECRConnections: "false"
       EnableSSMDistributor: "false"
+      EKSRegions: $[taskcat_current_region]
     regions:
     - us-east-1
     template: templates/crowdstrike_init_stack.yaml
@@ -35,6 +36,7 @@ tests:
       ECRConnections: "true"
       EKSProtection: "false"
       EnableSSMDistributor: "false"
+      ECRRegions: $[taskcat_current_region]
     regions:
     - us-east-1
     template: templates/crowdstrike_init_stack.yaml
@@ -50,6 +52,7 @@ tests:
       EnableSSMDistributor: "true"
       EKSProtection: "false"
       ECRConnections: "false"
+      SSMRegions: $[taskcat_current_region]
     regions:
     - us-east-1
     template: templates/crowdstrike_init_stack.yaml
@@ -67,6 +70,9 @@ tests:
       DockerAPIToken: $[taskcat_ssm_/crowdstrike/falcon_docker_api_token]
       ECRConnections: "true"
       EnableSSMDistributor: "true"
+      EKSRegions: $[taskcat_current_region]
+      ECRRegions: $[taskcat_current_region]
+      SSMRegions: $[taskcat_current_region]
     regions:
     - us-east-1
     template: templates/crowdstrike_init_stack.yaml
