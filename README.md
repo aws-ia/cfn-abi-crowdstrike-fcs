@@ -1,3 +1,8 @@
+
+## Deprecation Notice
+
+:x: This repository is subject to deprecation on November 16th 2026. For more details, [please review this announcement](https://github.com/aws-ia/.announcements/issues/2).
+
 ![CrowdStrike Logo (Light)](https://raw.githubusercontent.com/CrowdStrike/.github/main/assets/cs-logo-light-mode.png#gh-light-mode-only)
 ![CrowdStrike Logo (Dark)](https://raw.githubusercontent.com/CrowdStrike/.github/main/assets/cs-logo-dark-mode.png#gh-dark-mode-only)
 
